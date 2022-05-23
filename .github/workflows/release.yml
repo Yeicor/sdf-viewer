@@ -81,12 +81,6 @@ jobs:
       - name: Postprocessing after build
         if: ${{ matrix.post != '' }}
         run: ${{ matrix.post }}
-      - name: Deploy static site (only for web builds)
-        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/pkg
       - name: Prepare release
         id: prepare-release
         shell: bash
@@ -113,3 +107,9 @@ jobs:
         with:
           files: ${{ steps.prepare-release.outputs.EXE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Deploy static site (only for web builds)
+        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/pkg
