@@ -40,7 +40,7 @@ jobs:
             ext: tar.gz  # After post-processing
             pre: rustup target add wasm32-unknown-unknown && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
             build: wasm-pack build --target web --out-dir ./target/pkg
-            post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm)"
+            post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm"
           # TODO: Android
 #          - os: ubuntu-latest
 #            target: android # Multiple architectures are supported
@@ -81,6 +81,11 @@ jobs:
       - name: Postprocessing after build
         if: ${{ matrix.post != '' }}
         run: ${{ matrix.post }}
+      - name: Deploy static site (only for web builds)
+        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+        uses: JamesIves/github-pages-deploy-action@v4.3.3
+        with:
+          folder: target/pkg
       - name: Prepare release
         id: prepare-release
         shell: bash
