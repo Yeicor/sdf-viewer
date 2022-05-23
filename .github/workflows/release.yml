@@ -107,9 +107,12 @@ jobs:
         with:
           files: ${{ steps.prepare-release.outputs.EXE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare static site (only for web builds)
+        run: mkdir public && cd public && tar -xzf "${{ steps.prepare-release.outputs.EXE_NAME }}"
       - name: Deploy static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
+          publish_dir: ./public
