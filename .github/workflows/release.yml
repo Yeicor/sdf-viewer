@@ -85,6 +85,7 @@ jobs:
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         uses: JamesIves/github-pages-deploy-action@v4.3.3
         with:
+          branch: gh-pages
           folder: target/pkg
       - name: Prepare release
         id: prepare-release
