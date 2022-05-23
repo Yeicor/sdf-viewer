@@ -1,0 +1,109 @@
+# Release workflow builds the release executables for all platforms and publishes them to GitHub
+name: Release builds
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write # Required to upload artifacts to releases
+
+jobs:
+  deploy-linux:
+    name: Release
+    runs-on: '${{ matrix.os }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+            pre: sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev
+          # TODO: Mac OS x86_64
+#          - os: macos-latest
+#            target: x86_64-apple-darwin
+#            pre: brew install libx11 libxi
+#            post: TODO: (pack a .dmg?)
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: exe
+          # Web (WebAssembly)
+          - os: ubuntu-latest
+            target: wasm32-unknown-unknown
+            ext: tar.gz  # After post-processing
+            pre: rustup target add wasm32-unknown-unknown
+            build: wasm-pack build --target web --out-dir ./target/pkg
+            post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm)"
+          # TODO: Android
+#          - os: ubuntu-latest
+#            target: android # Multiple architectures are supported
+#            build: docker run --rm -v $(pwd)":/root/src" -w /root/src notfl3/cargo-apk bash -c "rm -r /usr/local/cargo/registry && cargo quad-apk build --release"
+#            ext: apk
+          # TODO: iOS
+#          - os: macos-latest
+#            target: ???
+#            pre: ???
+#            build: ???
+#            post: ???
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v1.3.0
+        with:
+          key: ${{ matrix.os }}-${{ matrix.target }}
+
+      - name: Preparing for build
+        if: ${{ matrix.pre != '' }}
+        run: ${{ matrix.pre }}
+
+      - name: Release build
+        if: ${{ matrix.build == '' }}
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features --target ${{ matrix.target }}
+      - name: Release build
+        if: ${{ matrix.build != '' }}
+        run: ${{ matrix.build }}
+
+      - name: Postprocessing after build
+        if: ${{ matrix.post != '' }}
+        run: ${{ matrix.post }}
+      - name: Prepare release
+        id: prepare-release
+        shell: bash
+        run: |
+          set -ex
+          build_name="${{ matrix.build_name }}"
+          exe_name="${GITHUB_REPOSITORY#*/}-${GITHUB_REF##*/}-${{ matrix.target }}-${GITHUB_SHA:0:7}"
+          if [[ -z "$build_name" ]]; then  # Default build name: <repo-name>.<extension>
+            if [[ -z "${{ matrix.ext }}" ]]; then
+              build_name="${GITHUB_REPOSITORY#*/}"
+            else
+              build_name="${GITHUB_REPOSITORY#*/}.${{ matrix.ext }}"
+              exe_name="$exe_name.${{ matrix.ext }}"
+            fi
+          fi
+          # Make sure we own all files (for Docker)
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then sudo chown -R $(id -u):$(id -g) target; fi
+          # Find and copy the release binary
+          find target -type f -name "$build_name" -printf '%p' -exec mv {} "${exe_name}" \;
+          echo -e "\n::set-output name=EXE_NAME::${exe_name}"
+          du -h "${exe_name}"
+      - name: Publish the release build
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.prepare-release.outputs.EXE_NAME }}
+          token: ${{ secrets.GITHUB_TOKEN }}
