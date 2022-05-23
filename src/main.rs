@@ -3,6 +3,7 @@ use three_d::*;
 // Entry point for non-wasm
 #[cfg(not(target_arch = "wasm32"))]
 #[tokio::main]
+#[allow(dead_code)] // Fix for clippy
 async fn main() {
     run().await;
 }
