@@ -83,10 +83,10 @@ jobs:
         run: ${{ matrix.post }}
       - name: Deploy static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        uses: JamesIves/github-pages-deploy-action@v4.3.3
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          branch: gh-pages
-          folder: target/pkg
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/pkg
       - name: Prepare release
         id: prepare-release
         shell: bash
