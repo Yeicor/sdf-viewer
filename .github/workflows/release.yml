@@ -116,8 +116,7 @@ jobs:
         run: find public
       - name: Deploy static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        uses: peaceiris/actions-gh-pages@v3
+        uses: JamesIves/github-pages-deploy-action@v4.3.3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          publish_dir: "${{ steps.prepare-release.outputs.EXE_NAME }}"
+          branch: gh-pages
           publish_dir: public
