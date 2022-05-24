@@ -1,6 +1,6 @@
 # WIP: SDF Viewer
 
-# Building
+## Building
 
 The latest released web build is always available at https://yeicor.github.io/sdf-viewer/.
 
