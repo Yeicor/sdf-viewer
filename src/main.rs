@@ -61,46 +61,50 @@ pub async fn run() {
     let mut gui = three_d::GUI::new(&context).unwrap();
     let mut color = [1.0; 4];
     window.render_loop(move |mut frame_input| {
-        let mut panel_width = 0.0;
-        gui.update(&mut frame_input, |gui_context| {
-            use three_d::egui::*;
-            SidePanel::left("side_panel").show(gui_context, |ui| {
-                ui.heading("Debug Panel");
-                ui.add(
-                    Slider::new(&mut volume.material.threshold, 0.0..=1.0).text("Threshold"),
-                );
-                ui.color_edit_button_rgba_unmultiplied(&mut color);
-            });
-            panel_width = gui_context.used_size().x as f64;
-        })
-            .unwrap();
-        volume.material.color = Color::from_rgba_slice(&color);
-
-        let viewport = Viewport {
-            x: (panel_width * frame_input.device_pixel_ratio) as i32,
-            y: 0,
-            width: frame_input.viewport.width
-                - (panel_width * frame_input.device_pixel_ratio) as u32,
-            height: frame_input.viewport.height,
-        };
-        camera.set_viewport(viewport).unwrap();
-        control.handle_events(&mut camera, &mut frame_input.events).unwrap();
-
-        // draw
-        Screen::write(
-            &context,
-            ClearState::color_and_depth(0.2, 0.5, 0.8, 1.0, 1.0),
-            || {
-                render_pass(
-                    &camera,
-                    &[&volume],
-                    &[&ambient, &directional1, &directional2],
-                )?;
-                gui.render()?;
-                Ok(())
-            },
-        ).unwrap();
-
-        FrameOutput::default()
+        render_fn(&context, &mut camera, &mut control, &mut volume, &ambient, &directional1, &directional2, &mut gui, &mut color, &mut frame_input)
     }).unwrap();
+}
+
+fn render_fn(context: &Context, mut camera: &mut Camera, control: &mut OrbitControl, mut volume: &mut Model<IsourfaceMaterial>, ambient: &AmbientLight, directional1: &DirectionalLight, directional2: &DirectionalLight, gui: &mut GUI, mut color: &mut [f32; 4], mut frame_input: &mut FrameInput) -> FrameOutput {
+    let mut panel_width = 0.0;
+    gui.update(&mut frame_input, |gui_context| {
+        use three_d::egui::*;
+        SidePanel::left("side_panel").show(gui_context, |ui| {
+            ui.heading("Debug Panel");
+            ui.add(
+                Slider::new(&mut volume.material.threshold, 0.0..=1.0).text("Threshold"),
+            );
+            ui.color_edit_button_rgba_unmultiplied(&mut color);
+        });
+        panel_width = gui_context.used_size().x as f64;
+    })
+        .unwrap();
+    volume.material.color = Color::from_rgba_slice(&color);
+
+    let viewport = Viewport {
+        x: (panel_width * frame_input.device_pixel_ratio) as i32,
+        y: 0,
+        width: frame_input.viewport.width
+            - (panel_width * frame_input.device_pixel_ratio) as u32,
+        height: frame_input.viewport.height,
+    };
+    camera.set_viewport(viewport).unwrap();
+    control.handle_events(&mut camera, &mut frame_input.events).unwrap();
+
+    // draw
+    Screen::write(
+        &context,
+        ClearState::color_and_depth(0.2, 0.5, 0.8, 1.0, 1.0),
+        || {
+            render_pass(
+                &camera,
+                &[&volume],
+                &[&ambient, &directional1, &directional2],
+            )?;
+            gui.render()?;
+            Ok(())
+        },
+    ).unwrap();
+
+    FrameOutput::default()
 }
