@@ -110,13 +110,10 @@ jobs:
 
       - name: Prepare static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        run: mkdir public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory public && find public
-      - name: Prepare static site (only for web builds)
-        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        run: find public
+        run: mkdir /tmp/public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory /tmp/public && find /tmp/public
       - name: Deploy static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         uses: JamesIves/github-pages-deploy-action@v4.3.3
         with:
           branch: gh-pages
-          folder: public
+          folder: /tmp/public

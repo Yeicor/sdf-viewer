@@ -1,7 +1,7 @@
 # Continuous Integration only tests on linux desktop
 name: Continuous Integration
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,20 +19,26 @@ jobs:
           profile: minimal
           toolchain: stable
       - uses: Swatinem/rust-cache@v1.3.0
-      - name: Install dependencies for macroquad on Ubuntu
+      - name: Install dependencies for three-d on Ubuntu
         run: sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev
+
       - uses: actions-rs/cargo@v1
+        name: Test
         with:
           command: test
           args: --all-features --all-targets
-      - run: rustup component add rustfmt clippy
-      #      - name: Check style (fmt) # Too strict...
-      #        uses: actions-rs/cargo@v1
-      #        with:
-      #          command: fmt
-      #          args: --all -- --check
-      - name: Check style (clippy)
-        uses: actions-rs/cargo@v1
+
+      - run: rustup component add clippy # rustfmt
+      - name: Install clippy extras
+        run: cargo install clippy-sarif sarif-fmt
+      - name: Run rust-clippy
+        run:
+          cargo clippy
+          --all-features
+          --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+        continue-on-error: true
+      - name: Upload analysis results to GitHub
+        uses: github/codeql-action/upload-sarif@v1
         with:
-          command: clippy
-          args: -- -D warnings
+          sarif_file: rust-clippy-results.sarif
+          wait-for-processing: true
