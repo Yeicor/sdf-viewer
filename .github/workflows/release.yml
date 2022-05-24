@@ -110,11 +110,14 @@ jobs:
 
       - name: Prepare static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        run: mkdir public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory public && find
+        run: mkdir public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory public && find public
+      - name: Prepare static site (only for web builds)
+        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+        run: find public
       - name: Deploy static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: "${{ steps.prepare-release.outputs.EXE_NAME }}"
-#          publish_dir: public
+#          publish_dir: "${{ steps.prepare-release.outputs.EXE_NAME }}"
+          publish_dir: public
