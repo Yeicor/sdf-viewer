@@ -41,11 +41,11 @@ jobs:
             pre: rustup target add wasm32-unknown-unknown && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
             build: wasm-pack build --target web --out-dir ./target/pkg
             post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm"
-          # TODO: Android
-#          - os: ubuntu-latest
-#            target: android # Multiple architectures are supported
-#            build: docker run --rm -v $(pwd)":/root/src" -w /root/src notfl3/cargo-apk bash -c "rm -r /usr/local/cargo/registry && cargo quad-apk build --release"
-#            ext: apk
+          # Android
+          - os: ubuntu-latest
+            target: android  # Multiple architectures are supported
+            build: cargo apk build --release --lib
+            ext: apk
           # TODO: iOS
 #          - os: macos-latest
 #            target: ???
@@ -63,6 +63,10 @@ jobs:
       - uses: Swatinem/rust-cache@v1.3.0
         with:
           key: ${{ matrix.os }}-${{ matrix.target }}
+      - uses: nttld/setup-ndk@v1
+        if: ${{ matrix.target == 'android' }}
+        with:
+          ndk-version: r21e
 
       - name: Preparing for build
         if: ${{ matrix.pre != '' }}
@@ -77,6 +81,9 @@ jobs:
       - name: Release build
         if: ${{ matrix.build != '' }}
         run: ${{ matrix.build }}
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          PKG_CONFIG_SYSROOT_DIR: ${{ steps.setup-ndk.outputs.ndk-path }}/sysroot
 
       - name: Postprocessing after build
         if: ${{ matrix.post != '' }}

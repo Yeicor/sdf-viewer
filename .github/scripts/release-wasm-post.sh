@@ -22,7 +22,7 @@ cat >index.html <<EOF
     </style>
 </head>
 <body>
-<canvas id="SDF Viewer" style="position: absolute;top:0;bottom: 0;left: 0;right: 0;margin:auto;"></canvas>
+<canvas id="sdf-viewer" style="position: absolute;top:0;bottom: 0;left: 0;right: 0;margin:auto;"></canvas>
 <script type="module">
     import init from './sdf_viewer.js';
 
