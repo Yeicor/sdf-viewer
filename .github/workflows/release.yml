@@ -44,7 +44,7 @@ jobs:
           # Android
           - os: ubuntu-latest
             target: android  # Multiple architectures are supported
-            pre: cargo install cargo-apk
+            pre: rustup target add aarch64-linux-android && cargo install cargo-apk
             build: cargo apk build --release --lib
             ext: apk
           # TODO: iOS

@@ -36,7 +36,7 @@ codegen-units = 1
 label = "SDF Viewer"
 opengles_version_major = 3
 opengles_version_minor = 0
-#build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
+# TODO: build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781
