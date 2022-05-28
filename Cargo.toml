@@ -31,6 +31,7 @@ console_log = "0.2"
 [profile.release]
 lto = true
 codegen-units = 1
+strip = true
 
 [package.metadata.android]
 label = "SDF Viewer"
@@ -46,6 +47,6 @@ wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781
 # FIXME: Android builds and runs, but does not show anything to screen (no crashes!)...
 # TODO: Wait for official support (https://github.com/rust-windowing/glutin/pull/1385#issuecomment-1138894794)
 glutin = { git = "https://github.com/Yeicor/glutin" }
-arboard = { git = "https://github.com/Yeicor/arboard" }
+arboard = { git = "https://github.com/Yeicor/arboard" } # Wait for merge!
 # Update ndk-glue dependency of winit
 winit = { git = "https://github.com/rust-windowing/winit" }
