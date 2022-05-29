@@ -31,7 +31,7 @@ jobs:
           git config --global user.name "Yeicor"
           if git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
             # Move the tag to the new commit
-            git tag -f -a $VERSION
+            git tag -f -a "$VERSION" -m "$VERSION"
             git push -f --tags # Force push the tag to GitHub
             # The tag move will trigger a new workflow, so stop this one
             echo -e "\n::set-output name=CANCEL_WORKFLOW::true"
