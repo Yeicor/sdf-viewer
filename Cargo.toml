@@ -9,12 +9,17 @@ edition = "2021"
 crate-type = ["cdylib"] # Required for web (and Android...)
 
 [dependencies]
-# Three-D git is only needed for 40a6fa968381c6bdb4a7e36e7aea67a65a4b3b43
+# === RENDERING ===
+# Three-D git is only needed for 40a6fa968381c6bdb4a7e36e7aea67a65a4b3b43 (android shader fix)
 three-d = { git = "https://github.com/asny/three-d", default-features = false, features = ["canvas"] }
-log = "0.4"
-eframe = "0.18.0"
+eframe = { version = "0.18", features = ["persistence"] }
+
+# === LOGGING & PROFILING (see also native/web dependencies) ===
+tracing = "0.1"
+profiling = { version = "1.0", features = ["profile-with-tracing"] } # Provides simpler macro for functions
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies] # Native dependencies (including mobile)
+tracing-subscriber = "0.3" # For logging
 tokio = { version = "1.18", features = ["macros", "rt-multi-thread"] }
 
 [target.'cfg(target_os = "android")'.dependencies] # Android dependencies
@@ -26,7 +31,7 @@ openssl = { version = "*", features = ["vendored"] }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 console_error_panic_hook = "0.1"
-console_log = "0.2"
+tracing-wasm = "0.2"
 
 [profile.release]
 lto = true
@@ -40,7 +45,7 @@ opengles_version_minor = 0
 # TODO: build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781
+wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781 (enable this if it works for you, but it fails on CI)
 
 [patch.crates-io]
 # HACK: "small" patches to "build" and "run" for android (probably breaking stuff)
