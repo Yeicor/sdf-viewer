@@ -4,7 +4,7 @@ use eframe::egui::mutex::RwLockReadGuard;
 use tracing::warn;
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct InputTranslator {
+pub struct InputTranslator {
     last_mouse_pos: Pos2,
     scroll_abs: Pos2,
     mouse_left: bool,
@@ -12,7 +12,7 @@ pub(crate) struct InputTranslator {
 
 impl InputTranslator {
     #[profiling::function]
-    pub(crate) fn translate_input_events(&mut self, ctx: &egui::Context) -> Vec<three_d::Event> {
+    pub fn translate_input_events(&mut self, ctx: &egui::Context) -> Vec<three_d::Event> {
         let mut events = vec![];
         let rect = ctx.available_rect();
         let state = ctx.input();
