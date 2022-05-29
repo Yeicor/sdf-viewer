@@ -33,14 +33,11 @@ jobs:
             # Move the tag to the new commit
             git tag -f -a "$VERSION" -m "$VERSION"
             git push -f --tags # Force push the tag to GitHub
-            # The tag move will trigger a new workflow, so stop this one
-            echo -e "\n::set-output name=CANCEL_WORKFLOW::true"
+            # The tag move will NOT trigger a new workflow
           else
-            echo "No change to the Cargo.toml version, performing the build on the moved tag"
+            echo "No change to the Cargo.toml version (did you repeat a release tag??)"
+            exit 1
           fi
-      - name: Cancel the workflow if the tag was moved (new workflow started)
-        if: ${{ steps.auto-update.outputs.CANCEL_WORKFLOW == 'true' }}
-        uses: andymckay/cancel-action@0.2
   deploy-linux:
     name: Release
     runs-on: '${{ matrix.os }}'
