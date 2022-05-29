@@ -1,6 +1,6 @@
 [package]
 name = "sdf-viewer"
-version = "0.0.3"
+version = "0.0.6"
 authors = ["Yeicor <yeicor1212@gmail.com>"]
 license = "MIT or Apache-2.0"
 edition = "2021"
