@@ -3,7 +3,7 @@
   "collaborators": [
     "Yeicor <yeicor1212@gmail.com>"
   ],
-  "version": "0.0.0",
+  "version": "0.0.3",
   "license": "MIT or Apache-2.0",
   "files": [
     "sdf_viewer_bg.wasm",
