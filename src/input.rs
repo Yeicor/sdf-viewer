@@ -40,7 +40,7 @@ impl InputTranslator {
                         self.mouse_left = false
                     }
                     let delta = *new_pos - self.last_mouse_pos;
-                    self.last_mouse_pos = new_pos.clone();
+                    self.last_mouse_pos = *new_pos;
                     let delta = (delta.x as f64, delta.y as f64);
                     let button = if state.pointer.button_down(PointerButton::Primary) {
                         Some(three_d::MouseButton::Left)

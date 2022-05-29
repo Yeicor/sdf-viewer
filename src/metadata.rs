@@ -3,6 +3,7 @@ use tracing::info;
 
 shadow!(build);
 
+#[allow(dead_code)] // Allow auto-generated code containing unused build metadata
 pub(crate) fn log_version_info() {
     info!("{} {} ({}@{}{})", build::PROJECT_NAME, build::PKG_VERSION, build::BRANCH, build::SHORT_COMMIT,
         if shadow_rs::git_clean() {""} else {"+dirty"});

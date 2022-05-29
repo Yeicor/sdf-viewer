@@ -32,7 +32,7 @@ impl SDFViewerApp {
         // Default to dark mode if no theme is provided by the OS (or environment variables)
         if (cc.integration_info.prefer_dark_mode == Some(false) ||
             std::env::var("sdf_viewer_light_theme").is_ok()) &&
-            !std::env::var("sdf_viewer_dark_theme").is_ok() { // TODO: Save & restore theme settings
+            std::env::var("sdf_viewer_dark_theme").is_err() { // TODO: Save & restore theme settings
             cc.egui_ctx.set_visuals(egui::Visuals::light());
         } else {
             cc.egui_ctx.set_visuals(egui::Visuals::dark());
