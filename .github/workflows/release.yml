@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - run: |
-          export VERSION=${{ github.event.release.tag_name }} 
+          export VERSION="${GITHUB_REF##*/}"
           sed -i "s/^version = \"[^\"]*\"$/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
           cargo publish --dry-run --allow-dirty
       - uses: EndBug/add-and-commit@v9
