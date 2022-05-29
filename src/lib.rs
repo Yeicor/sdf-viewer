@@ -1,10 +1,10 @@
-// Entry point for wasm
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 mod app;
 mod input;
 mod metadata;
+mod native;
 
 // === Entry point for web ===
 #[cfg(target_arch = "wasm32")]
@@ -22,6 +22,6 @@ pub async fn start() -> Result<(), JsValue> {
 #[cfg(target_os = "android")]
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "full"))] // TODO: , logger(level = "debug", tag = "rust.sdf-viewer")
 // #[tokio::main] // Not compatible with eframe :(
-pub fn main() {
-    crate::main();
+fn main() {
+    native::main();
 }
