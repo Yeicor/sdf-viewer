@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - run: |
-          git switch - (HEAD)
+          git switch -
           export VERSION="${GITHUB_REF##*/}"
           sed -E -i "s/^version = \"[0-9]+(\.[0-9]+){1,2}\"/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
           cargo tree  # Check that we did not break the Cargo.toml
