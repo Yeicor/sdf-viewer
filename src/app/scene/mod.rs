@@ -1,9 +1,11 @@
 use eframe::{egui, Frame};
 use three_d::*;
 
-
 use crate::app::SDFViewerApp;
 use crate::input::InputTranslator;
+
+pub mod sdf;
+// TODO: Custom skybox/background/loading-external-gltf-to-compare module
 
 /// Renders the main 3D scene, containing the SDF object
 pub struct SDFViewerAppScene {
@@ -44,7 +46,7 @@ impl SDFViewerAppScene {
         // Source: https://web.cs.ucdavis.edu/~okreylos/PhDStudies/Spring2000/ECS277/DataSets.html
         // TODO: SDF infrastructure (webserver and file drag&drop)
         let mut loaded = Loaded::default();
-        loaded.insert_bytes("", include_bytes!("../../assets/Skull.vol").to_vec());
+        loaded.insert_bytes("", include_bytes!("../../../assets/Skull.vol").to_vec());
         let cpu_volume = loaded.vol("").unwrap();
         let mut volume = Model::new_with_material(
             &ctx,
@@ -102,6 +104,7 @@ impl SDFViewerAppScene {
         // Handle inputs
         let mut events = self.input_translator.translate_input_events(egui_ctx);
         // TODO: HACK: Swap left and right click for the camera controls
+        // TODO: Allow for camera movements
         self.camera_ctrl.handle_events(&mut self.camera, &mut events).unwrap();
         // Collect lights
         let mut lights = self.lights_dir.iter().map(|e| e as &dyn Light).collect::<Vec<&dyn Light>>();
