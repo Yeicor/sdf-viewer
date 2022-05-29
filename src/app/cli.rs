@@ -1,20 +1,44 @@
-// TODO: Clap
-// TODO: Web: read arguments from GET parameters
+use std::path::PathBuf;
 
-// use clap::Parser;
-//
-// /// SDF Viewer application (https://github.com/Yeicor/sdf-viewer)
-// #[derive(Parser, Debug)]
-// #[clap(author, version, about, long_about = None)]
-// struct Args {
-//     /// Path to the SDF file
-//     #[clap(short, long, parse(from_os_str))]
-//     path: std::path::PathBuf,
-// }
-//
-// impl Args {
-//     /// Apply the initial configuration to the application
-//     pub fn apply(&self, to: &mut super::SDFViewerApp) {
-//
-//     }
-// }
+use clap::Parser;
+use reqwest::Url;
+
+use crate::app::SDFViewerApp;
+
+#[derive(clap::Parser, Debug)]
+pub struct CliApp {
+    #[clap(subcommand)]
+    pub watch: CliAppWatch,
+}
+
+#[derive(Parser, Debug)]
+pub enum CliAppWatch {
+    /// Display a WebAssembly file directly, listening for changes in the filesystem.
+    /// Only works on native environments: for web (or all others) use the url mode
+    // Could be simplified to automatic URL detection, but this is more explicit
+    File(CliAppWatchFile),
+    /// Display a WebAssembly file downloaded from the given URL, which listens for changes if ?wait=true is added.
+    /// Works on all environments: requires the server command running (and watching the wasm file)
+    Url(CliAppWatchUrl),
+}
+
+#[derive(Parser, Debug)]
+pub struct CliAppWatchFile {
+    /// The file to watch for changes and display
+    #[clap(parse(from_os_str))]
+    pub file: PathBuf,
+}
+
+#[derive(Parser, Debug)]
+pub struct CliAppWatchUrl {
+    /// The url to watch for changes and display
+    #[clap(parse(try_from_str))]
+    pub file: Url,
+}
+
+impl CliApp {
+    /// Sets up a new instance of the application.
+    pub fn init(&self, _app: &mut SDFViewerApp) {
+        // TODO
+    }
+}

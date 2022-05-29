@@ -7,11 +7,11 @@ use eframe::egui::ScrollArea;
 use eframe::egui::util::hash;
 use three_d::*;
 use tracing::info;
-use crate::metadata::log_version_info;
 
 use crate::input::InputTranslator;
+use crate::metadata::log_version_info;
 
-mod cli;
+pub mod cli;
 
 pub struct SDFViewerApp {
     input_translator: InputTranslator,

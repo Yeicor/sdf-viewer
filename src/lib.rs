@@ -4,7 +4,8 @@ use wasm_bindgen::prelude::*;
 mod app;
 mod input;
 mod metadata;
-mod native;
+mod run;
+mod cli;
 
 // === Entry point for web ===
 #[cfg(target_arch = "wasm32")]
@@ -14,7 +15,9 @@ pub async fn start() -> Result<(), JsValue> {
     tracing_wasm::set_as_global_default();
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
-    eframe::start_web(env!("CARGO_PKG_NAME"), Box::new(|cc| Box::new(app::SDFViewerApp::new(cc))))?;
+    if let Some(app_creator) = run::setup_app() {
+        eframe::start_web(env!("CARGO_PKG_NAME"), app_creator)?;
+    }
     Ok(())
 }
 
@@ -23,5 +26,5 @@ pub async fn start() -> Result<(), JsValue> {
 #[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "full"))] // TODO: , logger(level = "debug", tag = "rust.sdf-viewer")
 // #[tokio::main] // Not compatible with eframe :(
 fn main() {
-    native::main();
+    run::native_main();
 }

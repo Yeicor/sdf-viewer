@@ -19,8 +19,11 @@ eframe = { version = "0.18", features = ["persistence"] }
 tracing = "0.1"
 profiling = { version = "1.0", features = ["profile-with-tracing"] } # Provides simpler macro for functions
 
+# === NETWORK ===
+reqwest = "0.11"
+
 # === CONFIGURATION & CLI ===
-clap = "3.1"
+clap = { version = "3.1", features = ["derive"] }
 shadow-rs = { version = "0.11", default-features = false } # Web does not support the git2 optional dependency, which is unnecessary
 
 # === NATIVE (desktop & mobile) ===
@@ -37,6 +40,7 @@ openssl = { version = "*", features = ["vendored"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies] # Web dependencies
 wasm-bindgen = "0.2" # Core bindings
 wasm-bindgen-futures = "0.4" # Core bindings
+web-sys = "0.3" # Core bindings
 tracing-wasm = "0.2" # For logging
 console_error_panic_hook = "0.1" # For logging
 
