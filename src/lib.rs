@@ -4,6 +4,7 @@ use wasm_bindgen::prelude::*;
 
 mod app;
 mod input;
+mod metadata;
 
 // === Entry point for web ===
 #[cfg(target_arch = "wasm32")]

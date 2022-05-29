@@ -10,9 +10,24 @@ env:
   CARGO_TERM_COLOR: always
 
 permissions:
-  contents: write # Required to upload artifacts to releases
+  contents: write # Required to upload artifacts to releases (and pushing the version update)
 
 jobs:
+  update-cargo-version:
+    name: Update the version in Cargo.toml
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - run: |
+          export VERSION=${{ github.event.release.tag_name }} 
+          sed -i "s/^version = \"[^\"]*\"$/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
+          cargo publish --dry-run --allow-dirty
+      - uses: EndBug/add-and-commit@v9
+      - name: action-push
+        uses: ludeeus/action-push@0.0.1
+        with:
+          ACTION_MESSAGE: "Update Cargo.toml to $VERSION (automatic)"
   deploy-linux:
     name: Release
     runs-on: '${{ matrix.os }}'

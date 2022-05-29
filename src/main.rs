@@ -1,5 +1,6 @@
 mod app;
 mod input;
+mod metadata;
 
 // === Entry point for desktop ===
 #[cfg(not(any(target_arch = "wasm32")))]

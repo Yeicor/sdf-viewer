@@ -18,6 +18,7 @@ cat >index.html <<EOF
     <style>
         body {
             margin: 0;
+            overflow: hidden;
         }
     </style>
 </head>

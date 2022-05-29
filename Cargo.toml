@@ -1,6 +1,6 @@
 [package]
 name = "sdf-viewer"
-version = "0.0.1"
+version = "0.0.0"
 authors = ["Yeicor <yeicor1212@gmail.com>"]
 license = "MIT or Apache-2.0"
 edition = "2021"
@@ -8,6 +8,7 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"] # Required for web (and Android...)
 
+# ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
 # Three-D git is only needed for 40a6fa968381c6bdb4a7e36e7aea67a65a4b3b43 (android shader fix)
@@ -18,21 +19,32 @@ eframe = { version = "0.18", features = ["persistence"] }
 tracing = "0.1"
 profiling = { version = "1.0", features = ["profile-with-tracing"] } # Provides simpler macro for functions
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies] # Native dependencies (including mobile)
-tracing-subscriber = "0.3" # For logging
-tokio = { version = "1.18", features = ["macros", "rt-multi-thread"] }
+# === CONFIGURATION & CLI ===
+clap = "3.1"
+shadow-rs = { version = "0.11", default-features = false } # Web does not support the git2 optional dependency, which is unnecessary
 
+# === NATIVE (desktop & mobile) ===
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tracing-subscriber = "0.3" # For logging
+
+# === ANDROID ===
 [target.'cfg(target_os = "android")'.dependencies] # Android dependencies
-ndk-glue = "0.6"
-# HACK: force-enable vendored OpenSSL sources for android builds (keep version in sync?)
+ndk-glue = "0.6" # Core bindings
+# HACK: force-enable vendored OpenSSL sources for android builds
 openssl = { version = "*", features = ["vendored"] }
 
+# === WEB ===
 [target.'cfg(target_arch = "wasm32")'.dependencies] # Web dependencies
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4"
-console_error_panic_hook = "0.1"
-tracing-wasm = "0.2"
+wasm-bindgen = "0.2" # Core bindings
+wasm-bindgen-futures = "0.4" # Core bindings
+tracing-wasm = "0.2" # For logging
+console_error_panic_hook = "0.1" # For logging
 
+# === BUILD ===
+[build-dependencies]
+shadow-rs = "0.11"
+
+# ========== RELEASE CONFIGURATION ==========
 [profile.release]
 lto = true
 codegen-units = 1
@@ -47,6 +59,7 @@ opengles_version_minor = 0
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781 (enable this if it works for you, but it fails on CI)
 
+# ========== PATCHES/HACKs ==========
 [patch.crates-io]
 # HACK: "small" patches to "build" and "run" for android (probably breaking stuff)
 # FIXME: Android builds and runs, but does not show anything to screen (no crashes!)...

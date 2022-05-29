@@ -1,7 +1,7 @@
 use eframe::egui;
 use eframe::egui::{InputState, PointerButton, Pos2, Rect, Vec2};
 use eframe::egui::mutex::RwLockReadGuard;
-use tracing::{info, warn};
+use tracing::warn;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct InputTranslator {

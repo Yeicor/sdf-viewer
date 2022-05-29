@@ -7,8 +7,11 @@ use eframe::egui::ScrollArea;
 use eframe::egui::util::hash;
 use three_d::*;
 use tracing::info;
+use crate::metadata::log_version_info;
 
 use crate::input::InputTranslator;
+
+mod cli;
 
 pub struct SDFViewerApp {
     input_translator: InputTranslator,
@@ -23,8 +26,8 @@ pub struct SDFViewerApp {
 impl SDFViewerApp {
     #[profiling::function]
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // Test logging
-        info!("Initializing app...");
+        // Test logging and provide useful information
+        log_version_info();
 
         // Default to dark mode if no theme is provided by the OS (or environment variables)
         if (cc.integration_info.prefer_dark_mode == Some(false) ||
@@ -54,7 +57,7 @@ impl SDFViewerApp {
         // Source: https://web.cs.ucdavis.edu/~okreylos/PhDStudies/Spring2000/ECS277/DataSets.html
         // TODO: SDF infrastructure (webserver and file drag&drop)
         let mut loaded = Loaded::default();
-        loaded.insert_bytes("", include_bytes!("../assets/Skull.vol").to_vec());
+        loaded.insert_bytes("", include_bytes!("../../assets/Skull.vol").to_vec());
         let cpu_volume = loaded.vol("").unwrap();
         let mut volume = Model::new_with_material(
             &three_d_ctx,
