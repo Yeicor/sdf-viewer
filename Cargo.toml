@@ -11,8 +11,8 @@ crate-type = ["cdylib"] # Required for web (and Android...)
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-# Three-D git is only needed for 40a6fa968381c6bdb4a7e36e7aea67a65a4b3b43 (android shader fix)
-three-d = { git = "https://github.com/asny/three-d", default-features = false, features = ["canvas"] }
+three-d = { git = "https://github.com/asny/three-d", rev = "fd942d6404a49f3504a08512c11495ac2e1e4fd0", default-features = false, features = ["obj-io"] }
+three-d-asset = "0.1.0"
 eframe = { version = "0.18", features = ["persistence"] }
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
