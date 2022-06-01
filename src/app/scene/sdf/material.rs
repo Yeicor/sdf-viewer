@@ -1,4 +1,4 @@
-use three_d::{Camera, Color, Light, LightingModel, Material, RenderStates, Texture3D, ThreeDResult, Vec3};
+use three_d::{Camera, Color, Light, Material, RenderStates, Texture3D, ThreeDResult, Vec3};
 use three_d::core::Program;
 
 /// The material properties used for the shader that renders the SDF.

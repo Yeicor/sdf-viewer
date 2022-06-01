@@ -1,5 +1,5 @@
-use three_d::{Camera, CpuTexture3D, Light, Mat4, Material, Matrix4, RenderStates, ThreeDResult, Vector3};
-use three_d::core::Program;
+use three_d::{CpuTexture3D, Mat4};
+
 use material::SDFViewerMaterial;
 
 pub mod material;
