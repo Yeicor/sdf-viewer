@@ -67,7 +67,6 @@ impl CameraController {
                 let distance = pos.distance(target);
                 let delta = state.scroll_delta.y * self.sensitivity * 0.005 * distance;
                 let new_distance = (distance - delta).max(0.01).min(1000.0);
-                println!("{:?} -> {:?}", distance, new_distance);
                 let new_position = target - self.camera.view_direction() * new_distance;
                 let up = *self.camera.up();
                 self.camera.set_view(new_position, target, up).unwrap();
