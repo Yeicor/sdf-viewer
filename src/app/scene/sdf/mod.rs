@@ -60,7 +60,7 @@ impl SDFViewer {
         };
         let mesh = Mesh::new(ctx, &cube_with_bounds(bb)).unwrap();
         let material = SDFViewerMaterial::new(
-            Texture3D::new(ctx, &texture).unwrap());
+            Texture3D::new(ctx, &texture).unwrap(), *bb);
         let volume = Gm::new(mesh, material);
         Self { texture, volume, interlacing_mgr: InterlacingManager::new(voxels) }
     }
@@ -81,14 +81,14 @@ impl SDFViewer {
         let mut modified = false;
         let sdf_bb = sdf.bounding_box();
         let sdf_bb_size = sdf_bb[1] - sdf_bb[0];
-        let texture_size = Vector3::new(self.texture.width as f32, self.texture.height as f32, self.texture.depth as f32);
+        let texture_size_minus_1 = Vector3::new(self.texture.width as f32 - 1., self.texture.height as f32 - 1., self.texture.depth as f32 - 1.);
         let start_time = instant::Instant::now();
         while first || start_time.elapsed() < max_delta_time {
             first = false;
             if let Some(next_index) = self.interlacing_mgr.next() {
                 modified = true;
                 let mut next_point = Vector3::new(next_index.x as f32, next_index.y as f32, next_index.z as f32);
-                next_point.div_assign_element_wise(texture_size);
+                next_point.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
                 next_point.mul_assign_element_wise(sdf_bb_size);
                 next_point.add_assign(sdf_bb[0]);
                 match &mut self.texture.data {

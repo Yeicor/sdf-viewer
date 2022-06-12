@@ -1,6 +1,9 @@
 use std::time::Duration;
+
 use eframe::{egui, Frame};
+use instant::Instant;
 use three_d::*;
+use tracing::info;
 
 use camera::CameraController;
 
@@ -49,11 +52,14 @@ impl SDFViewerAppScene {
         // Source: https://web.cs.ucdavis.edu/~okreylos/PhDStudies/Spring2000/ECS277/DataSets.html
         // TODO: SDF infrastructure (webserver and file drag&drop)
         let sdf = Box::new(SDFDemo {});
-        let mut sdf_renderer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(10));
+        let mut sdf_renderer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(25));
+        let load_start_cpu = Instant::now();
         sdf_renderer.update(&sdf, Duration::from_secs(3600), false);
+        let load_start_gpu = Instant::now();
         sdf_renderer.commit();
-        // sdf_renderer.volume.material.color = Color::new(25, 125, 25, 255);
-        // TODO: sdf_renderer.volume.set_transformation(Mat4::from_translation(Vector3::new(-0.5, -0.5, -0.5)));
+        info!("Loaded SDF in {:?} (CPU) + {:?} (GPU)", load_start_cpu.elapsed(), load_start_gpu.elapsed());
+        sdf_renderer.volume.material.color = Color::GREEN;
+        // sdf_renderer.volume.set_transformation(Mat4::from_translation(Vector3::new(-0.5, -0.5, -0.5)));
         // TODO: Scale transform!
         // TODO(optional): Test rotation transform
 

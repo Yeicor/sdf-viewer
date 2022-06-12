@@ -21,12 +21,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: 'master' # HACK: Should be the tag, but we are making a push to master
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v1.3.0
       - name: Auto-update Cargo.toml and move the release tag
         id: auto-update
         run: |
           export VERSION="${GITHUB_REF##*/}"
           sed -E -i "s/^version = \"[0-9]+(\.[0-9]+){1,2}\"/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
-          # cargo tree  # Check that we did not break the Cargo.toml
+          cargo tree  # Check that we did not break the Cargo.toml (also updates Cargo.lock)
           git config --global user.email "yeicor@users.noreply.github.com"
           git config --global user.name "Yeicor"
           if git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
