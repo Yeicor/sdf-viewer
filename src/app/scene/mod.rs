@@ -14,7 +14,7 @@ pub mod camera;
 pub struct SDFViewerAppScene {
     // === CONTEXT ===
     /// The 3D rendering context of the library we use to render the scene
-    pub ctx: three_d::Context,
+    pub ctx: Context,
     // === SDF ===
     // TODO: The SDF object (reference to server/file...) to render
     pub volume: Gm<Mesh, IsosurfaceMaterial>,
@@ -29,7 +29,7 @@ pub struct SDFViewerAppScene {
 }
 
 impl SDFViewerAppScene {
-    pub fn new(ctx: three_d::Context) -> Self {
+    pub fn new(ctx: Context) -> Self {
         let camera = Camera::new_perspective(
             &ctx,
             Viewport { x: 0, y: 0, width: 0, height: 0 }, // Updated at runtime
@@ -48,7 +48,7 @@ impl SDFViewerAppScene {
         let volume_mesh = Mesh::new(&ctx, &CpuMesh::cube()).unwrap();
         let mut volume = Gm::new(volume_mesh, IsosurfaceMaterial {
             // FIXME: Do NOT clip cube's inside triangles (or render inverted cube) to render the surface while inside
-            // TODO: Variable cube size same as SDF's bounding box
+            // TODO: Variable cube size same as the bounding box
             // FIXME: HACK: Use gl_FragDepth to interact with other objects of the scene
             // FIXME: Cube seams visible from far away?
             voxels: std::rc::Rc::new(Texture3D::new(&ctx, &cpu_volume.voxels).unwrap()),

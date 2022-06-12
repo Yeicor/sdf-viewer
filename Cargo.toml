@@ -11,7 +11,7 @@ crate-type = ["cdylib"] # Required for web (and Android...)
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { git = "https://github.com/asny/three-d", rev = "fd942d6404a49f3504a08512c11495ac2e1e4fd0", default-features = false, features = ["obj-io"] }
+three-d = { version = "0.12.1", default-features = false, features = ["obj-io"] }
 three-d-asset = "0.1.0"
 eframe = { version = "0.18", features = ["persistence"] }
 
