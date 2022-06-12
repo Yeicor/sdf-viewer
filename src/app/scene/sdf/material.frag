@@ -1,59 +1,76 @@
-
 uniform vec3 cameraPosition;
-uniform vec4 surfaceColor;
-uniform sampler3D tex;
-uniform vec3 size;
-uniform float threshold;
-uniform vec3 h;
+uniform vec4 surfaceColorTint;
 
-in vec3 pos;
+uniform sampler3D sdfTex;
+uniform vec3 sdfTexInvSize;
+// TODO: uniform uint sdfLevelOfDetail;
+uniform float sdfThreshold;
+
+in vec3 pos;// Geometry hit position. The original mesh (before transformation) must be a cube from (0,0,0) to (1,1,1).
+in mat4 modelMatrix;// Geometry matrix.
 
 layout (location = 0) out vec4 outColor;
 
-vec3 estimate_normal(vec3 uvw) {
-    float x = texture(tex, uvw + vec3(h.x, 0.0, 0.0)).r - texture(tex, uvw - vec3(h.x, 0.0, 0.0)).r;
-    float y = texture(tex, uvw + vec3(0.0, h.y, 0.0)).r - texture(tex, uvw - vec3(0.0, h.y, 0.0)).r;
-    float z = texture(tex, uvw + vec3(0.0, 0.0, h.z)).r - texture(tex, uvw - vec3(0.0, 0.0, h.z)).r;
-    return -normalize(vec3(x, y, z) / (2.0 * h));
+// TODO: Variable cube size same as the bounding box
+// FIXME: HACK: Use gl_FragDepth to interact with other objects of the scene
+// FIXME: Cube seams visible from far away (on web only)?
+
+/// Evaluate the SDF at the given position. The position must be in the range ([0, 1], [0, 1], [0, 1]).
+float sdfDist(vec3 p) {
+    return texture(sdfTex, p).r - sdfThreshold;
+}
+
+vec3 sdfNormal(vec3 p) {
+    float x = sdfDist(p + vec3(sdfTexInvSize.x, 0.0, 0.0)) - sdfDist(p - vec3(sdfTexInvSize.x, 0.0, 0.0));
+    float y = sdfDist(p + vec3(0.0, sdfTexInvSize.y, 0.0)) - sdfDist(p - vec3(0.0, sdfTexInvSize.y, 0.0));
+    float z = sdfDist(p + vec3(0.0, 0.0, sdfTexInvSize.z)) - sdfDist(p - vec3(0.0, 0.0, sdfTexInvSize.z));
+    return -normalize(vec3(x, y, z));
 }
 
 void main() {
     int steps = 200;
+
+    // The ray origin in world space.
+    vec3 rayPos = cameraPosition;
+    // The ray direction in world space is given by the camera implementation.
     vec3 rayDir = normalize(pos - cameraPosition);
-    // Start the ray from the camera position by default
-    const float minDistFromCamera = 0.2;
-    vec3 rayPos = cameraPosition + minDistFromCamera * rayDir;
-    float stepSize = length(size) / float(steps);
-    vec3 step = rayDir * stepSize;
+    // Start the ray from the camera position by default (optimization: start from bounds if outside).
+    const float minDistFromCamera = 0.001;
+    rayPos += minDistFromCamera * rayDir;
+
+    // The ray is casted until it hits the surface or the maximum number of steps is reached.
     for (int i = 0; i < 200; i++) {
+        // Stop condition: out of steps
         if (i == steps-1) {
-            // Out of steps: transparent
-            outColor = vec4(0.0, 0.0, 0.0, 0.0);
+            outColor = vec4(0.0, 0.0, 0.0, 0.0);// transparent
             break;
         }
-        if (rayPos.x < -0.501*size.x || rayPos.y < -0.501*size.y || rayPos.z < -0.501*size.z ||
-        rayPos.x > 0.501*size.x || rayPos.y > 0.501*size.y || rayPos.z > 0.501*size.z) {
-            // Out of bounds
+        vec3 rayPosSdfTexSpace = rayPos;
+        // Stop condition: out of bounds
+        if (rayPosSdfTexSpace.x < 0.0 || rayPosSdfTexSpace.y < 0.0 || rayPosSdfTexSpace.z < 0.0 ||
+        rayPosSdfTexSpace.x > 1.0 || rayPosSdfTexSpace.y > 1.0 || rayPosSdfTexSpace.z > 1.0) {
             if (i == 0) {
-                // Use the contact point on the box as the starting point
-                rayPos = pos;
+                // Use the contact point on the box as the starting point (in world space)
+                const float minDistFromBounds = 0.00001;
+                rayPos = pos + minDistFromBounds * rayDir;
             } else {
-                // Debug the number of steps:
-                //outColor = vec4(0.0, float(i)/float(steps), 0.0, 1.0);
+                // Debug the number of steps: will break rendering order
+                //                outColor = vec4(float(i)/float(steps), 0.0, 0.0, 0.25);
                 outColor = vec4(0.0, 0.0, 0.0, 0.0);
                 break;
             }
         }
-        vec3 uvw = (rayPos / size) + 0.5;
-        float surfaceDensity = texture(tex, uvw).r - threshold;
-        if (surfaceDensity >= 0) { // We hit the surface
-            vec3 normal = estimate_normal(uvw);
-            outColor.rgb = calculate_lighting(cameraPosition, surfaceColor.rgb, rayPos, normal, metallic, roughness, 1.0);
+        // The SDF is evaluated at the current ray position.
+        //        vec3 uvw = (rayPos / texSize) + 0.5;
+        float surfaceDistance = sdfDist(rayPosSdfTexSpace);
+        if (surfaceDistance <= 0) { // We hit the surface
+            vec3 normal = sdfNormal(rayPosSdfTexSpace);
+            outColor.rgb = calculate_lighting(cameraPosition, surfaceColorTint.rgb, rayPos, normal, 0.5, 0.5, 1.0);
             outColor.rgb = reinhard_tone_mapping(outColor.rgb);
             outColor.rgb = srgb_from_rgb(outColor.rgb);
-            outColor.a = surfaceColor.a;
+            outColor.a = surfaceColorTint.a;
             break;
         }
-        rayPos += step;
+        rayPos += rayDir * surfaceDistance;
     }
 }

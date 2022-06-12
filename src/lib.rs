@@ -1,11 +1,14 @@
+extern crate core;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-mod app;
-mod input;
-mod metadata;
-mod run;
-mod cli;
+pub mod app;
+pub mod input;
+pub mod metadata;
+pub mod run;
+pub mod cli;
+pub mod sdf;
 
 // === Entry point for web ===
 #[cfg(target_arch = "wasm32")]

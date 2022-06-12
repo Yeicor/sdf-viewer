@@ -1,9 +1,10 @@
 
-mod app;
-mod input;
-mod metadata;
-mod run;
-mod cli;
+pub mod app;
+pub mod input;
+pub mod metadata;
+pub mod run;
+pub mod cli;
+pub mod sdf;
 
 // === Entry point for desktop ===
 #[cfg(not(any(target_arch = "wasm32")))]

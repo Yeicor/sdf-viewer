@@ -106,6 +106,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "auto_impl"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a8c1df849285fbacd587de7818cc7d13be6cd2cbcd47a04fb1801b0e2706e33"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2011,9 +2023,12 @@ dependencies = [
 name = "sdf-viewer"
 version = "0.0.9"
 dependencies = [
+ "auto_impl",
+ "cgmath",
  "clap",
  "console_error_panic_hook",
  "eframe",
+ "instant",
  "ndk-glue",
  "openssl",
  "profiling",

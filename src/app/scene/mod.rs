@@ -1,10 +1,16 @@
+use std::time::Duration;
+
 use eframe::{egui, Frame};
 use three_d::*;
-use three_d_asset::VoxelGrid;
+
 
 use camera::CameraController;
 
+
+use crate::app::scene::sdf::SDFViewer;
 use crate::app::SDFViewerApp;
+use crate::sdf::demo::SDFDemo;
+use crate::sdf::SDFSurface;
 
 pub mod sdf;
 pub mod camera;
@@ -16,8 +22,10 @@ pub struct SDFViewerAppScene {
     /// The 3D rendering context of the library we use to render the scene
     pub ctx: Context,
     // === SDF ===
-    // TODO: The SDF object (reference to server/file...) to render
-    pub volume: Gm<Mesh, IsosurfaceMaterial>,
+    /// The CPU-side definition of the SDF object to render (infinite precision)
+    pub sdf: Box<dyn SDFSurface>,
+    /// The controller that helps manage and synchronize the GPU material with the CPU SDF.
+    pub surface: SDFViewer,
     // === CAMERA ===
     /// The 3D perspective camera
     pub camera: CameraController,
@@ -43,28 +51,14 @@ impl SDFViewerAppScene {
 
         // Source: https://web.cs.ucdavis.edu/~okreylos/PhDStudies/Spring2000/ECS277/DataSets.html
         // TODO: SDF infrastructure (webserver and file drag&drop)
-        let mut cpu_volume = VoxelGrid::default();
-        cpu_volume.voxels.data = TextureData::RU8(vec![255u8]);
-        let volume_mesh = Mesh::new(&ctx, &CpuMesh::cube()).unwrap();
-        let mut volume = Gm::new(volume_mesh, IsosurfaceMaterial {
-            // FIXME: Do NOT clip cube's inside triangles (or render inverted cube) to render the surface while inside
-            // TODO: Variable cube size same as the bounding box
-            // FIXME: HACK: Use gl_FragDepth to interact with other objects of the scene
-            // FIXME: Cube seams visible from far away?
-            voxels: std::rc::Rc::new(Texture3D::new(&ctx, &cpu_volume.voxels).unwrap()),
-            lighting_model: LightingModel::Blinn,
-            size: cpu_volume.size,
-            threshold: 0.15,
-            color: Color::WHITE,
-            roughness: 1.0,
-            metallic: 0.0,
-        });
-        volume.material.color = Color::new(25, 125, 25, 255);
-        volume.set_transformation(Mat4::from_nonuniform_scale(
-            0.5 * cpu_volume.size.x,
-            0.5 * cpu_volume.size.y,
-            0.5 * cpu_volume.size.z,
-        ));
+        let sdf = Box::new(SDFDemo {});
+        let mut sdf_renderer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(10));
+        sdf_renderer.update(&sdf, Duration::from_secs(3600), false);
+        sdf_renderer.commit();
+        // sdf_renderer.volume.material.color = Color::new(25, 125, 25, 255);
+        // TODO: sdf_renderer.volume.set_transformation(Mat4::from_translation(Vector3::new(-0.5, -0.5, -0.5)));
+        // TODO: Scale transform!
+        // TODO(optional): Test rotation transform
 
         let ambient = AmbientLight::new(&ctx, 0.4, Color::WHITE).unwrap();
         let directional1 =
@@ -75,7 +69,8 @@ impl SDFViewerAppScene {
         Self {
             ctx,
             camera: CameraController::new(camera),
-            volume,
+            sdf,
+            surface: sdf_renderer,
             light_ambient: ambient,
             lights_dir: vec![directional1, directional2],
         }
@@ -103,6 +98,6 @@ impl SDFViewerAppScene {
             bg_color.b() as f32 / 255., 1.0, 1.0)).unwrap();
         // Now render the main scene
         screen.render_partially(ScissorBox::from(viewport), &self.camera.camera,
-                                &[&self.volume], lights.as_slice()).unwrap();
+                                &[&self.surface.volume], lights.as_slice()).unwrap();
     }
 }
