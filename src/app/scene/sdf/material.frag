@@ -21,7 +21,7 @@ float sdfDist(vec3 p) {
 }
 
 vec3 sdfNormal(vec3 p) {
-    const float eps = 0.0001;// FIXME: Normals at inside-volume bounds (worth the extra performance hit?)
+    const float eps = 0.001;// FIXME: Normals at inside-volume bounds (worth the extra performance hit?)
     // TODO(performance): Tetrahedron based normal calculation.
     float x = sdfDist(p + vec3(eps, 0.0, 0.0)) - sdfDist(p - vec3(eps, 0.0, 0.0));
     float y = sdfDist(p + vec3(0.0, eps, 0.0)) - sdfDist(p - vec3(0.0, eps, 0.0));

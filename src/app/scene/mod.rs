@@ -56,7 +56,7 @@ impl SDFViewerAppScene {
         // Create the SDF loader and viewer
         // TODO: SDF infrastructure (webserver and file drag&drop)
         let sdf = Box::new(SDFDemo {});
-        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(250));
+        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(64));
         sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
 
         // Load the scene
@@ -91,7 +91,7 @@ impl SDFViewerAppScene {
         // Update camera
         let viewport = self.camera.update(egui_ctx);
 
-        // Load more of the SDF to the GPU in real-time (if needed)
+        // Load more of the SDF to the GPU in realtime (if needed)
         let load_start_cpu = Instant::now();
         let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30), false);
         if cpu_updates > 0 {
