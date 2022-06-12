@@ -11,8 +11,8 @@ impl SDFSurface for SDFDemo {
     }
 
     fn sample(&self, p: Vector3<f32>, _distance_only: bool) -> SdfSample {
-        let dist_box = p.x.abs().max(p.y.abs()).max(p.z.abs()) - 0.99;
-        let dist_sphere = p.distance(Vector3::zero()) - 0.99;
+        let dist_box = p.x.abs().max(p.y.abs()).max(p.z.abs()) - 0.95;
+        let dist_sphere = p.distance(Vector3::zero()) - 1.15;
         SdfSample::new(dist_box.max(-dist_sphere))
     }
 }

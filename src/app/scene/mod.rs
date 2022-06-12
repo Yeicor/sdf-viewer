@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::time::Duration;
 
 use eframe::{egui, Frame};
@@ -25,19 +26,22 @@ pub struct SDFViewerAppScene {
     /// The CPU-side definition of the SDF object to render (infinite precision)
     pub sdf: Box<dyn SDFSurface>,
     /// The controller that helps manage and synchronize the GPU material with the CPU SDF.
-    pub surface: SDFViewer,
+    pub sdf_viewer: SDFViewer,
+    /// When we last updated the GPU texture of the SDF
+    pub sdf_viewer_last_commit: Option<Instant>,
     // === CAMERA ===
     /// The 3D perspective camera
     pub camera: CameraController,
     // === ENVIRONMENT ===
-    /// The ambient light of the scene (hits everything, in all directions)
-    pub light_ambient: AmbientLight,
-    /// The directional lights of the scene
-    pub lights_dir: Vec<DirectionalLight>,
+    /// The full list of lights of the scene
+    pub lights: Vec<Box<dyn Light>>,
+    /// The full list of objects of the scene (including the SDF)
+    pub objects: Vec<Box<dyn Object>>,
 }
 
 impl SDFViewerAppScene {
     pub fn new(ctx: Context) -> Self {
+        // Create the camera
         let camera = Camera::new_perspective(
             &ctx,
             Viewport { x: 0, y: 0, width: 0, height: 0 }, // Updated at runtime
@@ -49,58 +53,82 @@ impl SDFViewerAppScene {
             1000.0,
         ).unwrap();
 
-        // Source: https://web.cs.ucdavis.edu/~okreylos/PhDStudies/Spring2000/ECS277/DataSets.html
+        // Create the SDF loader and viewer
         // TODO: SDF infrastructure (webserver and file drag&drop)
         let sdf = Box::new(SDFDemo {});
-        let mut sdf_renderer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(25));
-        let load_start_cpu = Instant::now();
-        sdf_renderer.update(&sdf, Duration::from_secs(3600), false);
-        let load_start_gpu = Instant::now();
-        sdf_renderer.commit();
-        info!("Loaded SDF in {:?} (CPU) + {:?} (GPU)", load_start_cpu.elapsed(), load_start_gpu.elapsed());
-        sdf_renderer.volume.material.color = Color::GREEN;
-        // sdf_renderer.volume.set_transformation(Mat4::from_translation(Vector3::new(-0.5, -0.5, -0.5)));
-        // TODO: Scale transform!
-        // TODO(optional): Test rotation transform
+        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(250));
+        sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
 
+        // Load the scene
+        // let tmp_mesh = Mesh::new(&ctx, &CpuMesh::cone(20)).unwrap();
+        // let mut tmp_material = PbrMaterial::default();
+        // tmp_material.albedo = Color::new_opaque(25, 125, 225);
+        // let tmp_object = Gm::new(
+        //     tmp_mesh, PhysicalMaterial::new(&ctx, &tmp_material).unwrap());
+
+        // Create the lights
         let ambient = AmbientLight::new(&ctx, 0.4, Color::WHITE).unwrap();
         let directional1 =
             DirectionalLight::new(&ctx, 2.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0)).unwrap();
         let directional2 =
             DirectionalLight::new(&ctx, 2.0, Color::WHITE, &vec3(1.0, 1.0, 1.0)).unwrap();
 
+        let sdf_viewer_volume = Rc::clone(&sdf_viewer.volume);
         Self {
             ctx,
             camera: CameraController::new(camera),
             sdf,
-            surface: sdf_renderer,
-            light_ambient: ambient,
-            lights_dir: vec![directional1, directional2],
+            sdf_viewer,
+            sdf_viewer_last_commit: None,
+            lights: vec![Box::new(ambient), Box::new(directional1), Box::new(directional2)],
+            objects: vec![Box::new(sdf_viewer_volume)/*, Box::new(tmp_object)*/],
         }
     }
 }
 
 impl SDFViewerAppScene {
     pub fn render(&mut self, _app: &SDFViewerApp, egui_ctx: &egui::Context, _frame: &mut Frame) {
-        // === Draw Three-D scene ===
+        // Update camera
         let viewport = self.camera.update(egui_ctx);
-        // Collect lights
-        let mut lights = self.lights_dir.iter().map(|e| e as &dyn Light).collect::<Vec<&dyn Light>>();
-        lights.push(&self.light_ambient);
-        // Draw the scene to screen
-        // TODO: Sub- and super-sampling (eframe's pixels_per_point?)!
+
+        // Load more of the SDF to the GPU in real-time (if needed)
+        let load_start_cpu = Instant::now();
+        let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30), false);
+        if cpu_updates > 0 {
+            if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 1000).unwrap_or(true) {
+                let load_start_gpu = Instant::now();
+                self.sdf_viewer.commit();
+                let now = Instant::now();
+                self.sdf_viewer_last_commit = Some(now);
+                info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + {:?} (GPU)",
+                    cpu_updates, load_start_gpu - load_start_cpu, now - load_start_gpu);
+            } else {
+                info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + skipped (GPU)",
+                    cpu_updates, Instant::now() - load_start_cpu);
+            }
+        } else if self.sdf_viewer_last_commit.is_some() {
+            self.sdf_viewer.commit();
+            self.sdf_viewer_last_commit = None;
+        }
+
+        // Prepare the screen for drawing (get the render target)
+        // TODO: Sub- and super-sampling (eframe's pixels_per_point?)
         let full_screen_rect = egui_ctx.input().screen_rect.size();
         let screen = RenderTarget::screen(
             &self.ctx, (full_screen_rect.x * egui_ctx.pixels_per_point()) as u32,
             (full_screen_rect.y * egui_ctx.pixels_per_point()) as u32);
+
         // Clear with the same background color as the UI
         let bg_color = egui_ctx.style().visuals.window_fill();
         // FIXME: Clear not working on web platforms (egui tooltip still visible)
         screen.clear(ClearState::color_and_depth(
             bg_color.r() as f32 / 255., bg_color.g() as f32 / 255.,
             bg_color.b() as f32 / 255., 1.0, 1.0)).unwrap();
+
         // Now render the main scene
+        let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
+        let objects = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
         screen.render_partially(ScissorBox::from(viewport), &self.camera.camera,
-                                &[&self.surface.volume], lights.as_slice()).unwrap();
+                                objects.as_slice(), lights.as_slice()).unwrap();
     }
 }

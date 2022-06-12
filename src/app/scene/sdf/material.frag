@@ -13,8 +13,6 @@ in vec3 pos;// Geometry hit position. The original mesh (before transformation) 
 
 layout (location = 0) out vec4 outColor;
 
-// TODO: Variable cube size same as the bounding box
-// FIXME: HACK: Use gl_FragDepth to interact with other objects of the scene
 // FIXME: Cube seams visible from far away (on web only)?
 
 /// Evaluate the SDF at the given position. The position must be in the range ([0, 1], [0, 1], [0, 1]).
@@ -23,7 +21,8 @@ float sdfDist(vec3 p) {
 }
 
 vec3 sdfNormal(vec3 p) {
-    const float eps = 0.1;
+    const float eps = 0.0001;// FIXME: Normals at inside-volume bounds (worth the extra performance hit?)
+    // TODO(performance): Tetrahedron based normal calculation.
     float x = sdfDist(p + vec3(eps, 0.0, 0.0)) - sdfDist(p - vec3(eps, 0.0, 0.0));
     float y = sdfDist(p + vec3(0.0, eps, 0.0)) - sdfDist(p - vec3(0.0, eps, 0.0));
     float z = sdfDist(p + vec3(0.0, 0.0, eps)) - sdfDist(p - vec3(0.0, 0.0, eps));
@@ -60,19 +59,26 @@ void main() {
                 rayPos += minDistFromBounds * rayDir;
             } else {
                 // Debug the number of steps and bounds: will break rendering order
-                // outColor = vec4(float(i)/float(steps), 0.0, 0.0, 0.25);
+                //                outColor = vec4(float(i)/float(steps), 0.0, 0.0, 0.25);
+                // Output an transparent color and infinite depth
                 outColor = vec4(0.0, 0.0, 0.0, 0.0);
+                gl_FragDepth = 1.0;
                 break;
             }
         }
         // The SDF is evaluated at the current position in the ray.
         float surfaceDistance = sdfDist(rayPos);
         if (surfaceDistance <= 0.0) { // We hit the surface
+            // TODO: Read material properties from the texture
+            // Compute the color using the lighting model.
             vec3 normal = sdfNormal(rayPos);
             outColor.rgb = calculate_lighting(cameraPosition, surfaceColorTint.rgb, rayPos, normal, 0.5, 0.5, 1.0);
             outColor.rgb = reinhard_tone_mapping(outColor.rgb);
             outColor.rgb = srgb_from_rgb(outColor.rgb);
             outColor.a = surfaceColorTint.a;
+            // Compute the depth to fix rendering order of multiple objects.
+            //float depth = length(cameraPosition - rayPos);
+            //gl_FragDepth = 0.5;// TODO: Figure out how to set this...
             break;
         }
         rayPos += rayDir * surfaceDistance;// TODO: Multiply by scale transform?

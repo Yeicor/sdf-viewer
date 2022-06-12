@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::ops::AddAssign;
+use std::rc::Rc;
 
 use cgmath::ElementWise;
 use three_d::{CpuMesh, CpuTexture3D, Gm, Mesh, Texture3D, Vector3};
@@ -15,7 +17,7 @@ pub struct SDFViewer {
     /// The CPU side of the 3D SDF texture.
     pub texture: CpuTexture3D,
     /// The GPU-side mesh and material, including the 3D GPU texture.
-    pub volume: Gm<Mesh, SDFViewerMaterial>,
+    pub volume: Rc<RefCell<Gm<Mesh, SDFViewerMaterial>>>,
     /// Controls the iterative algorithm used to fill the SDF texture (to provide faster previews).
     interlacing_mgr: InterlacingManager,
 }
@@ -47,7 +49,7 @@ impl SDFViewer {
     /// Creates a new SDF viewer with the given number of voxels in each axis.
     pub fn new_voxels(ctx: &three_d::Context, voxels: Vector3<usize>, bb: &[Vector3<f32>; 2]) -> Self {
         let texture = CpuTexture3D {
-            data: TextureData::RgbaF32(vec![[0.0; 4]; voxels.x * voxels.y * voxels.z]),
+            data: TextureData::RgbaF32(vec![[1.0/*air*/; 4]; voxels.x * voxels.y * voxels.z]),
             width: voxels.x as u32,
             height: voxels.y as u32,
             depth: voxels.z as u32,
@@ -62,7 +64,11 @@ impl SDFViewer {
         let material = SDFViewerMaterial::new(
             Texture3D::new(ctx, &texture).unwrap(), *bb);
         let volume = Gm::new(mesh, material);
-        Self { texture, volume, interlacing_mgr: InterlacingManager::new(voxels) }
+        Self {
+            texture,
+            volume: Rc::new(RefCell::new(volume)),
+            interlacing_mgr: InterlacingManager::new(voxels),
+        }
     }
 
     /// Iteratively requests data from the CPU `Sdf` and stores it in the CPU-side buffer,
@@ -71,14 +77,14 @@ impl SDFViewer {
     ///
     /// Set force to true to force a full update of the SDF.
     ///
-    /// Returns true if the SDF was updated. It performs at least one update, even if the time
-    /// limit is reached.
-    pub fn update(&mut self, sdf: impl SDFSurface, max_delta_time: instant::Duration, force: bool) -> bool {
+    /// Returns the number of updates. It performs at least one update if needed, even if the
+    /// time limit is reached.
+    pub fn update(&mut self, sdf: impl SDFSurface, max_delta_time: instant::Duration, force: bool) -> usize {
         if force {
             self.interlacing_mgr.reset();
         }
         let mut first = true;
-        let mut modified = false;
+        let mut modified = 0;
         let sdf_bb = sdf.bounding_box();
         let sdf_bb_size = sdf_bb[1] - sdf_bb[0];
         let texture_size_minus_1 = Vector3::new(self.texture.width as f32 - 1., self.texture.height as f32 - 1., self.texture.depth as f32 - 1.);
@@ -86,7 +92,7 @@ impl SDFViewer {
         while first || start_time.elapsed() < max_delta_time {
             first = false;
             if let Some(next_index) = self.interlacing_mgr.next() {
-                modified = true;
+                modified += 1;
                 let mut next_point = Vector3::new(next_index.x as f32, next_index.y as f32, next_index.z as f32);
                 next_point.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
                 next_point.mul_assign_element_wise(sdf_bb_size);
@@ -110,7 +116,7 @@ impl SDFViewer {
 
     /// Commits all previous `update`s to the GPU, updating the GPU-side texture data.
     pub fn commit(&mut self) {
-        self.volume.material.voxels.fill(match &self.texture.data {
+        self.volume.borrow_mut().material.voxels.fill(match &self.texture.data {
             TextureData::RgbaF32(d) => { d.as_slice() }
             _ => panic!("developer error: expected RgbaF32 texture data"),
         }).unwrap();

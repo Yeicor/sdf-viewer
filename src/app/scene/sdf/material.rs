@@ -1,5 +1,5 @@
 use cgmath::Vector3;
-use three_d::{Blend, Camera, Color, Light, lights_shader_source, Material, RenderStates, Texture3D, ThreeDResult};
+use three_d::{Blend, Camera, Color, Cull, Light, lights_shader_source, Material, RenderStates, Texture3D, ThreeDResult};
 use three_d::core::Program;
 use three_d_asset::{GeometryFunction, LightingModel, NormalDistributionFunction};
 
@@ -71,7 +71,8 @@ impl Material for SDFViewerMaterial {
 
     fn render_states(&self) -> RenderStates {
         RenderStates {
-            blend: Blend::TRANSPARENCY,
+            blend: Blend::TRANSPARENCY, // TODO: breaks opaque surfaces?!
+            cull: Cull::None, // Also draw the inside
             ..Default::default()
         }
     }
