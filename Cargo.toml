@@ -30,7 +30,7 @@ shadow-rs = { version = "0.11", default-features = false } # Web does not suppor
 
 # === MISC ===
 auto_impl = "1.0" # Automatic trait implementations for Box<_>, &_, etc.
-instant = "0.1" # Cross platform current time
+instant = { version = "0.1", default-features = false, features = ["wasm-bindgen"] } # Cross platform current time
 cgmath = "0.18" # Shared with three-d
 
 # === NATIVE (desktop & mobile) ===

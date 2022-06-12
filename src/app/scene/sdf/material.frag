@@ -63,7 +63,7 @@ void main() {
         // The SDF is evaluated at the current ray position.
         //        vec3 uvw = (rayPos / texSize) + 0.5;
         float surfaceDistance = sdfDist(rayPosSdfTexSpace);
-        if (surfaceDistance <= 0) { // We hit the surface
+        if (surfaceDistance <= 0.0) { // We hit the surface
             vec3 normal = sdfNormal(rayPosSdfTexSpace);
             outColor.rgb = calculate_lighting(cameraPosition, surfaceColorTint.rgb, rayPos, normal, 0.5, 0.5, 1.0);
             outColor.rgb = reinhard_tone_mapping(outColor.rgb);

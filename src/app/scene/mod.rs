@@ -1,11 +1,8 @@
 use std::time::Duration;
-
 use eframe::{egui, Frame};
 use three_d::*;
 
-
 use camera::CameraController;
-
 
 use crate::app::scene::sdf::SDFViewer;
 use crate::app::SDFViewerApp;
