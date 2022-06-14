@@ -33,7 +33,6 @@ impl CameraController {
             viewport.height += viewport.y as u32;
             viewport.y = 0;
         }
-        println!("{:?}", viewport);
         self.camera.set_viewport(viewport).unwrap();
         // Handle inputs
         // TODO: Mobile controls!
