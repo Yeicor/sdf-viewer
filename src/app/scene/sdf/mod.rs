@@ -8,9 +8,11 @@ use three_d_asset::{Interpolation, Positions, TextureData, Wrapping};
 
 use material::SDFViewerMaterial;
 
+use crate::app::scene::sdf::loading::LoadingManager;
 use crate::sdf::SDFSurface;
 
 pub mod material;
+pub mod loading;
 
 /// The SDF viewer controller, that synchronizes the CPU and GPU sides.
 pub struct SDFViewer {
@@ -19,8 +21,12 @@ pub struct SDFViewer {
     /// The GPU-side mesh and material, including the 3D GPU texture.
     pub volume: Rc<RefCell<Gm<Mesh, SDFViewerMaterial>>>,
     /// Controls the iterative algorithm used to fill the SDF texture (to provide faster previews).
-    interlacing_mgr: InterlacingManager,
+    pub loading_mgr: LoadingManager,
 }
+
+/// The default value for uncomputed SDF values while loading. Should be small to avoid graphical
+/// artifacts, but will slow down rendering if too small. It is also useful for progressive loading.
+const AIR_DIST: f32 = 0.001234;
 
 impl SDFViewer {
     /// Creates a new SDF viewer for the given bounding box (tries to keep aspect ratio).
@@ -49,7 +55,7 @@ impl SDFViewer {
     /// Creates a new SDF viewer with the given number of voxels in each axis.
     pub fn new_voxels(ctx: &three_d::Context, voxels: Vector3<usize>, bb: &[Vector3<f32>; 2]) -> Self {
         let texture = CpuTexture3D {
-            data: TextureData::RgbaF32(vec![[1.0/*air*/; 4]; voxels.x * voxels.y * voxels.z]),
+            data: TextureData::RgbaF32(vec![[AIR_DIST; 4]; voxels.x * voxels.y * voxels.z]),
             width: voxels.x as u32,
             height: voxels.y as u32,
             depth: voxels.z as u32,
@@ -67,7 +73,7 @@ impl SDFViewer {
         Self {
             texture,
             volume: Rc::new(RefCell::new(volume)),
-            interlacing_mgr: InterlacingManager::new(voxels),
+            loading_mgr: LoadingManager::new(voxels, 3),
         }
     }
 
@@ -75,35 +81,41 @@ impl SDFViewer {
     /// maintaining an interactive framerate. Note that this intermediate buffer must be `commit`ed
     /// to the GPU before the SDF is updated on screen.
     ///
-    /// Set force to true to force a full update of the SDF.
+    /// Set force to > 0 to force a full update of the SDF, with the given number of lower to higher
+    /// resolution passes.
     ///
     /// Returns the number of updates. It performs at least one update if needed, even if the
     /// time limit is reached.
-    pub fn update(&mut self, sdf: impl SDFSurface, max_delta_time: instant::Duration, force: bool) -> usize {
-        if force {
-            self.interlacing_mgr.reset();
+    pub fn update(&mut self, sdf: impl SDFSurface, max_delta_time: instant::Duration, force: usize) -> usize {
+        if force > 0 {
+            self.loading_mgr.reset(force);
         }
+
         let mut first = true;
-        let mut modified = 0;
+        let start_iter = self.loading_mgr.iterations();
         let sdf_bb = sdf.bounding_box();
         let sdf_bb_size = sdf_bb[1] - sdf_bb[0];
         let texture_size_minus_1 = Vector3::new(self.texture.width as f32 - 1., self.texture.height as f32 - 1., self.texture.depth as f32 - 1.);
         let start_time = instant::Instant::now();
+
         while first || start_time.elapsed() < max_delta_time {
-            first = false;
-            if let Some(next_index) = self.interlacing_mgr.next() {
-                modified += 1;
-                let mut next_point = Vector3::new(next_index.x as f32, next_index.y as f32, next_index.z as f32);
-                next_point.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
-                next_point.mul_assign_element_wise(sdf_bb_size);
-                next_point.add_assign(sdf_bb[0]);
+            first = false; // TODO: Cross-platform parallel iteration?
+            if let Some(next_index) = self.loading_mgr.next() {
                 match &mut self.texture.data {
                     TextureData::RgbaF32(data) => {
-                        // 3D texture data is in the row-major order.
+                        // Compute the flat index: 3D texture data is in the row-major order.
                         let flat_index = (next_index.z * self.texture.height as usize + next_index.y) * self.texture.width as usize + next_index.x;
-                        let sample = sdf.sample(next_point, false);
-                        data[flat_index][0] = sample.distance;
-                        // TODO: Provide more voxel data to the shader.
+                        if data[flat_index][0] == AIR_DIST { // Only update if not already computed
+                            // Compute the position in the SDF surface.
+                            let mut next_point = Vector3::new(next_index.x as f32, next_index.y as f32, next_index.z as f32);
+                            next_point.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
+                            next_point.mul_assign_element_wise(sdf_bb_size);
+                            next_point.add_assign(sdf_bb[0]);
+                            // Actually sample the SDF.
+                            let sample = sdf.sample(next_point, false);
+                            data[flat_index][0] = sample.distance;
+                            // TODO: Provide more voxel data to the shader.
+                        }
                     }
                     _ => panic!("developer error: expected RgbaF32 texture data"),
                 }
@@ -111,7 +123,7 @@ impl SDFViewer {
                 break; // No more work to do!
             }
         }
-        modified
+        self.loading_mgr.iterations() - start_iter
     }
 
     /// Commits all previous `update`s to the GPU, updating the GPU-side texture data.
@@ -120,148 +132,6 @@ impl SDFViewer {
             TextureData::RgbaF32(d) => { d.as_slice() }
             _ => panic!("developer error: expected RgbaF32 texture data"),
         }).unwrap();
-    }
-}
-
-/// The interlacing manager algorithm that fills a 3D texture with the SDF data in a way that the
-/// whole surface can be seen quickly at low quality and iteratively improves quality.
-struct InterlacingManager {
-    /// The 3D limits
-    limits: Vector3<usize>,
-    /// The current pass.
-    pass: usize,
-    /// The next index to return.
-    next_index: Vector3<usize>,
-}
-
-impl InterlacingManager {
-    /// Creates a new interlacing manager for the given limits.
-    fn new(limits: Vector3<usize>) -> Self {
-        let mut slf = Self {
-            limits,
-            pass: 0,
-            next_index: Vector3::new(0, 0, 0),
-        };
-        slf.reset();
-        slf
-    }
-    /// Resets the interlacing manager to the first pass.
-    pub fn reset(&mut self) {
-        self.pass = 0;
-        let (offset, _) = self.pass_info().unwrap();
-        self.next_index = offset;
-    }
-}
-
-impl Iterator for InterlacingManager {
-    type Item = Vector3<usize>;
-
-    /// Requests the next 3D index to be filled, advancing the internal counters.
-    fn next(&mut self) -> Option<Self::Item> {
-        self.pass_info().map(|(offset, stride)| {
-            // Return the next index (copied)
-            let res = self.next_index;
-            // Move to the next index (or the next pass)
-            self.next_index.x += stride.x;
-            if self.next_index.x >= self.limits.x {
-                self.next_index.x = offset.x;
-                self.next_index.y += stride.y;
-                if self.next_index.y >= self.limits.y {
-                    self.next_index.y = offset.y;
-                    self.next_index.z += stride.z;
-                    if self.next_index.z >= self.limits.z {
-                        self.pass += 1;
-                        if let Some((new_offset, _)) = self.pass_info() {
-                            self.next_index = new_offset;
-                        }
-                    }
-                }
-            }
-            res
-        })
-    }
-}
-
-impl InterlacingManager {
-    /// Returns the offset and stride of the current pass.
-    fn pass_info(&self) -> Option<(Vector3<usize>, Vector3<usize>)> {
-        // TODO: Use an actual 3D interlacing algorithm (instead of 8 passes with different offsets)
-        match self.pass {
-            0 => {
-                Some((Vector3::new(0, 0, 0), Vector3::new(2, 2, 2)))
-            }
-            1 => {
-                Some((Vector3::new(0, 0, 1), Vector3::new(2, 2, 2)))
-            }
-            2 => {
-                Some((Vector3::new(0, 1, 0), Vector3::new(2, 2, 2)))
-            }
-            3 => {
-                Some((Vector3::new(0, 1, 1), Vector3::new(2, 2, 2)))
-            }
-            4 => {
-                Some((Vector3::new(1, 0, 0), Vector3::new(2, 2, 2)))
-            }
-            5 => {
-                Some((Vector3::new(1, 0, 1), Vector3::new(2, 2, 2)))
-            }
-            6 => {
-                Some((Vector3::new(1, 1, 0), Vector3::new(2, 2, 2)))
-            }
-            7 => {
-                Some((Vector3::new(1, 1, 1), Vector3::new(2, 2, 2)))
-            }
-            _ => None,
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Tests that all voxels are set once.
-    pub fn test_interlacing_impl(limits: Vector3<usize>) {
-        let mut voxel_hits = vec![0; limits.x * limits.y * limits.z];
-        let mut manager = InterlacingManager::new(limits);
-        while let Some(v) = manager.next() {
-            let voxel_index = v.x + v.y * limits.x + v.z * limits.x * limits.y;
-            voxel_hits[voxel_index] += 1;
-            if voxel_hits[voxel_index] > 1 {
-                panic!("developer error: voxel was hit for the second time: {:?} on pass {} index {:?}", v, manager.pass, manager.next_index);
-            }
-        }
-        for (voxel_index, voxel_hit) in voxel_hits.into_iter().enumerate() {
-            if voxel_hit != 1 {
-                let v = Vector3::new(voxel_index % limits.x, voxel_index / limits.x % limits.y, voxel_index / limits.x / limits.y);
-                panic!("developer error: voxel was not hit: {:?}", v);
-            }
-        }
-    }
-
-    #[test]
-    pub fn test_interlacing_cube_2() {
-        test_interlacing_impl(Vector3::new(2, 2, 2));
-    }
-
-    #[test]
-    pub fn test_interlacing_cube_8() {
-        test_interlacing_impl(Vector3::new(8, 8, 8));
-    }
-
-    #[test]
-    pub fn test_interlacing_cube_64() {
-        test_interlacing_impl(Vector3::new(64, 64, 64));
-    }
-
-    #[test]
-    pub fn test_interlacing_cube_11() {
-        test_interlacing_impl(Vector3::new(11, 11, 11));
-    }
-
-    #[test]
-    pub fn test_interlacing_non_cube() {
-        test_interlacing_impl(Vector3::new(8, 11, 17));
     }
 }
 

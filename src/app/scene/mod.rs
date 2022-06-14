@@ -87,15 +87,16 @@ impl SDFViewerAppScene {
 }
 
 impl SDFViewerAppScene {
-    pub fn render(&mut self, _app: &SDFViewerApp, egui_ctx: &egui::Context, _frame: &mut Frame) {
+    pub fn render(&mut self, app: &SDFViewerApp, egui_ctx: &egui::Context, _frame: &mut Frame) {
         // Update camera
-        let viewport = self.camera.update(egui_ctx);
+        let viewport = self.camera.update(egui_ctx, app.ui.borrow().progress.is_none());
 
         // Load more of the SDF to the GPU in realtime (if needed)
         let load_start_cpu = Instant::now();
-        let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30), false);
+        let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30), 0);
         if cpu_updates > 0 {
-            if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 1000).unwrap_or(true) {
+            // Update the GPU texture sparingly (to mitigate stuttering on high-detail rendering loads)
+            if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {
                 let load_start_gpu = Instant::now();
                 self.sdf_viewer.commit();
                 let now = Instant::now();
@@ -106,9 +107,13 @@ impl SDFViewerAppScene {
                 info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + skipped (GPU)",
                     cpu_updates, Instant::now() - load_start_cpu);
             }
+            // Notify of load progress in the UI
+            let progress = self.sdf_viewer.loading_mgr.iterations() as f32 / ((self.sdf_viewer.loading_mgr.iterations() + self.sdf_viewer.loading_mgr.len()) as f32);
+            app.ui.borrow_mut().progress = Some((progress, format!("Loading SDF... {} passes left", self.sdf_viewer.loading_mgr.passes_left())));
         } else if self.sdf_viewer_last_commit.is_some() {
             self.sdf_viewer.commit();
             self.sdf_viewer_last_commit = None;
+            app.ui.borrow_mut().progress = None;
         }
 
         // Prepare the screen for drawing (get the render target)

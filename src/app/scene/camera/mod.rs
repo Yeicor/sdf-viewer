@@ -1,5 +1,4 @@
 use eframe::egui;
-
 use three_d::*;
 
 use crate::input::is_event_handled_by_egui;
@@ -21,15 +20,20 @@ impl CameraController {
 
     /// Updates the viewport according to the egui context.
     /// Also handles the events modifying the camera transform according to the events.
-    pub fn update(&mut self, ctx: &egui::Context) -> Viewport {
+    pub fn update(&mut self, ctx: &egui::Context, hack_set_y_to_zero: bool) -> Viewport {
         // Update viewport
         let viewport_rect = ctx.available_rect();
-        let viewport = Viewport {
+        let mut viewport = Viewport {
             x: (viewport_rect.min.x * ctx.pixels_per_point()) as i32,
             y: (viewport_rect.min.y * ctx.pixels_per_point()) as i32,
             width: (viewport_rect.width() * ctx.pixels_per_point()) as u32,
             height: (viewport_rect.height() * ctx.pixels_per_point()) as u32,
         };
+        if hack_set_y_to_zero { // HACK: This should not be needed but egui does not update its bounds correctly?
+            viewport.height += viewport.y as u32;
+            viewport.y = 0;
+        }
+        println!("{:?}", viewport);
         self.camera.set_viewport(viewport).unwrap();
         // Handle inputs
         // TODO: Mobile controls!
