@@ -25,13 +25,10 @@ cat >index.html <<EOF
 <body>
 <canvas id="sdf-viewer" style="position: absolute;top:0;bottom: 0;left: 0;right: 0;margin:auto;"></canvas>
 <script type="module">
-    import init from './sdf_viewer.js';
+    import * as SDFViewer from './sdf_viewer.js';
 
-    async function run() {
-        await init();
-    }
-
-    run();
+    SDFViewer.default().then( // Async initialization
+        () => SDFViewer.run_app("sdf-viewer")); // Run the actual App
 </script>
 </body>
 </html>

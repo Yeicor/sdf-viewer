@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::time::Duration;
 
-use eframe::{egui, Frame};
+use eframe::egui::{PaintCallbackInfo, Response};
 use instant::Instant;
 use three_d::*;
 use tracing::info;
@@ -9,7 +9,6 @@ use tracing::info;
 use camera::CameraController;
 
 use crate::app::scene::sdf::SDFViewer;
-use crate::app::SDFViewerApp;
 use crate::sdf::demo::SDFDemo;
 use crate::sdf::SDFSurface;
 
@@ -87,9 +86,9 @@ impl SDFViewerAppScene {
 }
 
 impl SDFViewerAppScene {
-    pub fn render(&mut self, app: &SDFViewerApp, egui_ctx: &egui::Context, _frame: &mut Frame) {
+    pub fn render(&mut self, info: &PaintCallbackInfo, egui_resp: &Response) {
         // Update camera
-        let viewport = self.camera.update(egui_ctx, app.ui.borrow().progress.is_none());
+        let viewport = self.camera.update(info, egui_resp);
 
         // Load more of the SDF to the GPU in realtime (if needed)
         let load_start_cpu = Instant::now();
@@ -107,33 +106,38 @@ impl SDFViewerAppScene {
                 info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + skipped (GPU)",
                     cpu_updates, Instant::now() - load_start_cpu);
             }
-            // Notify of load progress in the UI
-            let progress = self.sdf_viewer.loading_mgr.iterations() as f32 / ((self.sdf_viewer.loading_mgr.iterations() + self.sdf_viewer.loading_mgr.len()) as f32);
-            app.ui.borrow_mut().progress = Some((progress, format!("Loading SDF... {} passes left", self.sdf_viewer.loading_mgr.passes_left())));
         } else if self.sdf_viewer_last_commit.is_some() {
             self.sdf_viewer.commit();
             self.sdf_viewer_last_commit = None;
-            app.ui.borrow_mut().progress = None;
         }
 
         // Prepare the screen for drawing (get the render target)
         // TODO: Sub- and super-sampling (eframe's pixels_per_point?)
-        let full_screen_rect = egui_ctx.input().screen_rect.size();
+        let full_screen_rect = egui_resp.ctx.input().screen_rect.size();
         let screen = RenderTarget::screen(
-            &self.ctx, (full_screen_rect.x * egui_ctx.pixels_per_point()) as u32,
-            (full_screen_rect.y * egui_ctx.pixels_per_point()) as u32);
-
-        // Clear with the same background color as the UI
-        let bg_color = egui_ctx.style().visuals.window_fill();
-        // FIXME: Clear not working on web platforms (egui tooltip still visible)
-        screen.clear(ClearState::color_and_depth(
-            bg_color.r() as f32 / 255., bg_color.g() as f32 / 255.,
-            bg_color.b() as f32 / 255., 1.0, 1.0)).unwrap();
+            &self.ctx, (full_screen_rect.x * egui_resp.ctx.pixels_per_point()) as u32,
+            (full_screen_rect.y * egui_resp.ctx.pixels_per_point()) as u32);
 
         // Now render the main scene
+        // Note: there is no need to clear the scene (already done by egui with the correct color)
+        let scissor_box = ScissorBox::from(viewport);
         let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
         let objects = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
-        screen.render_partially(ScissorBox::from(viewport), &self.camera.camera,
+        screen.render_partially(scissor_box, &self.camera.camera,
                                 objects.as_slice(), lights.as_slice()).unwrap();
+        // FIXME: Web rendering as a widget seems broken, requires investigation.
+    }
+
+    /// Reports the progress of the SDF loading
+    pub fn load_progress(&self) -> Option<(f32, String)> {
+        let remaining = self.sdf_viewer.loading_mgr.len();
+        if remaining > 0 {
+            let progress = self.sdf_viewer.loading_mgr.iterations() as f32 /
+                ((self.sdf_viewer.loading_mgr.iterations() + remaining) as f32);
+            Some((progress, format!("Loading SDF... {} passes left",
+                                    self.sdf_viewer.loading_mgr.passes_left())))
+        } else {
+            None
+        }
     }
 }

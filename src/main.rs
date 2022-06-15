@@ -1,10 +1,10 @@
 
-pub mod app;
-pub mod input;
-pub mod metadata;
-pub mod run;
-pub mod cli;
-pub mod sdf;
+// Not public as this is not a library
+mod app;
+mod metadata;
+mod run;
+mod cli;
+mod sdf;
 
 // === Entry point for desktop ===
 #[cfg(not(any(target_arch = "wasm32")))]
