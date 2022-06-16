@@ -1,12 +1,9 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
 
-use eframe::{egui, glow, Storage};
+use eframe::{egui, Storage};
 use eframe::egui::{Frame, ProgressBar, ScrollArea, Ui};
 use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
-use three_d::Context;
 use tracing::info;
 
 use scene::SDFViewerAppScene;
@@ -44,14 +41,12 @@ impl SDFViewerApp {
         }
     }
 
-    fn scene_scene(&mut self, ui: &mut Ui) {
+    fn three_d_scene(&mut self, ui: &mut Ui) {
         let (rect, response) = ui.allocate_exact_size(
-            ui.available_size(), egui::Sense::drag());
+            ui.available_size(), egui::Sense::click_and_drag());
         // Synchronize the scene information (from the previous frame, no way to know the future)
-        SCENE.with(|scene| {
-            if let Some(scene) = scene.borrow().as_ref() {
-                self.progress = scene.load_progress();
-            }
+        SDFViewerAppScene::read_context_thread_local(|scene| {
+            self.progress = scene.load_progress();
         });
         // Queue the rendering of the scene
         ui.painter().add(egui::PaintCallback {
@@ -59,7 +54,7 @@ impl SDFViewerApp {
             callback: Arc::new(move |info, painter| {
                 let painter = painter.downcast_mut::<egui_glow::Painter>().unwrap();
                 let response = response.clone();
-                with_scene_context(painter.gl(), move |scene| {
+                SDFViewerAppScene::from_glow_context_thread_local(painter.gl(), move |scene| {
                     scene.render(info, &response);
                 });
             }),
@@ -116,7 +111,7 @@ impl eframe::App for SDFViewerApp {
             .frame(Frame::default().inner_margin(0.0))
             .show(ctx, |ui| {
                 Frame::canvas(ui.style()).show(ui, |ui| {
-                    self.scene_scene(ui);
+                    self.three_d_scene(ui);
                 });
             });
     }
@@ -128,32 +123,3 @@ impl eframe::App for SDFViewerApp {
     }
 }
 
-thread_local! {
-    pub static SCENE: RefCell<Option<SDFViewerAppScene>> = RefCell::new(None);
-}
-
-/// We get a [`glow::Context`] from `eframe`, but we want a [`scene::Context`] for [`SDFViewerAppScene`].
-/// This function is a helper to convert the [`glow::Context`] to the [`scene::Context`] only once
-/// in a thread-safe way.
-///
-/// Sadly we can't just create a [`scene::Context`] in [`MyApp::new`] and pass it
-/// to the [`egui::PaintCallback`] because [`scene::Context`] isn't `Send+Sync`, which
-/// [`egui::PaintCallback`] is.
-fn with_scene_context<R>(
-    gl: &Rc<glow::Context>,
-    f: impl FnOnce(&mut SDFViewerAppScene) -> R,
-) -> R {
-    SCENE.with(|scene| {
-        let mut scene = scene.borrow_mut();
-        let scene =
-            scene.get_or_insert_with(|| {
-                // HACK: need to convert the GL context from Rc to Arc (UNSAFE: likely double-free on app close)
-                let gl = unsafe { std::mem::transmute(gl.clone()) };
-                // Retrieve Three-D context from the egui context (thanks to the shared glow dependency).
-                let three_d_ctx = Context::from_gl_context(gl).unwrap();
-                // Create the Three-D scene (only the first time).
-                SDFViewerAppScene::new(three_d_ctx)
-            });
-        f(scene)
-    })
-}

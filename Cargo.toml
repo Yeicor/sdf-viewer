@@ -17,6 +17,7 @@ three-d = { version = "0.12", default-features = false, features = ["obj-io"] }
 three-d-asset = "0.1"
 eframe = { version = "0.18", features = ["persistence"] }
 egui_glow = "0.18"
+image = "0.24.2"  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
 tracing = "0.1"

@@ -1,6 +1,8 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
+use eframe::glow;
 use eframe::egui::{PaintCallbackInfo, Response};
 use instant::Instant;
 use three_d::*;
@@ -14,7 +16,17 @@ use crate::sdf::SDFSurface;
 
 pub mod sdf;
 pub mod camera;
-// TODO: Custom skybox/background/loading-external-gltf-to-compare module
+
+thread_local! {
+    /// We get a [`glow::Context`] from `eframe`, but we want a [`scene::Context`] for [`SDFViewerAppScene`].
+    /// This function is a helper to convert the [`glow::Context`] to the [`scene::Context`] only once
+    /// in a thread-safe way.
+    ///
+    /// Sadly we can't just create a [`scene::Context`] in [`MyApp::new`] and pass it
+    /// to the [`egui::PaintCallback`] because [`scene::Context`] isn't `Send+Sync`, which
+    /// [`egui::PaintCallback`] is.
+    pub static SCENE: RefCell<Option<SDFViewerAppScene>> = RefCell::new(None);
+}
 
 /// Renders the main 3D scene, containing the SDF object
 pub struct SDFViewerAppScene {
@@ -39,6 +51,33 @@ pub struct SDFViewerAppScene {
 }
 
 impl SDFViewerAppScene {
+    /// This initializes (the first time) a new [`SDFViewerAppScene`] from the given [`glow::Context`],
+    /// and runs the given function with a mutable reference to the scene.
+    pub fn from_glow_context_thread_local<R>(
+        gl: &Rc<glow::Context>,
+        f: impl FnOnce(&mut SDFViewerAppScene) -> R,
+    ) -> R {
+        SCENE.with(|scene| {
+            let mut scene = scene.borrow_mut();
+            let scene =
+                scene.get_or_insert_with(|| {
+                    // HACK: need to convert the GL context from Rc to Arc (UNSAFE: likely double-free on app close)
+                    let gl = unsafe { std::mem::transmute(gl.clone()) };
+                    // Retrieve Three-D context from the egui context (thanks to the shared glow dependency).
+                    let three_d_ctx = Context::from_gl_context(gl).unwrap();
+                    // Create the Three-D scene (only the first time).
+                    SDFViewerAppScene::new(three_d_ctx)
+                });
+            f(scene)
+        })
+    }
+    /// Runs the given function with a mutable reference to the scene, ONLY if it was previously initialized.
+    pub fn read_context_thread_local<R>(
+        f: impl FnOnce(&mut SDFViewerAppScene) -> R,
+    ) -> Option<R> {
+        SCENE.with(|scene| scene.borrow_mut().as_mut().map(f))
+    }
+
     pub fn new(ctx: Context) -> Self {
         // Create the camera
         let camera = Camera::new_perspective(
@@ -52,35 +91,61 @@ impl SDFViewerAppScene {
             1000.0,
         ).unwrap();
 
+        // 3D objects and lights
+        let mut objects: Vec<Box<dyn Object>> = vec![];
+        let mut lights: Vec<Box<dyn Light>> = vec![];
+
         // Create the SDF loader and viewer
         // TODO: SDF infrastructure (webserver and file drag&drop)
         let sdf = Box::new(SDFDemo {});
         let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(64));
         sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
+        objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
 
-        // Load the scene
+        // Load the skybox (embedded in the binary)
+        if cfg!(feature = "skybox") { // TODO: Speed-up skybox load times
+            let mut skybox_image = image::load_from_memory_with_format(
+                include_bytes!("../../../assets/skybox.jpg"),
+                image::ImageFormat::Jpeg,
+            ).unwrap();
+            skybox_image = skybox_image.adjust_contrast(-15.0); // %
+            skybox_image = skybox_image.brighten(-50); // u8
+            let skybox_texture = CpuTexture {
+                data: TextureData::RgbU8(skybox_image.as_rgb8().unwrap().as_raw()
+                    .chunks_exact(3).map(|e| [e[0], e[1], e[2]]).collect::<_>()),
+                width: skybox_image.width(),
+                height: skybox_image.height(),
+                ..CpuTexture::default()
+            };
+            let skybox = Skybox::new_from_equirectangular(
+                &ctx, &skybox_texture).unwrap();
+            let ambient_light = AmbientLight::new_with_environment(
+                &ctx, 1.0, Color::WHITE, skybox.texture()).unwrap();
+            objects.push(Box::new(skybox));
+            lights.push(Box::new(ambient_light));
+        }
+
+        // Load the scene TODO: custom user-defined objects (gltf) with transforms
         // let tmp_mesh = Mesh::new(&ctx, &CpuMesh::cone(20)).unwrap();
         // let mut tmp_material = PbrMaterial::default();
         // tmp_material.albedo = Color::new_opaque(25, 125, 225);
         // let tmp_object = Gm::new(
         //     tmp_mesh, PhysicalMaterial::new(&ctx, &tmp_material).unwrap());
 
-        // Create the lights
-        let ambient = AmbientLight::new(&ctx, 0.4, Color::WHITE).unwrap();
-        let directional1 =
-            DirectionalLight::new(&ctx, 2.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0)).unwrap();
-        let directional2 =
-            DirectionalLight::new(&ctx, 2.0, Color::WHITE, &vec3(1.0, 1.0, 1.0)).unwrap();
+        // Create more lights
+        lights.push(Box::new(DirectionalLight::new(
+            &ctx, 1.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0)).unwrap()));
+        lights.push(Box::new(DirectionalLight::new(
+            &ctx, 0.2, Color::WHITE, &vec3(1.0, 1.0, 1.0)).unwrap()));
 
-        let sdf_viewer_volume = Rc::clone(&sdf_viewer.volume);
         Self {
             ctx,
             camera: CameraController::new(camera),
             sdf,
             sdf_viewer,
             sdf_viewer_last_commit: None,
-            lights: vec![Box::new(ambient), Box::new(directional1), Box::new(directional2)],
-            objects: vec![Box::new(sdf_viewer_volume)/*, Box::new(tmp_object)*/],
+            lights,
+            objects,
         }
     }
 }
@@ -125,7 +190,7 @@ impl SDFViewerAppScene {
         let objects = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
         screen.render_partially(scissor_box, &self.camera.camera,
                                 objects.as_slice(), lights.as_slice()).unwrap();
-        // FIXME: Web rendering as a widget seems broken, requires investigation.
+        // FIXME(https://github.com/emilk/egui/issues/1744): Web rendering as a widget seems broken.
     }
 
     /// Reports the progress of the SDF loading
