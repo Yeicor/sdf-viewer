@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use eframe::{egui, Storage};
-use eframe::egui::{Frame, ProgressBar, ScrollArea, Ui};
+use eframe::egui::{Color32, Frame, ProgressBar, ScrollArea, Stroke, Ui};
 use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
 use tracing::info;
@@ -108,11 +108,18 @@ impl eframe::App for SDFViewerApp {
 
         // 3D Scene main content
         egui::CentralPanel::default()
-            .frame(Frame::default().inner_margin(0.0))
+            .frame(Frame::none().inner_margin(0.0))
             .show(ctx, |ui| {
-                Frame::canvas(ui.style()).show(ui, |ui| {
-                    self.three_d_scene(ui);
-                });
+                Frame::canvas(ui.style())
+                    // FIXME: 0 alpha is the only way the contents render, but it also renders
+                    //  removed widgets, and 1 alpha is the only way the removed widgets don't render.
+                    .fill(Color32::from_rgba_unmultiplied(0, 0, 0, 0))
+                    .inner_margin(0.0)
+                    .outer_margin(0.0)
+                    .stroke(Stroke::none())
+                    .show(ui, |ui| {
+                        self.three_d_scene(ui);
+                    });
             });
     }
 

@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
+use eframe::egui::{Color32, PaintCallbackInfo, Response};
 use eframe::glow;
-use eframe::egui::{PaintCallbackInfo, Response};
 use instant::Instant;
 use three_d::*;
 use tracing::info;
@@ -134,9 +134,9 @@ impl SDFViewerAppScene {
 
         // Create more lights
         lights.push(Box::new(DirectionalLight::new(
-            &ctx, 1.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0)).unwrap()));
+            &ctx, 2.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0)).unwrap()));
         lights.push(Box::new(DirectionalLight::new(
-            &ctx, 0.2, Color::WHITE, &vec3(1.0, 1.0, 1.0)).unwrap()));
+            &ctx, 0.5, Color::WHITE, &vec3(1.0, 1.0, 1.0)).unwrap()));
 
         Self {
             ctx,
@@ -183,24 +183,33 @@ impl SDFViewerAppScene {
             &self.ctx, (full_screen_rect.x * egui_resp.ctx.pixels_per_point()) as u32,
             (full_screen_rect.y * egui_resp.ctx.pixels_per_point()) as u32);
 
+        // FIXME: Clear not working on web platforms (egui tooltip still visible). Related: https://github.com/emilk/egui/issues/1744
+        let bg_color = if egui_resp.ctx.style().visuals.dark_mode { Color32::BLACK } else { Color32::WHITE };
+        let scissor_box = ScissorBox::from(viewport);
+        screen.clear_partially(scissor_box, ClearState::color_and_depth(
+            bg_color.r() as f32 / 255., bg_color.g() as f32 / 255.,
+            bg_color.b() as f32 / 255., 1.0, 1.0)).unwrap();
+
         // Now render the main scene
         // Note: there is no need to clear the scene (already done by egui with the correct color)
-        let scissor_box = ScissorBox::from(viewport);
         let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
         let objects = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
         screen.render_partially(scissor_box, &self.camera.camera,
                                 objects.as_slice(), lights.as_slice()).unwrap();
-        // FIXME(https://github.com/emilk/egui/issues/1744): Web rendering as a widget seems broken.
     }
 
     /// Reports the progress of the SDF loading
     pub fn load_progress(&self) -> Option<(f32, String)> {
         let remaining = self.sdf_viewer.loading_mgr.len();
-        if remaining > 0 {
-            let progress = self.sdf_viewer.loading_mgr.iterations() as f32 /
-                ((self.sdf_viewer.loading_mgr.iterations() + remaining) as f32);
-            Some((progress, format!("Loading SDF... {} passes left",
-                                    self.sdf_viewer.loading_mgr.passes_left())))
+        if self.sdf_viewer_last_commit.is_some() {
+            if remaining > 0 {
+                let progress = self.sdf_viewer.loading_mgr.iterations() as f32 /
+                    ((self.sdf_viewer.loading_mgr.iterations() + remaining) as f32);
+                Some((progress, format!("Loading SDF... {} passes left",
+                                        self.sdf_viewer.loading_mgr.passes_left())))
+            } else {
+                Some((1.0, "Loading SDF done! (ignore this message, it is a bug if you see it)".to_string()))
+            }
         } else {
             None
         }

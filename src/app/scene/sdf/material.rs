@@ -71,7 +71,7 @@ impl Material for SDFViewerMaterial {
 
     fn render_states(&self) -> RenderStates {
         RenderStates {
-            blend: Blend::TRANSPARENCY, // TODO: breaks opaque surfaces?!
+            blend: Blend::TRANSPARENCY, // TODO: breaks opaque surfaces if used anywhere?!
             cull: Cull::None, // Also draw the inside
             ..Default::default()
         }
