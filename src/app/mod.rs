@@ -45,9 +45,7 @@ impl SDFViewerApp {
         let (rect, response) = ui.allocate_exact_size(
             ui.available_size(), egui::Sense::click_and_drag());
         // Synchronize the scene information (from the previous frame, no way to know the future)
-        SDFViewerAppScene::read_context_thread_local(|scene| {
-            self.progress = scene.load_progress();
-        });
+        self.progress = self.scene_mut(|scene| scene.load_progress()).unwrap_or(None);
         // Queue the rendering of the scene
         ui.painter().add(egui::PaintCallback {
             rect,
@@ -59,6 +57,13 @@ impl SDFViewerApp {
                 });
             }),
         });
+    }
+
+    pub fn scene_mut<R>(
+        &mut self,
+        f: impl FnOnce(&mut SDFViewerAppScene) -> R,
+    ) -> Option<R> {
+        SDFViewerAppScene::read_context_thread_local(f)
     }
 }
 

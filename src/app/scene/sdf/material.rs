@@ -1,7 +1,6 @@
-use cgmath::Vector3;
-use three_d::{Blend, Camera, Color, Cull, Light, lights_shader_source, Material, RenderStates, Texture3D, ThreeDResult};
+use cgmath::{vec3, Vector3};
+use three_d::{Blend, Camera, Color, Cull, GeometryFunction, Light, LightingModel, lights_shader_source, Material, NormalDistributionFunction, RenderStates, Texture3D, ThreeDResult};
 use three_d::core::Program;
-use three_d_asset::{GeometryFunction, LightingModel, NormalDistributionFunction};
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
 /// with any transformation, which represents the bounding box of the SDF.
@@ -11,7 +10,7 @@ pub struct SDFViewerMaterial {
     /// The bounds in world space of the voxel data stored in the 3D texture.
     pub voxels_bounds: [Vector3<f32>; 2],
     /// See `SDFViewer::update`. Determines how many voxels should be used to define the isosurface.
-    /// A value of n means that 2**n samples are skipped in between each read.
+    /// A value of n means that 2**n samples should be skipped in between each read.
     pub level_of_detail: usize,
     /// Threshold (in the range [0..1]) that defines the surface in the voxel data.
     pub threshold: f32,
@@ -59,12 +58,9 @@ impl Material for SDFViewerMaterial {
         program.use_texture_3d("sdfTex", &self.voxels)?;
         program.use_uniform("sdfBoundsMin", self.voxels_bounds[0])?;
         program.use_uniform("sdfBoundsMax", self.voxels_bounds[1])?;
-        // program.use_uniform("sdfTexInvSize", vec3(
-        //     1.0 / self.voxels.width() as f32,
-        //     1.0 / self.voxels.height() as f32,
-        //     1.0 / self.voxels.depth() as f32,
-        // ))?;
-        // program.use_uniform("sdfLevelOfDetail", self.level_of_detail as u32)?;
+        program.use_uniform("sdfTexSize", vec3(
+            self.voxels.width() as f32, self.voxels.height() as f32, self.voxels.depth() as f32))?;
+        program.use_uniform("sdfLevelOfDetail", self.level_of_detail as u32)?;
         program.use_uniform("sdfThreshold", self.threshold)?;
         Ok(())
     }
@@ -80,4 +76,21 @@ impl Material for SDFViewerMaterial {
     fn is_transparent(&self) -> bool {
         false
     }
+}
+
+
+/// Utility to pack a 3D color to a single float. Keep in sync with GPU code!
+pub fn pack_color(color: Vector3<f32>) -> f32 {
+    color.x + color.y * 256.0 + color.z * 256.0 * 256.0
+}
+
+/// Utility to unpack a 3D color from a single float. Keep in sync with GPU code!
+#[allow(dead_code)]
+pub fn unpack_color(f: f32) -> Vector3<f32> {
+    let mut color = Vector3::new(0., 0., 0.);
+    color.y = (f / 256.0 / 256.0).floor();
+    color.z = ((f - color.z * 256.0 * 256.0) / 256.0).floor();
+    color.x = (f - color.z * 256.0 * 256.0 - color.y * 256.0).floor();
+    // now we have a vec3 with the 3 components in range [0..255]. Let's normalize it!
+    color / 255.0
 }

@@ -39,26 +39,28 @@ pub trait SDFSurface {
     }
 }
 
-/// The result of sampling the SDF.
+/// The result of sampling the SDF at the given coordinates.
 pub struct SdfSample {
-    /// The signed distance to surface at the given coordinates.
+    /// The signed distance to surface.
     pub distance: f32,
 
     // ============ OPTIONAL: MATERIAL PROPERTIES ============
-    /// The RGB color of the surface at the given coordinates.
-    pub color: [f32; 3],
-    /// The metallicness of the surface at the given coordinates.
+    /// The RGB color of the sample.
+    pub color: Vector3<f32>,
+    /// The metallicness of the sample.
     pub metallic: f32,
-    /// The roughness of the surface at the given coordinates.
+    /// The roughness of the sample.
     pub roughness: f32,
-    /// The occlusion of the surface at the given coordinates.
+    /// The occlusion of the sample.
     pub occlusion: f32,
 }
 
 impl SdfSample {
-    /// Creates a new SDF sample using only required parameters.
-    pub fn new(distance: f32) -> Self {
-        Self { distance, color: [0.25f32, 0.6, 0.3], metallic: 0.0, roughness: 0.0, occlusion: 0.0 }
+    /// Creates a new SDF sample using only distance and color. Use the struct initialization if you
+    /// want to use other properties.
+    #[allow(dead_code)]
+    pub fn new(distance: f32, color: Vector3<f32>) -> Self {
+        Self { distance, color, metallic: 0.0, roughness: 0.0, occlusion: 0.0 }
     }
 
     // TODO: some procedural material defaults like checkerboard, wood, brick or ground.

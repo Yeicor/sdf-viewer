@@ -98,8 +98,8 @@ impl SDFViewerAppScene {
         // Create the SDF loader and viewer
         // TODO: SDF infrastructure (webserver and file drag&drop)
         let sdf = Box::new(SDFDemo {});
-        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(64));
-        sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
+        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(128));
+        // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
         objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
 
         // Load the skybox (embedded in the binary)
@@ -163,6 +163,7 @@ impl SDFViewerAppScene {
             if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {
                 let load_start_gpu = Instant::now();
                 self.sdf_viewer.commit();
+                self.sdf_viewer.volume.borrow_mut().material.level_of_detail = self.sdf_viewer.loading_mgr.passes_left();
                 let now = Instant::now();
                 self.sdf_viewer_last_commit = Some(now);
                 info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + {:?} (GPU)",
@@ -174,6 +175,7 @@ impl SDFViewerAppScene {
         } else if self.sdf_viewer_last_commit.is_some() {
             self.sdf_viewer.commit();
             self.sdf_viewer_last_commit = None;
+            self.sdf_viewer.volume.borrow_mut().material.level_of_detail = 0; // Max resolution available
         }
 
         // Prepare the screen for drawing (get the render target)
@@ -208,7 +210,8 @@ impl SDFViewerAppScene {
                 Some((progress, format!("Loading SDF... {} passes left",
                                         self.sdf_viewer.loading_mgr.passes_left())))
             } else {
-                Some((1.0, "Loading SDF done! (ignore this message, it is a bug if you see it)".to_string()))
+                Some((1.0, "Loading SDF done! (ignore this message, it is a bug if you see it: \
+                try resizing the screen)".to_string()))
             }
         } else {
             None

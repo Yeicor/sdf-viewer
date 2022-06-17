@@ -40,8 +40,7 @@ impl Cli {
                 if x.len() == 1 {
                     tracing::warn!("No arguments (GET parameters, try <url>?-h), setting defaults");
                     x.push("app".to_string());
-                    x.push("url".to_string());
-                    x.push("http://localhost:8080/sdf.wasm".to_string());
+                    x.push("demo".to_string());
                 }
                 x
             }

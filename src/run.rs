@@ -21,7 +21,7 @@ pub fn setup_app() -> Option<AppCreator> {
             }))
         }
         Commands::Server(_srv) => {
-            // TODO: Run the server (until
+            // TODO: Run the server
             None
         }
     }

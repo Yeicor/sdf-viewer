@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use cgmath::ElementWise;
 use three_d::{CpuMesh, CpuTexture3D, Gm, Mesh, Texture3D, Vector3};
-use three_d_asset::{Interpolation, Positions, TextureData, Wrapping};
+use three_d::{Interpolation, Positions, TextureData, Wrapping};
 
 use material::SDFViewerMaterial;
 
@@ -31,7 +31,7 @@ const AIR_DIST: f32 = 0.001234;
 impl SDFViewer {
     /// Creates a new SDF viewer for the given bounding box (tries to keep aspect ratio).
     pub fn from_bb(ctx: &three_d::Context, bb: &[Vector3<f32>; 2], max_voxels_side: Option<usize>) -> Self {
-        let max_voxels_side = max_voxels_side.unwrap_or(1024);
+        let max_voxels_side = max_voxels_side.unwrap_or(256);
         let bb_size = bb[1] - bb[0];
         let mut voxels = Vector3::new(0usize, 0usize, 0usize);
         if bb_size.x > bb_size.y {
@@ -114,6 +114,9 @@ impl SDFViewer {
                             // Actually sample the SDF.
                             let sample = sdf.sample(next_point, false);
                             data[flat_index][0] = sample.distance;
+                            data[flat_index][1] = material::pack_color(sample.color);
+                            data[flat_index][2] = material::pack_color(Vector3::new(sample.metallic, sample.roughness, sample.occlusion));
+                            // info!("Updated voxel color {:?}", data[flat_index][1]);
                             // TODO: Provide more voxel data to the shader.
                         }
                     }
