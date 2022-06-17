@@ -2231,7 +2231,7 @@ dependencies = [
 
 [[package]]
 name = "sdf-viewer"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "auto_impl",
  "cgmath",
