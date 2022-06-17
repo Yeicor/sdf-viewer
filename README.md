@@ -11,14 +11,15 @@ The main objetive of this app is to quickly visualize new SDFs while designing t
 - [ ] Cross-language: easy to integrate with most languages and frameworks.
 - [x] Very-fast initialization on all platforms.
 - [x] Interactive framerate (uses the GPU for viewing the SDF).
-- [ ] Different rendering materials (color, metallic, roughness...).
-- [ ] Upload your SDF to any static server and render it using a link.
+- [x] Different rendering materials (color, metallic, roughness...).
 - [ ] Surface parameters to quickly customize from the UI.
-- [ ] Render/export as a triangle mesh using different algorithms.
+- [ ] Render/export:
+  - [ ] Upload your SDF to a server and display it anywhere with a link.
+  - [ ] Export as a triangle mesh using different algorithms.
 
 ## Demo
 
-**[Try it online!](https://yeicor.github.io/sdf-viewer/)** The native version is recommended for much better
+**[Try it online!](https://yeicor.github.io/sdf-viewer/)** The native version is recommended for better
 performance.
 
 This example and then renders an SDF at 60 FPS on an integrated graphics card (i7-9750H). The initial progressive load
