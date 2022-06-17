@@ -2270,7 +2270,7 @@ dependencies = [
  "reqwest",
  "shadow-rs",
  "three-d",
- "three-d-asset",
+ "three-d-asset 0.2.0",
  "tracing",
  "tracing-subscriber",
  "tracing-wasm",
@@ -2577,7 +2577,7 @@ dependencies = [
  "js-sys",
  "serde",
  "thiserror",
- "three-d-asset",
+ "three-d-asset 0.1.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -2595,6 +2595,18 @@ dependencies = [
  "reqwest",
  "thiserror",
  "wavefront_obj",
+ "web-sys",
+]
+
+[[package]]
+name = "three-d-asset"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6197edded58fd3023c349775e5de70c53c2263c4e10d9065fc6a6add6df4916"
+dependencies = [
+ "cgmath",
+ "half",
+ "thiserror",
  "web-sys",
 ]
 
