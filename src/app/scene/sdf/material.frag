@@ -37,7 +37,7 @@ float sdfOutOfBoundsDist(vec3 p) {
     max(max(sdfBoundsMin.y - p.y, p.y - sdfBoundsMax.y),
     max(sdfBoundsMin.z - p.z, p.z - sdfBoundsMax.z))
     );
-    if (res >= 0) res += eps;// Is outside bounds -> avoid defining a surface at the bounds
+    if (res >= 0.0) res += eps;// Is outside bounds -> avoid defining a surface at the bounds
     return res;
 }
 
@@ -118,7 +118,7 @@ void main() {
             break;
         }
         // Stop condition: out of bounds
-        if (sdfOutOfBoundsDist(rayPos) > 0.0) {
+        if (sdfOutOfBoundsDist(rayPos) >= 0.0) {
             if (i == 0) {
                 // Use the contact point on the box as the starting point (in world space)
                 const float minDistFromBounds = 0.00001;
