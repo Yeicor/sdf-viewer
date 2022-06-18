@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
-use cgmath::Vector3;
 use clap::Parser;
 use reqwest::Url;
 
 use crate::app::SDFViewerApp;
-use crate::sdf::{SdfSample, SDFSurface};
+
 use crate::sdf::demo::SDFDemo;
 
 #[derive(clap::Parser, Debug)]
@@ -27,30 +26,6 @@ pub enum CliSDFProvider {
     Url(CliAppWatchUrl),
 }
 
-/// Redirects the implementation for the configured SDF provider for the App
-impl SDFSurface for CliSDFProvider {
-    fn bounding_box(&self) -> [Vector3<f32>; 2] {
-        match self {
-            CliSDFProvider::Demo(s) => s.bounding_box(),
-            _ => todo!()
-        }
-    }
-
-    fn sample(&self, p: Vector3<f32>, distance_only: bool) -> SdfSample {
-        match self {
-            CliSDFProvider::Demo(s) => s.sample(p, distance_only),
-            _ => todo!()
-        }
-    }
-
-    fn normal(&self, p: Vector3<f32>, eps: Option<f32>) -> Vector3<f32> {
-        match self {
-            CliSDFProvider::Demo(s) => s.normal(p, eps),
-            _ => todo!()
-        }
-    }
-}
-
 #[derive(Parser, Debug, Clone)]
 pub struct CliAppWatchFile {
     /// The file to watch for changes and display
@@ -69,7 +44,10 @@ impl CliApp {
     /// Sets up a new instance of the application.
     pub fn init(&self, app: &mut SDFViewerApp) {
         // Configure the initial SDF provider (may be changed later)
-        app.scene_mut(|scene| scene.sdf = Box::new(self.sdf_provider.clone()));
+        app.scene_mut(|scene| scene.sdf = Box::new(match self.sdf_provider.clone() {
+            CliSDFProvider::Demo(s) => s,
+            _ => todo!()
+        }));
         // TODO: More settings
     }
 }

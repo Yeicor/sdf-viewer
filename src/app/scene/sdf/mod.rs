@@ -87,7 +87,7 @@ impl SDFViewer {
     ///
     /// Returns the number of updates. It performs at least one update if needed, even if the
     /// time limit is reached.
-    pub fn update(&mut self, sdf: impl SDFSurface, max_delta_time: instant::Duration, force: usize) -> usize {
+    pub fn update(&mut self, sdf: Box<dyn SDFSurface>, max_delta_time: instant::Duration, force: usize) -> usize {
         if force > 0 {
             self.loading_mgr.reset(force);
         }
@@ -116,9 +116,9 @@ impl SDFViewer {
                             let sample = sdf.sample(next_point, false);
                             data[flat_index][0] = sample.distance;
                             data[flat_index][1] = material::pack_color(sample.color);
-                            data[flat_index][2] = material::pack_color(Vector3::new(sample.metallic, sample.roughness, sample.occlusion));
+                            data[flat_index][2] = material::pack_color(Vector3::new(sample.metallic, sample.roughness, sample.occlusion))
                             // info!("Updated voxel color {:?}", data[flat_index][1]);
-                            // TODO: Provide more voxel data to the shader.
+                            // TODO: Provide more voxel data to the shader, like a material kind index for using custom GLSL code.
                         }
                     }
                     _ => panic!("developer error: expected RgbaF32 texture data"),

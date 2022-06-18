@@ -11,7 +11,7 @@ use tracing::info;
 use camera::CameraController;
 
 use crate::app::scene::sdf::SDFViewer;
-use crate::sdf::demo::SDFDemo;
+use crate::sdf::demo::SDFDemoCube;
 use crate::sdf::SDFSurface;
 
 pub mod sdf;
@@ -83,7 +83,7 @@ impl SDFViewerAppScene {
         let camera = Camera::new_perspective(
             &ctx,
             Viewport { x: 0, y: 0, width: 0, height: 0 }, // Updated at runtime
-            vec3(1.0, 3.0, -5.0),
+            vec3(2.5, 3.0, 5.0),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
             degrees(45.0),
@@ -97,7 +97,7 @@ impl SDFViewerAppScene {
 
         // Create the SDF loader and viewer
         // TODO: SDF infrastructure (webserver and file drag&drop)
-        let sdf = Box::new(SDFDemo {});
+        let sdf = Box::new(SDFDemoCube::default());
         let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(128));
         // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
         objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
@@ -123,6 +123,8 @@ impl SDFViewerAppScene {
                 &ctx, 1.0, Color::WHITE, skybox.texture()).unwrap();
             objects.push(Box::new(skybox));
             lights.push(Box::new(ambient_light));
+        } else {
+            lights.push(Box::new(AmbientLight::new(&ctx, 0.25, Color::WHITE).unwrap()));
         }
 
         // Load the scene TODO: custom user-defined objects (gltf) with transforms
@@ -157,7 +159,7 @@ impl SDFViewerAppScene {
 
         // Load more of the SDF to the GPU in realtime (if needed)
         let load_start_cpu = Instant::now();
-        let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30), 0);
+        let cpu_updates = self.sdf_viewer.update(self.sdf.clone_box(), Duration::from_millis(30), 0);
         if cpu_updates > 0 {
             // Update the GPU texture sparingly (to mitigate stuttering on high-detail rendering loads)
             if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {

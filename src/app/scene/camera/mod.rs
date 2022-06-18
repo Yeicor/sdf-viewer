@@ -24,8 +24,8 @@ impl CameraController {
         let viewport = Viewport {
             x: viewport.left_px.round() as _,
             y: viewport.from_bottom_px.round() as _,
-            width: viewport.width_px.round() as _,
-            height: viewport.height_px.round() as _,
+            width: viewport.width_px.round().max(1.0) as _,
+            height: viewport.height_px.round().max(1.0) as _,
         };
         self.camera.set_viewport(viewport).unwrap();
         // Handle inputs

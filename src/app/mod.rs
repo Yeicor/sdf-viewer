@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use eframe::{egui, Storage};
-use eframe::egui::{Color32, Frame, ProgressBar, ScrollArea, Stroke, Ui};
+use eframe::egui::{Color32, Frame, ProgressBar, ScrollArea, Stroke, Ui, Vec2};
+use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
 use tracing::info;
@@ -9,6 +10,7 @@ use tracing::info;
 use scene::SDFViewerAppScene;
 
 use crate::metadata::log_version_info;
+use crate::sdf::SDFSurface;
 
 pub mod cli;
 pub mod scene;
@@ -36,12 +38,18 @@ impl SDFViewerApp {
         }
 
         info!("Initialization complete! Starting main loop...");
-        Self {
+        let slf = Self {
             progress: None,
-        }
+        };
+
+        // In order to configure the 3D scene after initialization, we need to create a new scene now.
+        // Warning: future rendering must be done from this thread, or a new scene will be created.
+        SDFViewerAppScene::from_glow_context_thread_local(&cc.gl, |_scene| {});
+
+        slf
     }
 
-    fn three_d_scene(&mut self, ui: &mut Ui) {
+    fn ui_three_d_scene_widget(&mut self, ui: &mut Ui) {
         let (rect, response) = ui.allocate_exact_size(
             ui.available_size(), egui::Sense::click_and_drag());
         // Synchronize the scene information (from the previous frame, no way to know the future)
@@ -59,6 +67,25 @@ impl SDFViewerApp {
         });
     }
 
+    fn ui_create_hierarchy(sdf: &dyn SDFSurface, ui: &mut Ui) {
+        let id = ui.make_persistent_id(format!("sdf-hierarchy-{}", sdf.id()));
+        let children = sdf.children();
+        let render_child = |ui: &mut Ui| {
+            ui.label(sdf.name());
+        };
+        if children.is_empty() {
+            render_child(ui);
+        } else {
+            CollapsingState::load_with_default_open(ui.ctx(), id, true)
+                .show_header(ui, render_child)
+                .body(move |ui| {
+                    for child in children {
+                        Self::ui_create_hierarchy(child.as_ref(), ui);
+                    }
+                });
+        }
+    }
+
     pub fn scene_mut<R>(
         &mut self,
         f: impl FnOnce(&mut SDFViewerAppScene) -> R,
@@ -73,11 +100,16 @@ impl eframe::App for SDFViewerApp {
         // Top panel for the menu bar
         egui::TopBottomPanel::new(TopBottomSide::Top, hash("top"))
             .show(ctx, |ui| {
-                egui::menu::bar(ui, |ui| {
-                    egui::menu::menu_button(ui, "File", |ui| {
-                        egui::menu::menu_button(ui, "Open SDF...", |_ui| {
-                            // Unimplemented
+                ScrollArea::new([true, true]).show(ui, |ui| {
+                    egui::menu::bar(ui, |ui| {
+                        egui::menu::menu_button(ui, "File", |ui| {
+                            egui::menu::menu_button(ui, "Open SDF...", |_ui| {
+                                // TODO: Open and swap the new SDF manually inserted (url/file)
+                            });
                         });
+                        // Add an spacer to right-align some options
+                        ui.allocate_space(Vec2::new(ui.available_width() - 26.0, 1.0));
+                        egui::widgets::global_dark_light_mode_switch(ui);
                     });
                 });
             });
@@ -85,16 +117,9 @@ impl eframe::App for SDFViewerApp {
         // Main side panel for configuration.
         egui::SidePanel::new(Side::Left, hash("left"))
             .show(ctx, |ui| {
-                ScrollArea::new([false, true]).show(ui, |ui| {
-                    ui.heading("Connection"); // TODO: Accordions with status emojis/counters...
-                    ui.heading("Parameters");
-                    ui.heading("Hierarchy");
-                    ui.heading("Settings");
-                    ui.horizontal(|ui| {
-                        ui.label("Theme:");
-                        egui::widgets::global_dark_light_mode_switch(ui);
-                        // Read-only app access possible, to request operations done by the app.
-                        // info!("App access: {:?}", _app.scene.borrow().volume.material.color);
+                ScrollArea::new([true, true]).show(ui, |ui| {
+                    self.scene_mut(move |scene| {
+                        Self::ui_create_hierarchy(scene.sdf.as_ref(), ui);
                     });
                 })
             });
@@ -123,7 +148,7 @@ impl eframe::App for SDFViewerApp {
                     .outer_margin(0.0)
                     .stroke(Stroke::none())
                     .show(ui, |ui| {
-                        self.three_d_scene(ui);
+                        self.ui_three_d_scene_widget(ui);
                     });
             });
     }

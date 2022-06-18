@@ -1,5 +1,5 @@
 use cgmath::{vec3, Vector3};
-use three_d::{Blend, Camera, Color, Cull, GeometryFunction, Light, LightingModel, lights_shader_source, Material, NormalDistributionFunction, RenderStates, Texture3D, ThreeDResult};
+use three_d::{Blend, Camera, Color, Cull, DepthTest, GeometryFunction, Light, LightingModel, lights_shader_source, Material, NormalDistributionFunction, RenderStates, Texture3D, ThreeDResult};
 use three_d::core::Program;
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
@@ -69,6 +69,7 @@ impl Material for SDFViewerMaterial {
         RenderStates {
             blend: Blend::TRANSPARENCY, // TODO: breaks opaque surfaces if used anywhere?!
             cull: Cull::None, // Also draw the inside
+            depth_test: DepthTest::Less, // FIXME: If surface touches borders, artifacts happen
             ..Default::default()
         }
     }
@@ -78,19 +79,51 @@ impl Material for SDFViewerMaterial {
     }
 }
 
-
-/// Utility to pack a 3D color to a single float. Keep in sync with GPU code!
+// Utility to pack a RGB ([0, 1]) color into a single float in the [0, 1] range.
+// WARNING: GLSL highp floats are 24-bit long!
+// WARNING: Keep in sync with GPU code!
 pub fn pack_color(color: Vector3<f32>) -> f32 {
-    color.x + color.y * 256.0 + color.z * 256.0 * 256.0
+    const PRECISION: f32 = 7.0;
+    const PRECISION_P1: f32 = PRECISION + 1.0;
+    let components = color.map(|c| c.min(1.0).max(0.0))
+        .map(|c| (c * PRECISION + 0.5).floor());
+    (components.x + components.y * PRECISION_P1 + components.z * PRECISION_P1 * PRECISION_P1)
+        / (PRECISION_P1 * PRECISION_P1 * PRECISION_P1)
 }
 
-/// Utility to unpack a 3D color from a single float. Keep in sync with GPU code!
-#[allow(dead_code)]
-pub fn unpack_color(f: f32) -> Vector3<f32> {
-    let mut color = Vector3::new(0., 0., 0.);
-    color.y = (f / 256.0 / 256.0).floor();
-    color.z = ((f - color.z * 256.0 * 256.0) / 256.0).floor();
-    color.x = (f - color.z * 256.0 * 256.0 - color.y * 256.0).floor();
-    // now we have a vec3 with the 3 components in range [0..255]. Let's normalize it!
-    color / 255.0
+#[cfg(test)]
+mod test {
+    use cgmath::{MetricSpace, Vector3};
+
+    use crate::app::scene::sdf::material::pack_color;
+
+    pub fn unpack_color(packed: f32) -> Vector3<f32> {
+        const PRECISION: f32 = 7.0;
+        const PRECISION_P1: f32 = PRECISION + 1.0;
+        let packed = packed * (PRECISION_P1 * PRECISION_P1 * PRECISION_P1);
+        let x = (packed % PRECISION_P1) / PRECISION;
+        let y = ((packed / PRECISION_P1).floor() % PRECISION_P1) / PRECISION;
+        let z = (packed / (PRECISION_P1 * PRECISION_P1)).floor() / PRECISION;
+        Vector3::new(x, y, z)
+    }
+
+    #[test]
+    fn test_pack_color() {
+        // Pack and unpack all colors performing basic sanity checks.
+        const PRECISION: f32 = 7.0;
+        let mut max_packed: f32 = 0.0;
+        for x in 0..=255 {
+            for y in 0..=255 {
+                for z in 0..=255 {
+                    let color = Vector3::new(x as f32 / 255.0, y as f32 / 255.0, z as f32 / 255.0);
+                    let packed = pack_color(color);
+                    max_packed = max_packed.max(packed);
+                    let unpacked = unpack_color(packed);
+                    // println!("{:?} --[{:?}]--> {:?}", color, packed, unpacked);
+                    approx::assert_relative_eq!(color.distance(unpacked).abs(), 0.0, epsilon = 1.0 / PRECISION);
+                }
+            }
+        }
+        println!("Max packed value: {}", max_packed);
+    }
 }

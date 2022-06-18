@@ -13,21 +13,18 @@ in vec3 pos;// Geometry hit position. The original mesh (before transformation) 
 
 layout (location = 0) out vec4 outColor;
 
-// FIXME: Cube seams visible from far away (on web only)?
-
-// Utility to pack a 3D color to a single float. Keep in sync with CPU code!
-float packColor(vec3 color) {
-    return color.r + color.g * 256.0 + color.b * 256.0 * 256.0;
-}
-
-// Utility to unpack a 3D color from a single float. Keep in sync with CPU code!
+// Utility to unpack a RGB ([0, 1]) color from a single float in the [0, 1] range.
+// WARNING: GLSL highp floats are 24-bit long!
+// WARNING: Keep in sync with CPU code!
 vec3 unpackColor(float f) {
+    const float c_precision = 7.0;
+    const float c_precisionp1 = c_precision + 1.0;
+    float value = f * c_precisionp1 * c_precisionp1 * c_precisionp1;
     vec3 color;
-    color.b = floor(f / 256.0 / 256.0);
-    color.g = floor((f - color.b * 256.0 * 256.0) / 256.0);
-    color.r = floor(f - color.b * 256.0 * 256.0 - color.g * 256.0);
-    // now we have a vec3 with the 3 components in range [0..255]. Let's normalize it!
-    return color / 255.0;
+    color.r = mod(value, c_precisionp1) / c_precision;
+    color.b = mod(floor(value / c_precisionp1), c_precisionp1) / c_precision;
+    color.g = floor(value / (c_precisionp1 * c_precisionp1)) / c_precision;
+    return color;
 }
 
 float sdfOutOfBoundsDist(vec3 p) {
