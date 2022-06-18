@@ -10,8 +10,8 @@ pub struct SDFViewerMaterial {
     /// The bounds in world space of the voxel data stored in the 3D texture.
     pub voxels_bounds: [Vector3<f32>; 2],
     /// See `SDFViewer::update`. Determines how many voxels should be used to define the isosurface.
-    /// A value of n means that 2**n samples should be skipped in between each read.
-    pub level_of_detail: usize,
+    /// A value of n means that n samples should be skipped in each dimension in between each read.
+    pub lod_dist_between_samples: f32,
     /// Threshold (in the range [0..1]) that defines the surface in the voxel data.
     pub threshold: f32,
     /// Base surface color (tint). Assumed to be in linear color space.
@@ -25,7 +25,7 @@ impl SDFViewerMaterial {
         Self {
             voxels,
             voxels_bounds,
-            level_of_detail: 0,
+            lod_dist_between_samples: 1f32,
             threshold: 0.0,
             color: Color::WHITE,
             lighting_model: LightingModel::Cook(
@@ -60,7 +60,7 @@ impl Material for SDFViewerMaterial {
         program.use_uniform("sdfBoundsMax", self.voxels_bounds[1])?;
         program.use_uniform("sdfTexSize", vec3(
             self.voxels.width() as f32, self.voxels.height() as f32, self.voxels.depth() as f32))?;
-        program.use_uniform("sdfLevelOfDetail", self.level_of_detail as u32)?;
+        program.use_uniform("sdfLODDistBetweenSamples", self.lod_dist_between_samples)?;
         program.use_uniform("sdfThreshold", self.threshold)?;
         Ok(())
     }

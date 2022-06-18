@@ -3,6 +3,7 @@ use std::ops::AddAssign;
 use std::rc::Rc;
 
 use cgmath::ElementWise;
+use cgmath::num_traits::Pow;
 use three_d::{CpuMesh, CpuTexture3D, Gm, Mesh, Texture3D, Vector3};
 use three_d::{Interpolation, Positions, TextureData, Wrapping};
 
@@ -131,10 +132,12 @@ impl SDFViewer {
 
     /// Commits all previous `update`s to the GPU, updating the GPU-side texture data.
     pub fn commit(&mut self) {
-        self.volume.borrow_mut().material.voxels.fill(match &self.texture.data {
+        let mut vol_mut = self.volume.borrow_mut();
+        vol_mut.material.voxels.fill(match &self.texture.data {
             TextureData::RgbaF32(d) => { d.as_slice() }
             _ => panic!("developer error: expected RgbaF32 texture data"),
         }).unwrap();
+        vol_mut.material.lod_dist_between_samples = 2f32.pow(self.loading_mgr.passes_left() as u8);
     }
 }
 

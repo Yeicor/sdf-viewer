@@ -66,6 +66,7 @@ impl Iterator for LoadingManager {
                 }
             }
         }
+        // std::thread::sleep(std::time::Duration::from_micros(2)); // Slow loading debugging
         Some(res)
     }
 }

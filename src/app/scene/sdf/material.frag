@@ -6,7 +6,7 @@ uniform sampler3D sdfTex;
 uniform vec3 sdfTexSize;
 uniform vec3 sdfBoundsMin;
 uniform vec3 sdfBoundsMax;
-uniform uint sdfLevelOfDetail;
+uniform float sdfLODDistBetweenSamples;
 uniform float sdfThreshold;
 
 in vec3 pos;// Geometry hit position. The original mesh (before transformation) must be a cube from (0,0,0) to (1,1,1).
@@ -30,51 +30,44 @@ vec3 unpackColor(float f) {
     return color / 255.0;
 }
 
+float sdfOutOfBoundsDist(vec3 p) {
+    const float eps = 0.00001;
+    float res = max(
+    max(sdfBoundsMin.x - p.x, p.x - sdfBoundsMax.x),
+    max(max(sdfBoundsMin.y - p.y, p.y - sdfBoundsMax.y),
+    max(sdfBoundsMin.z - p.z, p.z - sdfBoundsMax.z))
+    );
+    if (res >= 0) res += eps;// Is outside bounds -> avoid defining a surface at the bounds
+    return res;
+}
+
 // Same as sdfSampleRaw (below), but returns the nearest exact information as stored in the texture.
 // It avoids unwanted interpolation which may break packed data.
 vec4 sdfSampleRawNearest(vec3 p) {
+    //    float oobDist = sdfOutOfBoundsDist(p);
+    //    if (oobDist >= 0) return vec4(oobDist, 0.0, 0.0, 0.0);// Out of bounds -> return distance to bounds
     vec3 p01 = (p - sdfBoundsMin) / (sdfBoundsMax - sdfBoundsMin);
-    vec3 roundSteps = sdfTexSize / pow(2.0, float(sdfLevelOfDetail));
-    vec3 p01round = round(p01 * roundSteps) / roundSteps;
-    return texture(sdfTex, p01round);
+    vec3 roundSteps = sdfTexSize / sdfLODDistBetweenSamples;
+    vec3 p01nearestExact = round(p01 * roundSteps) / roundSteps;
+    return texture(sdfTex, p01nearestExact);
 }
 
-// Evaluate the SDF at the given position.
-// Performs manual interpolation when sdfLevelOfDetail > 0.
-vec4 sdfSampleRaw(vec3 p) {
-    if (sdfLevelOfDetail == uint(0) || true) { // Automatic interpolation by the GPU!
+// Evaluate the SDF at the given position, interpolating all values (interpreted as 4 floats) from the nearest available samples.
+// NOTE: While loading (sdfLODDistBetweenSamples > 1) it gives a rough estimate of the SDF value, which is invalid for SDF distance
+// so it performs a (buggy) blocky (but holeless) render. The correct way would be to perform manual interpolation of
+// non-contiguous sdfTex values, but that is too GPU-intensive and slows down the loading process.
+vec4 sdfSampleRawInterp(vec3 p) {
+    //    float oobDist = sdfOutOfBoundsDist(p);
+    //    if (oobDist >= 0) return vec4(oobDist, 0.0, 0.0, 0.0);// Out of bounds -> return distance to bounds
+    if (sdfLODDistBetweenSamples == 1.0) { // Automatic interpolation by the GPU!
         vec3 p01 = (p - sdfBoundsMin) / (sdfBoundsMax - sdfBoundsMin);
         return texture(sdfTex, p01);
-    } else { // Manual interpolation, much more GPU-intensive but more accurate (while loading)
-        // FIXME: Remove bugs ;) (and then remove the true above)
-        vec3 p01 = (p - sdfBoundsMin) / (sdfBoundsMax - sdfBoundsMin);
-        vec3 roundSteps = sdfTexSize / pow(2.0, float(sdfLevelOfDetail));
-        vec3 p01round = round(p01 * roundSteps) / roundSteps;
-        vec3 p2 = p01round * (sdfBoundsMax - sdfBoundsMin) + sdfBoundsMin;
-        vec3 moveBy = (sdfBoundsMax - sdfBoundsMin) / roundSteps;
-        vec3 p000 = p2;
-        vec3 p001 = p2 + vec3(0.0, 0.0, moveBy.z);
-        vec3 p010 = p2 + vec3(0.0, moveBy.y, 0.0);
-        vec3 p011 = p2 + vec3(0.0, moveBy.y, moveBy.z);
-        vec3 p100 = p2 + vec3(moveBy.x, 0.0, 0.0);
-        vec3 p101 = p2 + vec3(moveBy.x, 0.0, moveBy.z);
-        vec3 p110 = p2 + vec3(moveBy.x, moveBy.y, 0.0);
-        vec3 p111 = p2 + moveBy;
-        vec4 p000v = sdfSampleRawNearest(p000);
-        vec4 p001v = sdfSampleRawNearest(p001);
-        vec4 p010v = sdfSampleRawNearest(p010);
-        vec4 p011v = sdfSampleRawNearest(p011);
-        vec4 p100v = sdfSampleRawNearest(p100);
-        vec4 p101v = sdfSampleRawNearest(p101);
-        vec4 p110v = sdfSampleRawNearest(p110);
-        vec4 p111v = sdfSampleRawNearest(p111);
-        vec4 p00v = mix(p000v, p001v, p01.z);
-        vec4 p01v = mix(p010v, p011v, p01.z);
-        vec4 p10v = mix(p100v, p101v, p01.z);
-        vec4 p11v = mix(p110v, p111v, p01.z);
-        vec4 p0v = mix(p00v, p01v, p01.y);
-        vec4 p1v = mix(p10v, p11v, p01.y);
-        return mix(p0v, p1v, p01.x);
+    } else { // While loading (see function docs)
+        // Note that in order to avoid holes in the render, we are only incrementing the detail once the next layer is
+        // available. This means that the user won't see the detail layer being populated in real-time.
+        // TODO: Why does this not happen for the last layer?
+        return sdfSampleRawNearest(p);
+        // TODO: Try to perform fast interpolation?
     }
 }
 
@@ -93,14 +86,15 @@ vec3 sdfSampleMetallicRoughnessOcclussion(vec4 raw) {
     return unpackColor(raw.b);
 }
 
-/// Approximate the SDF's normal at the given position
+/// Approximate the SDF's normal at the given position. From https://iquilezles.org/articles/normalsSDF/.
 vec3 sdfNormal(vec3 p) {
-    const float eps = 0.001;// FIXME: Normals at inside-volume bounds (worth the extra performance hit?)
-    // TODO(performance): Tetrahedron based normal calculation.
-    float x = sdfSampleDist(sdfSampleRaw(p + vec3(eps, 0.0, 0.0))) - sdfSampleDist(sdfSampleRaw(p - vec3(eps, 0.0, 0.0)));
-    float y = sdfSampleDist(sdfSampleRaw(p + vec3(0.0, eps, 0.0))) - sdfSampleDist(sdfSampleRaw(p - vec3(0.0, eps, 0.0)));
-    float z = sdfSampleDist(sdfSampleRaw(p + vec3(0.0, 0.0, eps))) - sdfSampleDist(sdfSampleRaw(p - vec3(0.0, 0.0, eps)));
-    return -normalize(vec3(x, y, z));
+    // FIXME: Normals at inside-volume bounds (worth the extra performance hit?)
+    float h = 1./length(sdfTexSize / sdfLODDistBetweenSamples);
+    const vec2 k = vec2(1, -1);
+    return normalize(k.xyy*sdfSampleDist(sdfSampleRawInterp(p + k.xyy*h)) +
+    k.yyx*sdfSampleDist(sdfSampleRawInterp(p + k.yyx*h)) +
+    k.yxy*sdfSampleDist(sdfSampleRawInterp(p + k.yxy*h)) +
+    k.xxx*sdfSampleDist(sdfSampleRawInterp(p + k.xxx*h)));
 }
 
 void main() {
@@ -124,8 +118,7 @@ void main() {
             break;
         }
         // Stop condition: out of bounds
-        if (rayPos.x <= sdfBoundsMin.x || rayPos.y <= sdfBoundsMin.y || rayPos.z <= sdfBoundsMin.z ||
-        rayPos.x >= sdfBoundsMax.x || rayPos.y >= sdfBoundsMax.y || rayPos.z >= sdfBoundsMax.z) {
+        if (sdfOutOfBoundsDist(rayPos) > 0.0) {
             if (i == 0) {
                 // Use the contact point on the box as the starting point (in world space)
                 const float minDistFromBounds = 0.00001;
@@ -141,15 +134,16 @@ void main() {
             }
         }
         // The SDF is evaluated at the current position in the ray.
-        vec4 sampleRaw = sdfSampleRaw(rayPos);
+        vec4 sampleRaw = sdfSampleRawInterp(rayPos);
         float sampleDist = sdfSampleDist(sampleRaw);
+        // FIXME: Some samples pass through the surface near interpolated corners, leading to single-pixel holes!
 
         if (sampleDist <= 0.0) { // We hit the surface
             // Read material properties from the texture color
             vec3 normal = sdfNormal(rayPos);
             vec4 sampleRawNearest = sdfSampleRawNearest(rayPos);
             vec3 sampleColor = sdfSampleColor(sampleRawNearest);
-            sampleColor *= surfaceColorTint.rgb; // Usually white, does nothing to the surface's color
+            sampleColor *= surfaceColorTint.rgb;// Usually white, does nothing to the surface's color
             vec3 sampleProps = sdfSampleMetallicRoughnessOcclussion(sampleRawNearest);
 
             // Compute the color using the lighting model.

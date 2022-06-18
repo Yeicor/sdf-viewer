@@ -1,4 +1,4 @@
-use eframe::egui::{PaintCallbackInfo, Response};
+use eframe::egui::{PaintCallbackInfo, PointerButton, Response};
 use three_d::*;
 
 /// The camera movement code.
@@ -23,19 +23,27 @@ impl CameraController {
         let viewport = info.viewport_in_pixels();
         let viewport = Viewport {
             x: viewport.left_px.round() as _,
-            // y: viewport.top_px.round() as _,
             y: viewport.from_bottom_px.round() as _,
             width: viewport.width_px.round() as _,
             height: viewport.height_px.round() as _,
         };
         self.camera.set_viewport(viewport).unwrap();
         // Handle inputs
-        // TODO: Mobile controls!
         if egui_resp.hovered() { // If interacting with the widget
             let state = egui_resp.ctx.input();
             let dragged_delta = egui_resp.drag_delta();
-            if egui_resp.dragged && (state.pointer.secondary_down() || state.any_touches()) {
-                let should_rotate = self.is_rotating.unwrap_or(!state.modifiers.shift);
+            let number_touches = state.multi_touch().map(|touches| touches.num_touches).unwrap_or(0);
+            let scroll_y = state.multi_touch().and_then(|touches| {
+                if number_touches == 2 {
+                    const TOUCH_SENSITIVITY: f32 = 0.01; // Otherwise, it is always zooming
+                    let zoom_delta = touches.zoom_delta - 1.;
+                    if zoom_delta.abs() > TOUCH_SENSITIVITY {
+                        Some(zoom_delta) // positive is zoom in, negative is zoom out
+                    } else { None }
+                } else { None }
+            }).unwrap_or(state.scroll_delta.y);
+            if egui_resp.dragged_by(PointerButton::Secondary) || number_touches >= 2 && scroll_y == 0. {
+                let should_rotate = self.is_rotating.unwrap_or(!state.modifiers.shift && number_touches < 3);
                 if should_rotate {
                     self.is_rotating = Some(true);
                     // Rotate the camera in an orbit around the target
@@ -57,12 +65,12 @@ impl CameraController {
             } else {
                 self.is_rotating = None;
             }
-            if state.scroll_delta.y != 0. {
+            if scroll_y != 0. {
                 // Zoom the camera
                 let target = *self.camera.target();
                 let pos = self.camera.position();
                 let distance = pos.distance(target);
-                let delta = state.scroll_delta.y * self.sensitivity * 0.005 * distance;
+                let delta = scroll_y.signum() * self.sensitivity * 0.1 * distance;
                 let new_distance = (distance - delta).max(0.01).min(1000.0);
                 let new_position = target - self.camera.view_direction() * new_distance;
                 let up = *self.camera.up();

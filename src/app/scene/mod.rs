@@ -163,7 +163,6 @@ impl SDFViewerAppScene {
             if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {
                 let load_start_gpu = Instant::now();
                 self.sdf_viewer.commit();
-                self.sdf_viewer.volume.borrow_mut().material.level_of_detail = self.sdf_viewer.loading_mgr.passes_left();
                 let now = Instant::now();
                 self.sdf_viewer_last_commit = Some(now);
                 info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + {:?} (GPU)",
@@ -175,7 +174,6 @@ impl SDFViewerAppScene {
         } else if self.sdf_viewer_last_commit.is_some() {
             self.sdf_viewer.commit();
             self.sdf_viewer_last_commit = None;
-            self.sdf_viewer.volume.borrow_mut().material.level_of_detail = 0; // Max resolution available
         }
 
         // Prepare the screen for drawing (get the render target)
