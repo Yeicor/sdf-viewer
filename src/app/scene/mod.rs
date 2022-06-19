@@ -11,7 +11,6 @@ use tracing::info;
 use camera::CameraController;
 
 use crate::app::scene::sdf::SDFViewer;
-use crate::sdf::demo::SDFDemoCube;
 use crate::sdf::SDFSurface;
 
 pub mod sdf;
@@ -35,7 +34,7 @@ pub struct SDFViewerAppScene {
     pub ctx: Context,
     // === SDF ===
     /// The CPU-side definition of the SDF object to render (infinite precision)
-    pub sdf: Box<dyn SDFSurface>,
+    pub sdf: &'static dyn SDFSurface,
     /// The controller that helps manage and synchronize the GPU material with the CPU SDF.
     pub sdf_viewer: SDFViewer,
     /// When we last updated the GPU texture of the SDF
@@ -56,29 +55,33 @@ impl SDFViewerAppScene {
     pub fn from_glow_context_thread_local<R>(
         gl: &Rc<glow::Context>,
         f: impl FnOnce(&mut SDFViewerAppScene) -> R,
+        sdf: &'static dyn SDFSurface,
     ) -> R {
         SCENE.with(|scene| {
             let mut scene = scene.borrow_mut();
             let scene =
                 scene.get_or_insert_with(|| {
                     // HACK: need to convert the GL context from Rc to Arc (UNSAFE: likely double-free on app close)
-                    let gl = unsafe { std::mem::transmute(gl.clone()) };
+                    let gl = unsafe { std::mem::transmute(gl.clone()) }; // FIXME: this unsafe block
                     // Retrieve Three-D context from the egui context (thanks to the shared glow dependency).
                     let three_d_ctx = Context::from_gl_context(gl).unwrap();
                     // Create the Three-D scene (only the first time).
-                    SDFViewerAppScene::new(three_d_ctx)
+                    SDFViewerAppScene::new(three_d_ctx, sdf)
                 });
             f(scene)
         })
     }
+
     /// Runs the given function with a mutable reference to the scene, ONLY if it was previously initialized.
     pub fn read_context_thread_local<R>(
-        f: impl FnOnce(&mut SDFViewerAppScene) -> R,
+        f: impl FnOnce(&mut Self) -> R,
     ) -> Option<R> {
-        SCENE.with(|scene| scene.borrow_mut().as_mut().map(f))
+        SCENE.with(|scene| scene.borrow_mut().as_mut().map(|x| {
+            f(x)
+        }))
     }
 
-    pub fn new(ctx: Context) -> Self {
+    pub fn new(ctx: Context, sdf: &'static dyn SDFSurface) -> Self {
         // Create the camera
         let camera = Camera::new_perspective(
             &ctx,
@@ -97,10 +100,9 @@ impl SDFViewerAppScene {
 
         // Create the SDF loader and viewer
         // TODO: SDF infrastructure (webserver and file drag&drop)
-        let sdf = Box::new(SDFDemoCube::default());
+        // let sdf = Box::new(SDFDemoCubeBrick::default());
         let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(128));
         // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
-        objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
 
         // Load the skybox (embedded in the binary)
         if cfg!(feature = "skybox") { // TODO: Speed-up skybox load times
@@ -150,16 +152,20 @@ impl SDFViewerAppScene {
             objects,
         }
     }
-}
 
-impl SDFViewerAppScene {
+    /// Updates the SDF to render (and clears all required caches).
+    pub fn set_sdf(&mut self, sdf: &'static dyn SDFSurface, max_voxels_side: usize) {
+        self.sdf = sdf;
+        self.sdf_viewer = SDFViewer::from_bb(&self.ctx, &sdf.bounding_box(), Some(max_voxels_side));
+    }
+
     pub fn render(&mut self, info: &PaintCallbackInfo, egui_resp: &Response) {
         // Update camera
         let viewport = self.camera.update(info, egui_resp);
 
         // Load more of the SDF to the GPU in realtime (if needed)
         let load_start_cpu = Instant::now();
-        let cpu_updates = self.sdf_viewer.update(self.sdf.clone_box(), Duration::from_millis(30), 0);
+        let cpu_updates = self.sdf_viewer.update(self.sdf, Duration::from_millis(30));
         if cpu_updates > 0 {
             // Update the GPU texture sparingly (to mitigate stuttering on high-detail rendering loads)
             if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {
@@ -195,7 +201,8 @@ impl SDFViewerAppScene {
         // Now render the main scene
         // Note: there is no need to clear the scene (already done by egui with the correct color)
         let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
-        let objects = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
+        let mut objects = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
+        objects.push(&self.sdf_viewer.volume); // "Add" the volume always to update automatically
         screen.render_partially(scissor_box, &self.camera.camera,
                                 objects.as_slice(), lights.as_slice()).unwrap();
     }

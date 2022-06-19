@@ -22,8 +22,8 @@ vec3 unpackColor(float f) {
     float value = f * c_precisionp1 * c_precisionp1 * c_precisionp1;
     vec3 color;
     color.r = mod(value, c_precisionp1) / c_precision;
-    color.b = mod(floor(value / c_precisionp1), c_precisionp1) / c_precision;
-    color.g = floor(value / (c_precisionp1 * c_precisionp1)) / c_precision;
+    color.g = mod(floor(value / c_precisionp1), c_precisionp1) / c_precision;
+    color.b = floor(value / (c_precisionp1 * c_precisionp1)) / c_precision;
     return color;
 }
 
@@ -44,6 +44,8 @@ vec4 sdfSampleRawNearest(vec3 p) {
     //    float oobDist = sdfOutOfBoundsDist(p);
     //    if (oobDist >= 0) return vec4(oobDist, 0.0, 0.0, 0.0);// Out of bounds -> return distance to bounds
     vec3 p01 = (p - sdfBoundsMin) / (sdfBoundsMax - sdfBoundsMin);
+    // Move from [0,1] to [0,sdfTexSize], rounding to nearest integer to find the neighbour and back to [0,1] range.
+    // WARNING: This seems broken: loading has slightly wrong color samples. Relies on nearest neighbor interpolation set from CPU side!
     vec3 roundSteps = sdfTexSize / sdfLODDistBetweenSamples;
     vec3 p01nearestExact = round(p01 * roundSteps) / roundSteps;
     return texture(sdfTex, p01nearestExact);
@@ -85,7 +87,7 @@ vec3 sdfSampleMetallicRoughnessOcclussion(vec4 raw) {
 
 /// Approximate the SDF's normal at the given position. From https://iquilezles.org/articles/normalsSDF/.
 vec3 sdfNormal(vec3 p) {
-    // FIXME: Normals at inside-volume bounds (worth the extra performance hit?)
+    // FIXME: Normals at inside-volume bounds (worth the slower performance?)
     float h = 1./length(sdfTexSize / sdfLODDistBetweenSamples);
     const vec2 k = vec2(1, -1);
     return normalize(k.xyy*sdfSampleDist(sdfSampleRawInterp(p + k.xyy*h)) +
@@ -104,7 +106,7 @@ void main() {
     // The ray direction in world space is given by the camera implementation.
     vec3 rayDir = normalize(pos - cameraPosition);
     // Start the ray from the camera position by default (optimization: start from bounds if outside).
-    const float minDistFromCamera = 0.2;// FIXME: why are there artifacts with lower values?
+    const float minDistFromCamera = 0.2;
     rayPos += minDistFromCamera * rayDir;
 
     // The ray is casted until it hits the surface or the maximum number of steps is reached.
@@ -121,6 +123,7 @@ void main() {
                 const float minDistFromBounds = 0.00001;
                 rayPos = (invModelMatrix*vec4(pos, 1.0)).xyz;
                 rayPos += minDistFromBounds * rayDir;
+                continue; // This fixes the bug where if the surface touches the bounds it overlays everything else (why?!).
             } else {
                 // Debug the number of steps and bounds: will break rendering order
                 //                outColor = vec4(float(i)/float(steps), 0.0, 0.0, 0.25);

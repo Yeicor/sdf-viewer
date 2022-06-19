@@ -44,10 +44,10 @@ impl CliApp {
     /// Sets up a new instance of the application.
     pub fn init(&self, app: &mut SDFViewerApp) {
         // Configure the initial SDF provider (may be changed later)
-        app.scene_mut(|scene| scene.sdf = Box::new(match self.sdf_provider.clone() {
+        app.set_root_sdf(match self.sdf_provider.clone() {
             CliSDFProvider::Demo(s) => s,
             _ => todo!()
-        }));
+        });
         // TODO: More settings
     }
 }

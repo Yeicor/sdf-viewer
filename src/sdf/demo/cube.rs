@@ -1,86 +1,21 @@
-use std::ffi::OsString;
-
-use cgmath::{ElementWise, InnerSpace, Vector2};
-use three_d::{MetricSpace, Vector3, Zero};
-
+use cgmath::{ElementWise, Vector2, Vector3, Zero};
 use crate::sdf::{SdfSample, SDFSurface};
 
-/// An embedded demo `Sdf` implementation to showcase/test most features. Subtracts a cube and a sphere.
 #[derive(clap::Parser, Debug, Clone)]
-pub struct SDFDemo {
-    #[clap(flatten)]
-    cube: SDFDemoCube,
-    #[clap(flatten)]
-    sphere: SDFDemoSphere,
-}
-
-impl Default for SDFDemo {
-    fn default() -> Self {
-        use clap::Parser;
-        Self::parse_from::<_, OsString>([])
-    }
-}
-
-impl SDFSurface for SDFDemo {
-    fn bounding_box(&self) -> [Vector3<f32>; 2] {
-        [Vector3::new(-1.0, -1.0, -1.0), Vector3::new(1.0, 1.0, 1.0)]
-    }
-
-    fn sample(&self, p: Vector3<f32>, distance_only: bool) -> SdfSample {
-        // Compute the distance to the surface by subtracting a sphere to a cube.
-        let sample_box = self.cube.sample(p, distance_only);
-        let sample_sphere = self.sphere.sample(p, distance_only);
-        let dist = sample_box.distance.max(-sample_sphere.distance);
-        // Choose the material based on which object's surface is closer.
-        let mut sample = if sample_box.distance.abs() < sample_sphere.distance.abs()
-        { sample_box } else { sample_sphere };
-        // Overwrite the sample with the combined distance
-        sample.distance = dist;
-        sample
-    }
-
-    /// Optional: hierarchy.
-    fn children(&self) -> Vec<Box<dyn SDFSurface>> {
-        vec![Box::new(self.cube.clone()), Box::new(self.sphere.clone())]
-    }
-
-    /// Optional: hierarchy.
-    fn id(&self) -> usize {
-        0
-    }
-
-    /// Optional: hierarchy.
-    fn name(&self) -> String {
-        "Demo".to_string()
-    }
-
-    /// Optional: optimized normal computation for the difference.
-    fn normal(&self, p: Vector3<f32>, eps: Option<f32>) -> Vector3<f32> {
-        // Return the normal of the closest surface.
-        let sample_box = self.cube.sample(p, true);
-        let sample_sphere = self.sphere.sample(p, true);
-        if sample_box.distance.abs() < sample_sphere.distance.abs() {
-            self.cube.normal(p, eps)
-        } else {
-            -self.sphere.normal(p, eps) // Negated!
-        }
-    }
-}
-
-#[derive(clap::Parser, Debug, Clone)]
-pub struct SDFDemoCube {
+pub struct SDFDemoCubeBrick {
     #[clap(short, long, default_value = "0.95")]
     cube_side: f32,
 }
 
-impl Default for SDFDemoCube {
+impl Default for SDFDemoCubeBrick {
     fn default() -> Self {
         use clap::Parser;
+        use std::ffi::OsString;
         Self::parse_from::<_, OsString>([])
     }
 }
 
-impl SDFSurface for SDFDemoCube {
+impl SDFSurface for SDFDemoCubeBrick {
     fn bounding_box(&self) -> [Vector3<f32>; 2] {
         [Vector3::new(-1.0, -1.0, -1.0), Vector3::new(1.0, 1.0, 1.0)]
     }
@@ -121,55 +56,6 @@ impl SDFSurface for SDFDemoCube {
             normal.z = p.z.signum();
         }
         normal
-    }
-}
-
-#[derive(clap::Parser, Debug, Clone)]
-pub struct SDFDemoSphere {
-    #[clap(short, long, default_value = "1.05")]
-    sphere_radius: f32,
-}
-
-impl Default for SDFDemoSphere {
-    fn default() -> Self {
-        use clap::Parser;
-        Self::parse_from::<_, OsString>([])
-    }
-}
-
-impl SDFSurface for SDFDemoSphere {
-    fn bounding_box(&self) -> [Vector3<f32>; 2] {
-        [Vector3::new(-1.0, -1.0, -1.0), Vector3::new(1.0, 1.0, 1.0)]
-    }
-
-    fn sample(&self, p: Vector3<f32>, mut distance_only: bool) -> SdfSample {
-        // Compute the distance to the surface.
-        let dist_sphere = p.distance(Vector3::zero()) - self.sphere_radius;
-        // Optimization: the air has no texture, so we can skip the texture lookup.
-        distance_only = distance_only || dist_sphere > 0.1;
-        if distance_only {
-            SdfSample::new(dist_sphere, Vector3::zero())
-        } else {
-            // Simple color gradient texture for the sphere based on normals.
-            let color = self.normal(p, None).map(|n| n.abs());
-            // info!("Sphere normal color: {:?}", color);
-            SdfSample::new(dist_sphere, color)
-        }
-    }
-
-    /// Optional: hierarchy.
-    fn id(&self) -> usize {
-        2
-    }
-
-    /// Optional: hierarchy.
-    fn name(&self) -> String {
-        "DemoSphere".to_string()
-    }
-
-    /// Optional: optimized normal computation for the sphere.
-    fn normal(&self, p: Vector3<f32>, _eps: Option<f32>) -> Vector3<f32> {
-        p.normalize()
     }
 }
 

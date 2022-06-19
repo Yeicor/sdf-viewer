@@ -4,7 +4,8 @@ use std::rc::Rc;
 
 use cgmath::ElementWise;
 use cgmath::num_traits::Pow;
-use three_d::{CpuMesh, CpuTexture3D, Gm, Mesh, Texture3D, Vector3};
+use eframe::glow::HasContext;
+use three_d::{context, CpuMesh, CpuTexture3D, Gm, Mesh, Texture3D, Vector3};
 use three_d::{Interpolation, Positions, TextureData, Wrapping};
 
 use material::SDFViewerMaterial;
@@ -23,6 +24,8 @@ pub struct SDFViewer {
     pub volume: Rc<RefCell<Gm<Mesh, SDFViewerMaterial>>>,
     /// Controls the iterative algorithm used to fill the SDF texture (to provide faster previews).
     pub loading_mgr: LoadingManager,
+    /// The three-d cloned context
+    pub ctx: three_d::Context,
 }
 
 /// The default value for uncomputed SDF values while loading. Should be small to avoid graphical
@@ -60,8 +63,8 @@ impl SDFViewer {
             width: voxels.x as u32,
             height: voxels.y as u32,
             depth: voxels.z as u32,
-            min_filter: Interpolation::Linear, // Nearest for broken blocky mode
-            mag_filter: Interpolation::Linear,
+            min_filter: Interpolation::Nearest, // Nearest for broken blocky mode
+            mag_filter: Interpolation::Nearest,
             mip_map_filter: None,
             wrap_s: Wrapping::MirroredRepeat, // <- Should be safe, even out of bounds
             wrap_t: Wrapping::MirroredRepeat,
@@ -75,6 +78,7 @@ impl SDFViewer {
             texture,
             volume: Rc::new(RefCell::new(volume)),
             loading_mgr: LoadingManager::new(voxels, 3),
+            ctx: ctx.clone(),
         }
     }
 
@@ -87,11 +91,7 @@ impl SDFViewer {
     ///
     /// Returns the number of updates. It performs at least one update if needed, even if the
     /// time limit is reached.
-    pub fn update(&mut self, sdf: Box<dyn SDFSurface>, max_delta_time: instant::Duration, force: usize) -> usize {
-        if force > 0 {
-            self.loading_mgr.reset(force);
-        }
-
+    pub fn update(&mut self, sdf: impl SDFSurface, max_delta_time: instant::Duration) -> usize {
         let mut first = true;
         let start_iter = self.loading_mgr.iterations();
         let sdf_bb = sdf.bounding_box();
@@ -138,6 +138,17 @@ impl SDFViewer {
             _ => panic!("developer error: expected RgbaF32 texture data"),
         }).unwrap();
         vol_mut.material.lod_dist_between_samples = 2f32.pow(self.loading_mgr.passes_left() as u8);
+        if vol_mut.material.lod_dist_between_samples == 1. {
+            unsafe { // OpenGL calls are always unsafe
+                // The texture is bound by previous fill call
+                self.ctx.tex_parameter_i32(context::TEXTURE_3D,
+                                           context::TEXTURE_MIN_FILTER,
+                                           context::LINEAR as i32);
+                self.ctx.tex_parameter_i32(context::TEXTURE_3D,
+                                           context::TEXTURE_MAG_FILTER,
+                                           context::LINEAR as i32);
+            }
+        }
     }
 }
 
@@ -167,7 +178,7 @@ fn cube_with_bounds(bb: &[Vector3<f32>; 2]) -> CpuMesh {
                 }
             }
         }
-        Positions::F64(_) => panic!("SDFController: cube_bounds_mesh.positions is F64"),
+        _ => panic!("SDFController: cube_bounds_mesh.positions is not F32"),
     }
     cube_bounds_mesh
 }
