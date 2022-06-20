@@ -5,7 +5,7 @@ use eframe::egui::{Color32, Frame, ProgressBar, ScrollArea, Stroke, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
-use tracing::info;
+use tracing::{info, warn};
 
 use scene::SDFViewerAppScene;
 
@@ -24,6 +24,8 @@ pub struct SDFViewerApp {
     /// The root SDF surface. This is static as it is generated with Box::leak.
     /// This is needed as we may only be rendering a sub-tree of the SDF.
     pub sdf: &'static dyn SDFSurface,
+    /// The SDF for which we are modifying the parameters, if any.
+    pub selected_params_sdf: Option<&'static dyn SDFSurface>,
 }
 
 impl SDFViewerApp {
@@ -45,6 +47,7 @@ impl SDFViewerApp {
         let slf = Self {
             progress: None,
             sdf: Box::leak(Box::new(SDFDemoCubeBrick::default())),
+            selected_params_sdf: None,
         };
 
         // In order to configure the 3D scene after initialization, we need to create a new scene now.
@@ -63,6 +66,13 @@ impl SDFViewerApp {
         // unsafe { Box::from_raw(self.sdf as *mut _); } // TODO: Clean up previously leaked heap memory
         self.sdf = Box::leak(Box::new(sdf)); // Leak heap memory to get a 'static reference
         Self::scene_mut(|scene| scene.sdf = self.sdf);
+        self.refresh_sdf(self.sdf); // Actually render the SDF set above
+    }
+
+    /// Queues a command to refresh the render of the given SDF.
+    pub fn refresh_sdf(&mut self, _sdf: impl SDFSurface + 'static) {
+        // TODO: Actually only update the SDF that changed instead of the whole tree that was previously rendered
+        Self::scene_mut(|scene| scene.set_sdf(scene.sdf, 128, 3));
     }
 
     fn ui_three_d_scene_widget(&mut self, ui: &mut Ui) {
@@ -85,23 +95,34 @@ impl SDFViewerApp {
     fn ui_create_hierarchy(&mut self, ui: &mut Ui, sdf: &'static dyn SDFSurface, rendering_sdf_id: usize) {
         let id = ui.make_persistent_id(format!("sdf-hierarchy-{}", sdf.id()));
         let children = sdf.children();
-        let render_child = |ui: &mut Ui| {
+        let mut render_child = |ui: &mut Ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.label(sdf.name());
-                ui.add_enabled_ui(sdf.id() != rendering_sdf_id, |ui| {
+                let rendering_this_sdf = sdf.id() == rendering_sdf_id;
+                ui.add_enabled_ui(!rendering_this_sdf, |ui| {
                     let render_button_resp = ui.button("📷");
                     let render_button_resp = render_button_resp.on_hover_text("Render only this subtree");
                     if render_button_resp.clicked() {
                         info!("Rendering only {}", sdf.name());
                         Self::scene_mut(|scene| {
-                            scene.set_sdf(sdf, 128); // Will progressively regenerate the scene in the next frames
+                            scene.set_sdf(sdf, 128, 3); // Will progressively regenerate the scene in the next frames
                         });
                     }
                 });
-                let settings_button_resp = ui.button("⚙?");
-                let settings_button_resp = settings_button_resp.on_hover_text("Configure the parameters for this SDF");
-                if settings_button_resp.clicked() {
-                    info!("Opening parameters {}", sdf.name());
+                let params = sdf.parameters();
+                if !params.is_empty() {
+                    let editing_params = self.selected_params_sdf.map(|sdf2| sdf2.id() == sdf.id()).unwrap_or(false);
+                    let mut editing_params_now = editing_params;
+                    let settings_button_resp = ui.toggle_value(&mut editing_params_now, "⚙?");
+                    if editing_params_now {
+                        settings_button_resp.on_hover_text("Stop editing parameters".to_string());
+                        self.selected_params_sdf = Some(sdf);
+                    } else {
+                        settings_button_resp.on_hover_text(format!("Edit {} parameter(s)", params.len()));
+                        if editing_params {
+                            self.selected_params_sdf = None
+                        }
+                    }
                 }
             });
         };
@@ -149,20 +170,29 @@ impl eframe::App for SDFViewerApp {
         egui::SidePanel::new(Side::Left, hash("left"))
             .show(ctx, |ui| {
                 // Configuration panel for the parameters of the selected SDF (this must be placed first to reserve space, resizable)
-                egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("parameters"))
-                    .resizable(true)
-                    .frame(Frame::default().outer_margin(0.0).inner_margin(0.0))
-                    .show_inside(ui, |ui| {
-                        ui.heading("Parameters");
-                        ScrollArea::both()
-                            .auto_shrink([false, true])
-                            .show(ui, |ui| {
-                                // TODO: parameters
-                                for _ in 0..10 {
-                                    ui.label("Lorem Ipsum");
-                                }
-                            });
-                    });
+                if let Some(selected_sdf) = self.selected_params_sdf {
+                    egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("parameters"))
+                        .resizable(true)
+                        .frame(Frame::default().outer_margin(0.0).inner_margin(0.0))
+                        .show_inside(ui, |ui| {
+                            ui.heading(format!("Parameters for {}", selected_sdf.name()));
+                            ScrollArea::both()
+                                .auto_shrink([false, true])
+                                .show(ui, |ui| {
+                                    for mut param in selected_sdf.parameters() {
+                                        if param.gui(ui) { // If the value was modified
+                                            match selected_sdf.set_parameter(&param) {
+                                                Ok(()) => {
+                                                    // TODO: Only refresh if the SDF is a descendant of the rendered SDF
+                                                    self.refresh_sdf(selected_sdf)
+                                                },
+                                                Err(e) => warn!("Failed to set parameter: {}", e), // TODO: User-facing error handling
+                                            }
+                                        }
+                                    }
+                                });
+                        });
+                }
                 // The main SDF hierarchy with action buttons
                 ui.heading("Hierarchy");
                 ScrollArea::both()

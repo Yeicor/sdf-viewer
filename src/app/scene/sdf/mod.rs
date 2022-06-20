@@ -34,7 +34,7 @@ const AIR_DIST: f32 = 0.001234;
 
 impl SDFViewer {
     /// Creates a new SDF viewer for the given bounding box (tries to keep aspect ratio).
-    pub fn from_bb(ctx: &three_d::Context, bb: &[Vector3<f32>; 2], max_voxels_side: Option<usize>) -> Self {
+    pub fn from_bb(ctx: &three_d::Context, bb: &[Vector3<f32>; 2], max_voxels_side: Option<usize>, loading_passes: usize) -> Self {
         let max_voxels_side = max_voxels_side.unwrap_or(256);
         let bb_size = bb[1] - bb[0];
         let mut voxels = Vector3::new(0usize, 0usize, 0usize);
@@ -53,11 +53,11 @@ impl SDFViewer {
             voxels.y = (max_voxels_side as f32 * bb_size.y / bb_size.z) as usize;
             voxels.z = max_voxels_side;
         }
-        Self::new_voxels(ctx, voxels, bb)
+        Self::new_voxels(ctx, voxels, bb, loading_passes)
     }
 
     /// Creates a new SDF viewer with the given number of voxels in each axis.
-    pub fn new_voxels(ctx: &three_d::Context, voxels: Vector3<usize>, bb: &[Vector3<f32>; 2]) -> Self {
+    pub fn new_voxels(ctx: &three_d::Context, voxels: Vector3<usize>, bb: &[Vector3<f32>; 2], loading_passes: usize) -> Self {
         let texture = CpuTexture3D {
             data: TextureData::RgbaF32(vec![[AIR_DIST; 4]; voxels.x * voxels.y * voxels.z]),
             width: voxels.x as u32,
@@ -77,7 +77,7 @@ impl SDFViewer {
         Self {
             texture,
             volume: Rc::new(RefCell::new(volume)),
-            loading_mgr: LoadingManager::new(voxels, 3),
+            loading_mgr: LoadingManager::new(voxels, loading_passes),
             ctx: ctx.clone(),
         }
     }

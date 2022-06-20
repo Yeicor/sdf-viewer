@@ -1,4 +1,9 @@
+use std::ops::RangeInclusive;
+
 use auto_impl::auto_impl;
+use eframe::egui;
+use eframe::egui::Slider;
+use eframe::egui::util::hash;
 use three_d::{InnerSpace, Vector3};
 
 pub mod demo;
@@ -39,6 +44,17 @@ pub trait SDFSurface/*: SDFSurfaceClone*/ {
 
     // ============ OPTIONAL: PARAMETERS ============
 
+    /// Returns the list of parameters (including values and metadata) that can be modified on this SDF.
+    fn parameters(&self) -> Vec<SdfParameter> {
+        vec![]
+    }
+
+    /// Modifies the given parameter (only name and value.value matter here).
+    /// If it returns ok, the sub-SDF hierarchy changed and it should be re-rendered.
+    /// Implementations will probably need interior mutability to perform this.
+    fn set_parameter(&self, _parameter: &SdfParameter) -> Result<(), String> {
+        Err("no parameters implemented by default, overwrite this method".to_string())
+    }
 
     // ============ OPTIONAL: CUSTOM MATERIALS (GLSL CODE) ============
 
@@ -57,32 +73,6 @@ pub trait SDFSurface/*: SDFSurfaceClone*/ {
     }
 }
 
-// /// From https://stackoverflow.com/questions/30353462/how-to-clone-a-struct-storing-a-boxed-trait-object.
-// ///
-// /// Splitting SDFSurfaceClone into its own trait allows us to provide a blanket
-// /// implementation for all compatible types, without having to implement the
-// /// rest of SDFSurface.  In this case, we implement it for all types that have
-// /// 'static lifetime (*i.e.* they don't contain non-'static pointers), and
-// /// implement both SDFSurface and Clone.  Don't ask me how the compiler resolves
-// /// implementing SDFSurfaceClone for dyn SDFSurface when SDFSurface requires SDFSurfaceClone;
-// /// I have *no* idea why this works.
-// pub trait SDFSurfaceClone {
-//     /// Clone the SDF. It is assumed to be a cheap operation.
-//     fn clone_box(&self) -> Box<dyn SDFSurface>;
-// }
-//
-// impl<T> SDFSurfaceClone for T where T: 'static + SDFSurface + Clone {
-//     fn clone_box(&self) -> Box<dyn SDFSurface> {
-//         Box::new(self.clone())
-//     }
-// }
-//
-// // We can now implement Clone manually by forwarding to clone_box.
-// impl Clone for Box<dyn SDFSurface> {
-//     fn clone(&self) -> Box<dyn SDFSurface> {
-//         self.clone_box()
-//     }
-// }
 
 /// The result of sampling the SDF at the given coordinates.
 pub struct SdfSample {
@@ -106,7 +96,71 @@ impl SdfSample {
     pub fn new(distance: f32, color: Vector3<f32>) -> Self {
         Self { distance, color, metallic: 0.0, roughness: 0.0, occlusion: 0.0 }
     }
-
-    // TODO: some procedural material defaults like checkerboard, wood, brick or ground.
 }
 
+/// The metadata and current state of a parameter of a SDF.
+#[derive(Debug, Clone)]
+pub struct SdfParameter {
+    /// The name of the parameter. Must be unique within the SDF.
+    pub name: String,
+    /// The current value of the parameter.
+    pub value: SdfParameterValue,
+    /// The user-facing description for the parameter.
+    pub description: String,
+}
+
+impl SdfParameter {
+    /// Build the GUI for the parameter. Returns true if the value was changed.
+    pub fn gui(&mut self, ui: &mut egui::Ui) -> bool {
+        ui.label(format!("{}:", self.name));
+        let changed = match &mut self.value {
+            SdfParameterValue::Boolean { value } => {
+                ui.checkbox(value, value.to_string()).changed()
+            }
+            SdfParameterValue::Int { value, range, step } => {
+                ui.add(Slider::new(value, range.clone()).step_by(*step as f64)).changed()
+            }
+            SdfParameterValue::Float { value, range, step } => {
+                ui.add(Slider::new(value, range.clone()).step_by(*step as f64)).changed()
+            }
+            SdfParameterValue::String { value, choices } => {
+                if choices.is_empty() {
+                    ui.text_edit_multiline(value).changed()
+                } else {
+                    egui::ComboBox::new(hash(format!("sdf-param-{}", self.name)), value.clone())
+                        .show_ui(ui, |ui| {
+                            for choice in choices.iter() {
+                                ui.selectable_value(value, choice.clone(), choice);
+                            }
+                        }).response.changed()
+                }
+            }
+        };
+        ui.end_row();
+        changed
+    }
+}
+
+/// The type, value, bounds and other type-specific metadata of a parameter.
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub enum SdfParameterValue {
+    Boolean {
+        value: bool,
+    },
+    Int {
+        value: i32,
+        range: RangeInclusive<i32>,
+        step: i32,
+    },
+    Float {
+        value: f32,
+        range: RangeInclusive<f32>,
+        step: f32,
+    },
+    String {
+        value: String,
+        /// The available options to select from for the parameter. If empty, any string is valid.
+        choices: Vec<String>,
+    },
+}
