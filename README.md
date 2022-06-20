@@ -12,10 +12,9 @@ The main objetive of this app is to quickly visualize new SDFs while designing t
 - [x] Very-fast initialization on all platforms.
 - [x] Interactive framerate (uses the GPU for viewing the SDF).
 - [x] Different rendering materials (color, metallic, roughness...).
-- [ ] Surface parameters to quickly customize from the UI.
-- [ ] Render/export:
-  - [ ] Upload your SDF to a server and display it anywhere with a link.
-  - [ ] Export as a triangle mesh using different algorithms.
+- [x] Surface parameters to quickly customize from the UI.
+- [ ] Upload your SDF to a server and display it anywhere with a link.
+- [ ] Render/export a triangle mesh built using different algorithms.
 
 ## Demo
 
