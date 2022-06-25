@@ -9,7 +9,7 @@ use tracing::{info, warn};
 
 use scene::SDFViewerAppScene;
 
-use crate::metadata::log_version_info;
+use crate::cli::env_get;
 use crate::sdf::demo::cube::SDFDemoCubeBrick;
 use crate::sdf::SDFSurface;
 
@@ -31,13 +31,9 @@ pub struct SDFViewerApp {
 impl SDFViewerApp {
     #[profiling::function]
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // Test logging and provide useful information
-        log_version_info();
-
         // Default to dark mode if no theme is provided by the OS (or environment variables)
         if (cc.integration_info.prefer_dark_mode == Some(false) ||
-            std::env::var("sdf_viewer_light_theme").is_ok()) &&
-            std::env::var("sdf_viewer_dark_theme").is_err() { // TODO: Save & restore theme settings
+            env_get("light").is_some()) && env_get("dark").is_none() { // TODO: Save & restore theme settings
             cc.egui_ctx.set_visuals(egui::Visuals::light());
         } else {
             cc.egui_ctx.set_visuals(egui::Visuals::dark());

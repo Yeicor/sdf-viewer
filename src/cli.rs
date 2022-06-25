@@ -1,7 +1,11 @@
 // TODO: Clap
 // TODO: Web: read arguments from GET parameters
 
+use std::collections::HashMap;
+
+use clap::once_cell::sync::OnceCell;
 use clap::Parser;
+use eframe::egui::TextBuffer;
 use tracing::error;
 
 use crate::app::cli::{CliApp, CliAppWatchFile};
@@ -22,6 +26,15 @@ pub enum Commands {
     Server(CliAppWatchFile),
 }
 
+/// This holds the environment, as it is unsupported but abstracted on web.
+static ENV: OnceCell<HashMap<String, String>> = OnceCell::new();
+
+/// Retrieves an "environment variable". It automatically adds the prefix of the crate name to the key.
+pub fn env_get(key: impl AsRef<str>) -> Option<String> {
+    let key = format!("{}_{}", env!("CARGO_PKG_NAME"), key.as_ref());
+    ENV.get().and_then(|env| env.get(key.as_str()).cloned())
+}
+
 impl Cli {
     /// Parses from the command line arguments on native and from GET parameters on web.
     pub fn parse_args() -> Self {
@@ -31,14 +44,29 @@ impl Cli {
                 let mut x = vec![env!("CARGO_PKG_NAME").to_string()];
                 let location_string: String = web_sys::window().unwrap().location().to_string().into();
                 let url = reqwest::Url::parse(location_string.as_str()).unwrap();
-                for (k, v) in url.query_pairs() {
-                    x.push(k.to_string());
-                    if v.len() > 0 {
-                        x.push(v.to_string());
+                let mut env_vars = HashMap::new();
+                x.extend(url.query_pairs().into_iter().filter_map(|(key, value)| {
+                    if let Some(env_key) = key.strip_prefix("env") {
+                        // Add the crate name as prefix automatically
+                        let mut env_key = env_key.to_string();
+                        env_key.insert_text(&*format!("{}_", env!("CARGO_PKG_NAME")), 0);
+                        env_vars.insert(env_key, value.to_string());
+                        None
+                    } else if let Some(cli_key) = key.strip_prefix("cli") {
+                        if value.len() > 0 {
+                            Some([cli_key.to_string(), value.to_string()])
+                        } else {
+                            Some([cli_key.to_string(), "".to_string()]) // Filtered later
+                        }
+                    } else {
+                        None
                     }
-                }
+                }).flatten().filter(|el| !el.is_empty()));
+                ENV.set(env_vars).unwrap();
                 if x.len() == 1 {
-                    tracing::warn!("No arguments (GET parameters, try <url>?-h), setting defaults");
+                    // No arguments, show the demo mode.
+                    tracing::warn!("No arguments (GET params prefixed with \"cli\", try <url>?cli-h), setting defaults");
+                    tracing::info!("You can also set the environment variables with the prefix \"env\"");
                     x.push("app".to_string());
                     x.push("demo".to_string());
                 }
@@ -46,6 +74,7 @@ impl Cli {
             }
             #[cfg(not(target_arch = "wasm32"))]
             {
+                ENV.set(std::env::vars().collect::<HashMap<_, _>>()).unwrap();
                 std::env::args().into_iter().collect::<Vec<_>>()
             }
         };

@@ -1,12 +1,16 @@
 use eframe::AppCreator;
 use tracing::info;
-use crate::app::SDFViewerApp;
 
+use crate::app::SDFViewerApp;
 use crate::cli::{Cli, Commands};
+use crate::metadata::log_version_info;
 
 /// All entry-points redirect here after platform-specific initialization and
 /// before platform-specific window start (which may be cancelled if None is returned).
 pub fn setup_app() -> Option<AppCreator> {
+    // Test logging and provide useful information
+    log_version_info();
+
     // Parse CLI arguments here to initialize the app.
     // Note that the window is already created and we could do this earlier.
     let args = Cli::parse_args();
