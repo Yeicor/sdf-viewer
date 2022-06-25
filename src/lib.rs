@@ -3,12 +3,11 @@ extern crate core;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-// Not public as this is not a library
+pub mod sdf; // Only public module to export the SDF trait and implementations.
 mod app;
 mod metadata;
 mod run;
 mod cli;
-mod sdf;
 
 // === Entry point for web ===
 #[cfg(target_arch = "wasm32")]

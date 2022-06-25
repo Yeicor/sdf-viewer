@@ -1,10 +1,17 @@
+use std::str::FromStr;
+
 use cgmath::{InnerSpace, MetricSpace, Vector3, Zero};
-use crate::sdf::{SdfSample, SDFSurface};
+
+use crate::sdf::{SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
+use crate::sdf::demo::cube::{Material, RefCellMaterial};
+use crate::sdf::demo::RefCellF32;
 
 #[derive(clap::Parser, Debug, Clone)]
 pub struct SDFDemoSphere {
+    #[clap(short = 'l', long, default_value = "normal")]
+    sphere_material: RefCellMaterial,
     #[clap(short, long, default_value = "1.05")]
-    sphere_radius: f32,
+    sphere_radius: RefCellF32,
 }
 
 impl Default for SDFDemoSphere {
@@ -22,16 +29,13 @@ impl SDFSurface for SDFDemoSphere {
 
     fn sample(&self, p: Vector3<f32>, mut distance_only: bool) -> SdfSample {
         // Compute the distance to the surface.
-        let dist_sphere = p.distance(Vector3::zero()) - self.sphere_radius;
+        let dist_sphere = p.distance(Vector3::zero()) - *self.sphere_radius.borrow();
         // Optimization: the air has no texture, so we can skip the texture lookup.
         distance_only = distance_only || dist_sphere > 0.1;
         if distance_only {
             SdfSample::new(dist_sphere, Vector3::zero())
         } else {
-            // Simple color gradient texture for the sphere based on normals.
-            let color = self.normal(p, None).map(|n| n.abs());
-            // info!("Sphere normal color: {:?}", color);
-            SdfSample::new(dist_sphere, color)
+            self.sphere_material.borrow().render(dist_sphere, p, self.normal(p, None))
         }
     }
 
@@ -43,6 +47,51 @@ impl SDFSurface for SDFDemoSphere {
     /// Optional: hierarchy.
     fn name(&self) -> String {
         "DemoSphere".to_string()
+    }
+
+    //noinspection DuplicatedCode
+    /// Optional: parameters.
+    fn parameters(&self) -> Vec<SdfParameter> {
+        vec![
+            SdfParameter {
+                name: "material".to_string(),
+                value: SdfParameterValue::String {
+                    value: self.sphere_material.to_string(),
+                    choices: vec![
+                        Material::Brick.to_string(),
+                        Material::Normal.to_string(),
+                    ],
+                },
+                description: "The material to use for the sphere.".to_string(),
+            },
+            SdfParameter {
+                name: "sphere_radius".to_string(),
+                value: SdfParameterValue::Float {
+                    value: *self.sphere_radius.borrow(),
+                    range: 0.0..=1.25,
+                    step: 0.01,
+                },
+                description: "The radius of the sphere.".to_string(),
+            },
+        ]
+    }
+
+    //noinspection DuplicatedCode
+    /// Optional: parameters.
+    fn set_parameter(&self, param: &SdfParameter) -> Result<(), String> {
+        if param.name == "sphere_radius" {
+            if let SdfParameterValue::Float { value, .. } = &param.value {
+                *self.sphere_radius.borrow_mut() = *value;
+                return Ok(());
+            }
+        } else if param.name == "material" {
+            if let SdfParameterValue::String { value, .. } = &param.value {
+                *self.sphere_material.borrow_mut() = Material::from_str(value.as_str())
+                    .expect("predefined choices, should not receive an invalid value");
+                return Ok(());
+            }
+        }
+        Err(format!("Unknown parameter {} with value {:?}", param.name, param.value))
     }
 
     /// Optional: optimized normal computation for the sphere.

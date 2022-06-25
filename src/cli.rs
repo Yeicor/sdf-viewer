@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 use clap::once_cell::sync::OnceCell;
 use clap::Parser;
-use eframe::egui::TextBuffer;
 use tracing::error;
 
 use crate::app::cli::{CliApp, CliAppWatchFile};
@@ -41,36 +40,32 @@ impl Cli {
         let args = {
             #[cfg(target_arch = "wasm32")]
             {
-                let mut x = vec![env!("CARGO_PKG_NAME").to_string()];
+                let mut args = vec![env!("CARGO_PKG_NAME").to_string()];
                 let location_string: String = web_sys::window().unwrap().location().to_string().into();
                 let url = reqwest::Url::parse(location_string.as_str()).unwrap();
                 let mut env_vars = HashMap::new();
-                x.extend(url.query_pairs().into_iter().filter_map(|(key, value)| {
+                args.extend(url.query_pairs().into_iter().filter_map(|(key, value)| {
                     if let Some(env_key) = key.strip_prefix("env") {
                         // Add the crate name as prefix automatically
                         let mut env_key = env_key.to_string();
-                        env_key.insert_text(&*format!("{}_", env!("CARGO_PKG_NAME")), 0);
+                        env_key.insert_str(0, &*format!("{}_", env!("CARGO_PKG_NAME")));
                         env_vars.insert(env_key, value.to_string());
                         None
                     } else if let Some(cli_key) = key.strip_prefix("cli") {
-                        if value.len() > 0 {
-                            Some([cli_key.to_string(), value.to_string()])
-                        } else {
-                            Some([cli_key.to_string(), "".to_string()]) // Filtered later
-                        }
+                        Some([cli_key.to_string(), value.to_string()]) // Filtered later if value is empty
                     } else {
                         None
                     }
                 }).flatten().filter(|el| !el.is_empty()));
                 ENV.set(env_vars).unwrap();
-                if x.len() == 1 {
+                if args.len() == 1 {
                     // No arguments, show the demo mode.
                     tracing::warn!("No arguments (GET params prefixed with \"cli\", try <url>?cli-h), setting defaults");
                     tracing::info!("You can also set the environment variables with the prefix \"env\"");
-                    x.push("app".to_string());
-                    x.push("demo".to_string());
+                    args.push("app".to_string());
+                    args.push("demo".to_string());
                 }
-                x
+                args
             }
             #[cfg(not(target_arch = "wasm32"))]
             {

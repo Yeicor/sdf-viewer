@@ -10,7 +10,7 @@ use tracing::{info, warn};
 use scene::SDFViewerAppScene;
 
 use crate::cli::env_get;
-use crate::sdf::demo::cube::SDFDemoCubeBrick;
+use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::SDFSurface;
 
 pub mod cli;
@@ -42,7 +42,7 @@ impl SDFViewerApp {
         info!("Initialization complete! Starting main loop...");
         let slf = Self {
             progress: None,
-            sdf: Box::leak(Box::new(SDFDemoCubeBrick::default())),
+            sdf: Box::leak(Box::new(SDFDemoCube::default())),
             selected_params_sdf: None,
         };
 
@@ -115,7 +115,7 @@ impl SDFViewerApp {
                         settings_button_resp.on_hover_text("Stop editing parameters".to_string());
                         self.selected_params_sdf = Some(sdf);
                     } else {
-                        settings_button_resp.on_hover_text(format!("Edit {} parameter(s)", params.len()));
+                        settings_button_resp.on_hover_text(format!("Edit {} parameters", params.len()));
                         if editing_params {
                             self.selected_params_sdf = None
                         }

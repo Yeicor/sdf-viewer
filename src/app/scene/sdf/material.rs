@@ -82,8 +82,9 @@ impl Material for SDFViewerMaterial {
 // Utility to pack a RGB ([0, 1]) color into a single float in the [0, 1] range.
 // WARNING: GLSL highp floats are 24-bit long!
 // WARNING: Keep in sync with GPU code!
+// FIXME: Still some weird artifacts when changing colors in a gradient.
 pub fn pack_color(color: Vector3<f32>) -> f32 {
-    const PRECISION: f32 = 7.0;
+    const PRECISION: f32 = 4.0;
     const PRECISION_P1: f32 = PRECISION + 1.0;
     let components = color.map(|c| c.min(1.0).max(0.0))
         .map(|c| (c * PRECISION + 0.5).floor());
@@ -98,7 +99,7 @@ mod test {
     use crate::app::scene::sdf::material::pack_color;
 
     pub fn unpack_color(packed: f32) -> Vector3<f32> {
-        const PRECISION: f32 = 7.0;
+        const PRECISION: f32 = 4.0;
         const PRECISION_P1: f32 = PRECISION + 1.0;
         let packed = packed * (PRECISION_P1 * PRECISION_P1 * PRECISION_P1);
         let x = (packed % PRECISION_P1) / PRECISION;
@@ -110,7 +111,7 @@ mod test {
     #[test]
     fn test_pack_color() {
         // Pack and unpack all colors performing basic sanity checks.
-        const PRECISION: f32 = 7.0;
+        const PRECISION: f32 = 4.0;
         let mut max_packed: f32 = 0.0;
         for x in 0..=255 {
             for y in 0..=255 {

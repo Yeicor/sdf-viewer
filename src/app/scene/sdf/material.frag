@@ -17,7 +17,7 @@ layout (location = 0) out vec4 outColor;
 // WARNING: GLSL highp floats are 24-bit long!
 // WARNING: Keep in sync with CPU code!
 vec3 unpackColor(float f) {
-    const float c_precision = 7.0;
+    const float c_precision = 4.0;
     const float c_precisionp1 = c_precision + 1.0;
     float value = f * c_precisionp1 * c_precisionp1 * c_precisionp1;
     vec3 color;

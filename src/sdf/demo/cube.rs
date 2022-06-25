@@ -1,13 +1,61 @@
+use std::cell::RefCell;
+use std::fmt;
+use std::fmt::Display;
+use std::ops::Deref;
+use std::str::FromStr;
+
 use cgmath::{ElementWise, Vector2, Vector3, Zero};
-use crate::sdf::{SdfSample, SDFSurface};
+
+use crate::sdf::{SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
+use crate::sdf::demo::RefCellF32;
 
 #[derive(clap::Parser, Debug, Clone)]
-pub struct SDFDemoCubeBrick {
+pub struct SDFDemoCube {
+    #[clap(short = 't', long, default_value = "brick")]
+    cube_material: RefCellMaterial,
     #[clap(short, long, default_value = "0.95")]
-    cube_side: f32,
+    cube_half_side: RefCellF32,
 }
 
-impl Default for SDFDemoCubeBrick {
+#[derive(Debug, Copy, Clone)]
+pub enum Material {
+    Brick,
+    Normal,
+}
+
+impl FromStr for Material {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "BRICK" => Ok(Material::Brick),
+            "NORMAL" => Ok(Material::Normal),
+            _ => Err("Invalid cube material".to_string()),
+        }
+    }
+}
+
+impl Display for Material {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Material::Brick => write!(f, "Brick"),
+            Material::Normal => write!(f, "Normal"),
+        }
+    }
+}
+
+impl Material {
+    pub fn render(&self, dist: f32, p: Vector3<f32>, normal: Vector3<f32>) -> SdfSample {
+        match &self {
+            // Procedural brick texture
+            Material::Brick => sample_brick_texture(p, normal, dist),
+            // Simple normal texture
+            Material::Normal => SdfSample::new(dist, normal.map(|e| e.abs())),
+        }
+    }
+}
+
+impl Default for SDFDemoCube {
     fn default() -> Self {
         use clap::Parser;
         use std::ffi::OsString;
@@ -15,21 +63,20 @@ impl Default for SDFDemoCubeBrick {
     }
 }
 
-impl SDFSurface for SDFDemoCubeBrick {
+impl SDFSurface for SDFDemoCube {
     fn bounding_box(&self) -> [Vector3<f32>; 2] {
         [Vector3::new(-1.0, -1.0, -1.0), Vector3::new(1.0, 1.0, 1.0)]
     }
 
     fn sample(&self, p: Vector3<f32>, mut distance_only: bool) -> SdfSample {
         // Compute the distance to the surface.
-        let dist_box = p.x.abs().max(p.y.abs()).max(p.z.abs()) - self.cube_side;
+        let dist_box = p.x.abs().max(p.y.abs()).max(p.z.abs()) - *self.cube_half_side.borrow();
         // Optimization: the air has no texture, so we can skip the texture lookup.
         distance_only = distance_only || dist_box > 0.1;
         if distance_only {
             SdfSample::new(dist_box, Vector3::zero())
         } else {
-            // Procedural brick texture
-            sample_brick_texture(p, self.normal(p, None), dist_box)
+            self.cube_material.borrow().render(dist_box, p, self.normal(p, None))
         }
     }
 
@@ -43,16 +90,62 @@ impl SDFSurface for SDFDemoCubeBrick {
         "DemoCube".to_string()
     }
 
+    //noinspection DuplicatedCode
+    /// Optional: parameters.
+    fn parameters(&self) -> Vec<SdfParameter> {
+        vec![
+            SdfParameter {
+                name: "material".to_string(),
+                value: SdfParameterValue::String {
+                    value: self.cube_material.to_string(),
+                    choices: vec![
+                        Material::Brick.to_string(),
+                        Material::Normal.to_string(),
+                    ],
+                },
+                description: "The material to use for the cube.".to_string(),
+            },
+            SdfParameter {
+                name: "cube_side".to_string(),
+                value: SdfParameterValue::Int { // Should be float, but testing the int parameter
+                    value: (*self.cube_half_side.borrow() * 100.) as i32,
+                    range: 0..=100,
+                    step: 1,
+                },
+                description: "Half the length of a side of the cube (mapped from [0-100] to [0.0,1.0]).".to_string(),
+            },
+        ]
+    }
+
+    //noinspection DuplicatedCode
+    /// Optional: parameters.
+    fn set_parameter(&self, param: &SdfParameter) -> Result<(), String> {
+        if param.name == "cube_side" {
+            if let SdfParameterValue::Int { value, .. } = &param.value {
+                *self.cube_half_side.borrow_mut() = *value as f32 / 100.;
+                return Ok(());
+            }
+        } else if param.name == "material" {
+            if let SdfParameterValue::String { value, .. } = &param.value {
+                *self.cube_material.borrow_mut() = Material::from_str(value.as_str())
+                    .expect("predefined choices, should not receive an invalid value");
+                return Ok(());
+            }
+        }
+        Err(format!("Unknown parameter {} with value {:?}", param.name, param.value))
+    }
+
     /// Optional: optimized normal computation for the cube.
     fn normal(&self, p: Vector3<f32>, _eps: Option<f32>) -> Vector3<f32> {
         let mut normal = Vector3::zero();
-        if p.x.abs() > self.cube_side {
+        let cube_side = *self.cube_half_side.borrow();
+        if p.x.abs() > cube_side {
             normal.x = p.x.signum();
         }
-        if p.y.abs() > self.cube_side {
+        if p.y.abs() > cube_side {
             normal.y = p.y.signum();
         }
-        if p.z.abs() > self.cube_side {
+        if p.z.abs() > cube_side {
             normal.z = p.z.signum();
         }
         normal
@@ -104,4 +197,30 @@ fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) ->
             compute_tex2d(uv)
         };
     SdfSample { distance, color, metallic, roughness, occlusion }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct RefCellMaterial(pub RefCell<Material>);
+
+impl FromStr for RefCellMaterial {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(RefCellMaterial(RefCell::new(Material::from_str(s)?)))
+    }
+}
+
+impl Display for RefCellMaterial {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.0.borrow())
+    }
+}
+
+impl Deref for RefCellMaterial {
+    type Target = RefCell<Material>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }

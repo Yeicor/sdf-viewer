@@ -127,12 +127,15 @@ impl SdfParameter {
                 if choices.is_empty() {
                     ui.text_edit_multiline(value).changed()
                 } else {
-                    egui::ComboBox::new(hash(format!("sdf-param-{}", self.name)), value.clone())
-                        .show_ui(ui, |ui| {
-                            for choice in choices.iter() {
-                                ui.selectable_value(value, choice.clone(), choice);
-                            }
-                        }).response.changed()
+                    let mut value_index = choices.iter().position(|x| x == value)
+                        .expect("SdfParameterValue: value not in choices!");
+                    let changed = egui::ComboBox::new(hash(format!("sdf-param-{}", self.name)), value.clone())
+                        .show_index(ui, &mut value_index, choices.len(), |i| choices[i].clone())
+                        .changed();
+                    if changed {
+                        *value = choices[value_index].clone();
+                    }
+                    changed
                 }
             }
         };
