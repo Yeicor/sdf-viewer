@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use eframe::egui::{Color32, PaintCallbackInfo, Response};
+use eframe::egui::{PaintCallbackInfo, Response};
 use eframe::glow;
 use instant::Instant;
 use three_d::*;
@@ -160,8 +160,9 @@ impl SDFViewerAppScene {
     }
 
     pub fn render(&mut self, info: &PaintCallbackInfo, egui_resp: &Response) {
-        // Update camera
+        // Update camera viewport and scissor box
         let viewport = self.camera.update(info, egui_resp);
+        let scissor_box = ScissorBox::from(viewport);
 
         // Load more of the SDF to the GPU in realtime (if needed)
         let load_start_cpu = Instant::now();
@@ -184,42 +185,29 @@ impl SDFViewerAppScene {
             self.sdf_viewer_last_commit = None;
         }
 
-        // Prepare the screen for drawing (get the render target)
-        // TODO: Sub- and super-sampling (eframe's pixels_per_point?)
-        let full_screen_rect = egui_resp.ctx.input().screen_rect.size();
-        let screen = RenderTarget::screen(
-            &self.ctx, (full_screen_rect.x * egui_resp.ctx.pixels_per_point()) as u32,
-            (full_screen_rect.y * egui_resp.ctx.pixels_per_point()) as u32);
-
-        // FIXME: Clear not working on web platforms (egui tooltip still visible). Related: https://github.com/emilk/egui/issues/1744
-        let bg_color = if egui_resp.ctx.style().visuals.dark_mode { Color32::BLACK } else { Color32::WHITE };
-        let scissor_box = ScissorBox::from(viewport);
-        screen.clear_partially(scissor_box, ClearState::color_and_depth(
-            bg_color.r() as f32 / 255., bg_color.g() as f32 / 255.,
-            bg_color.b() as f32 / 255., 1.0, 1.0)).unwrap();
-
-        // Now render the main scene
-        // Note: there is no need to clear the scene (already done by egui with the correct color)
+        // Instead of the normal path of RenderTarget::render(), we use the direct rendering methods
+        // as egui uses a custom RenderTarget?
+        // Note: there is no need to clear the scene (already done by egui with the correct color).
+        // However, we need to clear the depth buffer as egui does not do this by default.
+        unsafe { self.ctx.clear(context::DEPTH_BUFFER_BIT); }
+        self.ctx.set_scissor(scissor_box);
         let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
-        let mut objects = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
-        objects.push(&self.sdf_viewer.volume); // "Add" the volume always to update automatically
-        screen.render_partially(scissor_box, &self.camera.camera,
-                                objects.as_slice(), lights.as_slice()).unwrap();
+        for obj in &self.objects {
+            obj.render(&self.camera.camera, lights.as_slice()).unwrap();
+        }
+        self.sdf_viewer.volume.render(&self.camera.camera, lights.as_slice()).unwrap();
     }
 
     /// Reports the progress of the SDF loading
     pub fn load_progress(&self) -> Option<(f32, String)> {
         let remaining = self.sdf_viewer.loading_mgr.len();
         if self.sdf_viewer_last_commit.is_some() {
-            if remaining > 0 {
-                let progress = self.sdf_viewer.loading_mgr.iterations() as f32 /
-                    ((self.sdf_viewer.loading_mgr.iterations() + remaining) as f32);
-                Some((progress, format!("Loading SDF... {} passes left",
-                                        self.sdf_viewer.loading_mgr.passes_left())))
-            } else {
-                Some((1.0, "Loading SDF done! (ignore this message, it is a bug if you see it: \
-                try resizing the screen)".to_string()))
-            }
+            let done_iterations = self.sdf_viewer.loading_mgr.iterations();
+            let total_iterations = done_iterations + remaining;
+            let progress = done_iterations as f32 / ((total_iterations) as f32);
+            Some((progress, format!("Loading SDF {:.2}% ({} levels of detail left, evaluations: {} / {})",
+                                    progress * 100.0, self.sdf_viewer.loading_mgr.passes_left(),
+                                    done_iterations, total_iterations)))
         } else {
             None
         }

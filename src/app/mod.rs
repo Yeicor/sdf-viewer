@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use eframe::{egui, Storage};
-use eframe::egui::{Color32, Frame, ProgressBar, ScrollArea, Stroke, Ui, Vec2};
+use eframe::egui::{Frame, ProgressBar, ScrollArea, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
@@ -84,6 +84,7 @@ impl SDFViewerApp {
         ui.painter().add(egui::PaintCallback {
             rect,
             callback: Arc::new(move |info, _painter| {
+                // OpenGL API at _painter.downcast_mut::<egui_glow::Painter>().unwrap().gl()
                 let response = response.clone();
                 Self::scene_mut(|scene| {
                     scene.render(info, &response);
@@ -185,7 +186,7 @@ impl eframe::App for SDFViewerApp {
                                                 Ok(()) => {
                                                     // TODO: Only refresh if the SDF is a descendant of the rendered SDF
                                                     self.refresh_sdf(selected_sdf)
-                                                },
+                                                }
                                                 Err(e) => warn!("Failed to set parameter: {}", e), // TODO: User-facing error handling
                                             }
                                         }
@@ -220,12 +221,6 @@ impl eframe::App for SDFViewerApp {
             .frame(Frame::none().inner_margin(0.0))
             .show(ctx, |ui| {
                 Frame::canvas(ui.style())
-                    // FIXME: 0 alpha is the only way the contents render, but it also renders
-                    //  removed widgets, and 1 alpha is the only way the removed widgets don't render.
-                    .fill(Color32::from_rgba_unmultiplied(0, 0, 0, 0))
-                    .inner_margin(0.0)
-                    .outer_margin(0.0)
-                    .stroke(Stroke::none())
                     .show(ui, |ui| {
                         self.ui_three_d_scene_widget(ui);
                     });
