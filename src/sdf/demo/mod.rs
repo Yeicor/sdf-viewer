@@ -6,7 +6,7 @@ use std::str::{FromStr, ParseBoolError};
 
 use cgmath::Vector3;
 
-use crate::sdf::{SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
+use crate::sdf::{changed_default_impl, SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
 use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::demo::sphere::SDFDemoSphere;
 
@@ -124,7 +124,7 @@ impl SDFSurface for SDFDemo {
     //noinspection DuplicatedCode
     /// Optional: parameters.
     fn changed(&self) -> Option<[Vector3<f32>; 2]> {
-        self.changed_default_impl().or_else(|| {
+        changed_default_impl(self).or_else(|| {
             // Note: bounding_box() change could be improved.
             let mut changed = self.changed.borrow_mut();
             if *changed {

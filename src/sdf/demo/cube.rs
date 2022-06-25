@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use cgmath::{ElementWise, Vector2, Vector3, Zero};
 
-use crate::sdf::{SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
+use crate::sdf::{changed_default_impl, SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
 use crate::sdf::demo::{RefCellBool, RefCellF32};
 
 #[derive(clap::Parser, Debug, Clone)]
@@ -142,7 +142,7 @@ impl SDFSurface for SDFDemoCube {
     //noinspection DuplicatedCode
     /// Optional: parameters.
     fn changed(&self) -> Option<[Vector3<f32>; 2]> {
-        self.changed_default_impl().or_else(|| {
+        changed_default_impl(self).or_else(|| {
             // Note: bounding_box() change could be improved.
             let mut changed = self.changed.borrow_mut();
             if *changed {

@@ -72,20 +72,7 @@ pub trait SDFSurface/*: SDFSurfaceClone*/ {
     /// notify of that change (to avoid infinite loops).
     /// This function is called very frequently so it should be very fast to avoid delaying frames.
     fn changed(&self) -> Option<[Vector3<f32>; 2]> {
-        self.changed_default_impl()
-    }
-
-    /// Just a default implementation that returns the bounding box of any children.
-    /// Useful when customizing [`changed`](#method.changed). It should not be called directly.
-    #[doc(hidden)]
-    fn changed_default_impl(&self) -> Option<[Vector3<f32>; 2]> {
-        for ch in self.children() {
-            if let Some(changed_box) = ch.changed() {
-                // Note: will return changes to other children in the next call, which is allowed by docs.
-                return Some(changed_box);
-            }
-        }
-        None
+        changed_default_impl(self)
     }
 
     // ============ OPTIONAL: CUSTOM MATERIALS (GLSL CODE) ============
@@ -105,6 +92,18 @@ pub trait SDFSurface/*: SDFSurfaceClone*/ {
     }
 }
 
+/// Just a default implementation that returns the bounding box of any children.
+/// Useful when customizing [`changed`](#method.changed). It should not be called directly.
+#[doc(hidden)]
+pub fn changed_default_impl(slf: &impl SDFSurface) -> Option<[Vector3<f32>; 2]> {
+    for ch in slf.children() {
+        if let Some(changed_box) = ch.changed() {
+            // Note: will return changes to other children in the next call, which is allowed by docs.
+            return Some(changed_box);
+        }
+    }
+    None
+}
 
 /// The result of sampling the SDF at the given coordinates.
 pub struct SdfSample {
