@@ -61,14 +61,7 @@ impl SDFViewerApp {
         // The Box::from_raw is only called once, and the sdf field is repopulated just after this.
         // unsafe { Box::from_raw(self.sdf as *mut _); } // TODO: Clean up previously leaked heap memory
         self.sdf = Box::leak(Box::new(sdf)); // Leak heap memory to get a 'static reference
-        Self::scene_mut(|scene| scene.sdf = self.sdf);
-        self.refresh_sdf(self.sdf); // Actually render the SDF set above
-    }
-
-    /// Queues a command to refresh the render of the given SDF.
-    pub fn refresh_sdf(&mut self, _sdf: impl SDFSurface + 'static) {
-        // TODO: Actually only update the SDF that changed instead of the whole tree that was previously rendered
-        Self::scene_mut(|scene| scene.set_sdf(scene.sdf, 128, 3));
+        Self::scene_mut(|scene| scene.set_sdf(self.sdf, 128, 3));
     }
 
     fn ui_three_d_scene_widget(&mut self, ui: &mut Ui) {
@@ -170,6 +163,7 @@ impl eframe::App for SDFViewerApp {
                 if let Some(selected_sdf) = self.selected_params_sdf {
                     egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("parameters"))
                         .resizable(true)
+                        .default_height(200.0)
                         .frame(Frame::default().outer_margin(0.0).inner_margin(0.0))
                         .show_inside(ui, |ui| {
                             ui.heading(format!("Parameters for {}", selected_sdf.name()));
@@ -179,10 +173,7 @@ impl eframe::App for SDFViewerApp {
                                     for mut param in selected_sdf.parameters() {
                                         if param.gui(ui) { // If the value was modified
                                             match selected_sdf.set_parameter(&param) {
-                                                Ok(()) => {
-                                                    // TODO: Only refresh if the SDF is a descendant of the rendered SDF
-                                                    self.refresh_sdf(selected_sdf)
-                                                }
+                                                Ok(()) => {}, // Implementation should report the change in the next sdf.changed() call
                                                 Err(e) => warn!("Failed to set parameter: {}", e), // TODO: User-facing error handling
                                             }
                                         }

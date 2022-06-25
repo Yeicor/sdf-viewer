@@ -11,7 +11,7 @@ use three_d::{Interpolation, Positions, TextureData, Wrapping};
 use material::SDFViewerMaterial;
 
 use crate::app::scene::sdf::loading::LoadingManager;
-use crate::sdf::SDFSurface;
+use crate::sdf::{merge_bounding_boxes, SDFSurface};
 
 pub mod material;
 pub mod loading;
@@ -24,6 +24,10 @@ pub struct SDFViewer {
     pub volume: Rc<RefCell<Gm<Mesh, SDFViewerMaterial>>>,
     /// Controls the iterative algorithm used to fill the SDF texture (to provide faster previews).
     pub loading_mgr: LoadingManager,
+    /// Records what part of the SDF has changed (as a bounding box) and has to be rendered
+    pub changed_box: Option<[Vector3<f32>; 2]>,
+    /// If this is true, another `loading_mgr` pass should be queued after this one
+    pub changed_box_while_loading: bool,
     /// The three-d cloned context
     pub ctx: three_d::Context,
 }
@@ -78,6 +82,8 @@ impl SDFViewer {
             texture,
             volume: Rc::new(RefCell::new(volume)),
             loading_mgr: LoadingManager::new(voxels, loading_passes),
+            changed_box: None,
+            changed_box_while_loading: false,
             ctx: ctx.clone(),
         }
     }
@@ -92,6 +98,34 @@ impl SDFViewer {
     /// Returns the number of updates. It performs at least one update if needed, even if the
     /// time limit is reached.
     pub fn update(&mut self, sdf: impl SDFSurface, max_delta_time: instant::Duration) -> usize {
+        // Check whether the SDF self-reports updates.
+        let mut just_changed_box = false;
+        if let Some(new_box) = sdf.changed() {
+            self.changed_box = Some(match &self.changed_box {
+                // TODO: List of bounding boxes instead of performing the union to increase performance?
+                Some(prev_box) => merge_bounding_boxes(prev_box, &new_box),
+                None => new_box,
+            });
+            self.changed_box_while_loading = self.loading_mgr.len() > 0 || self.changed_box_while_loading;
+            just_changed_box = true;
+        }
+
+        // If we still have changes to process and the loading manager is not busy, perform another
+        // full pass. Only the part that changed will be re-sampled. It will reuse previous samples
+        // while sampling the new part to avoid flickering.
+        if let Some(_changed_box) = &self.changed_box {
+            if self.loading_mgr.len() == 0 {
+                self.loading_mgr = LoadingManager::new(self.loading_mgr.limits, 3 /* TODO: Configure */);
+                if !just_changed_box {
+                    if !self.changed_box_while_loading { // Stop doing more loading_mgr passes
+                        self.changed_box = None;
+                    }
+                    self.changed_box_while_loading = false;
+                }
+            }
+        }
+
+        // Declare some variables to control the iterations.
         let mut first = true;
         let start_iter = self.loading_mgr.iterations();
         let sdf_bb = sdf.bounding_box();
@@ -99,21 +133,30 @@ impl SDFViewer {
         let texture_size_minus_1 = Vector3::new(self.texture.width as f32 - 1., self.texture.height as f32 - 1., self.texture.depth as f32 - 1.);
         let start_time = instant::Instant::now();
 
+        // Start sampling the SDF on the CPU to prepare the data for the GPU, as long as there is time.
         while first || start_time.elapsed() < max_delta_time {
             first = false; // TODO: Cross-platform parallel iteration?
-            if let Some(next_index) = self.loading_mgr.next() {
+            if let Some(index) = self.loading_mgr.next() {
                 match &mut self.texture.data {
                     TextureData::RgbaF32(data) => {
                         // Compute the flat index: 3D texture data is in the row-major order.
-                        let flat_index = (next_index.z * self.texture.height as usize + next_index.y) * self.texture.width as usize + next_index.x;
-                        if data[flat_index][0] == AIR_DIST { // Only update if not already computed
-                            // Compute the position in the SDF surface.
-                            let mut next_point = Vector3::new(next_index.x as f32, next_index.y as f32, next_index.z as f32);
-                            next_point.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
-                            next_point.mul_assign_element_wise(sdf_bb_size);
-                            next_point.add_assign(sdf_bb[0]);
+                        let flat_index = (index.z * self.texture.height as usize + index.y) * self.texture.width as usize + index.x;
+                        // Compute the position in the SDF surface.
+                        let mut pos = Vector3::new(index.x as f32, index.y as f32, index.z as f32);
+                        pos.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
+                        pos.mul_assign_element_wise(sdf_bb_size);
+                        pos.add_assign(sdf_bb[0]);
+                        // Check if the update is required: was AIR on initial load, or has changed since.
+                        let mut update_required = data[flat_index][0] == AIR_DIST;
+                        if let Some(changed_box) = self.changed_box {
+                            update_required = update_required ||
+                                pos.x >= changed_box[0].x && pos.x <= changed_box[1].x &&
+                                    pos.y >= changed_box[0].y && pos.y <= changed_box[1].y &&
+                                    pos.z >= changed_box[0].z && pos.z <= changed_box[1].z;
+                        }
+                        if update_required { // Only update if not already computed
                             // Actually sample the SDF.
-                            let sample = sdf.sample(next_point, false);
+                            let sample = sdf.sample(pos, false);
                             data[flat_index][0] = sample.distance;
                             data[flat_index][1] = material::pack_color(sample.color);
                             data[flat_index][2] = material::pack_color(Vector3::new(sample.metallic, sample.roughness, sample.occlusion))
@@ -158,13 +201,13 @@ fn cube_with_bounds(bb: &[Vector3<f32>; 2]) -> CpuMesh {
     match cube_bounds_mesh.positions {
         Positions::F32(ref mut d) => {
             for p in d {
-                if p.x < 0.0 {
+                if p.x <= 0.0 {
                     p.x = bb[0].x;
                 }
-                if p.y < 0.0 {
+                if p.y <= 0.0 {
                     p.y = bb[0].y;
                 }
-                if p.z < 0.0 {
+                if p.z <= 0.0 {
                     p.z = bb[0].z;
                 }
                 if p.x > 0.0 {

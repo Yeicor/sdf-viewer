@@ -4,7 +4,7 @@ use cgmath::{InnerSpace, MetricSpace, Vector3, Zero};
 
 use crate::sdf::{SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
 use crate::sdf::demo::cube::{Material, RefCellMaterial};
-use crate::sdf::demo::RefCellF32;
+use crate::sdf::demo::{RefCellBool, RefCellF32};
 
 #[derive(clap::Parser, Debug, Clone)]
 pub struct SDFDemoSphere {
@@ -12,6 +12,8 @@ pub struct SDFDemoSphere {
     sphere_material: RefCellMaterial,
     #[clap(short, long, default_value = "1.05")]
     sphere_radius: RefCellF32,
+    #[clap(skip)]
+    changed: RefCellBool,
 }
 
 impl Default for SDFDemoSphere {
@@ -82,16 +84,31 @@ impl SDFSurface for SDFDemoSphere {
         if param.name == "sphere_radius" {
             if let SdfParameterValue::Float { value, .. } = &param.value {
                 *self.sphere_radius.borrow_mut() = *value;
+                *self.changed.borrow_mut() = true;
                 return Ok(());
             }
         } else if param.name == "material" {
             if let SdfParameterValue::String { value, .. } = &param.value {
                 *self.sphere_material.borrow_mut() = Material::from_str(value.as_str())
                     .expect("predefined choices, should not receive an invalid value");
+                *self.changed.borrow_mut() = true;
                 return Ok(());
             }
         }
         Err(format!("Unknown parameter {} with value {:?}", param.name, param.value))
+    }
+
+    //noinspection DuplicatedCode
+    /// Optional: parameters.
+    fn changed(&self) -> Option<[Vector3<f32>; 2]> {
+        self.changed_default_impl().or_else(|| {
+            // Note: bounding_box() change could be improved.
+            let mut changed = self.changed.borrow_mut();
+            if *changed {
+                *changed = false;
+                Some(self.bounding_box())
+            } else { None }
+        })
     }
 
     /// Optional: optimized normal computation for the sphere.

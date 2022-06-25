@@ -9,8 +9,11 @@ use three_d::{InnerSpace, Vector3};
 pub mod demo;
 
 /// CPU-side version of the SDF. It is the source from which to extract data to render on GPU.
-/// It is fully queryable with read-only references for simplicity, (some extensions like parameters may require
-/// interior mutability).
+/// It is fully queryable with read-only references for simplicity.
+///
+/// You only need to implement the required core methods, and can override all other default method
+/// implementations to provide more functionality for your SDF. The default methods also show how to
+/// provide a default SDF implementation in a different language.
 ///
 /// The chosen precision is `f32`, as it should be enough for rendering (shaders only require
 /// 16 bits for high-precision variables, implementation-dependent).
@@ -21,6 +24,7 @@ pub trait SDFSurface/*: SDFSurfaceClone*/ {
     /// All operations MUST be inside this bounding box.
     fn bounding_box(&self) -> [Vector3<f32>; 2];
 
+    // TODO: Batched sampling to speed up operations for a possible REST API.
     /// Samples the surface at the given point. See `SdfSample` for more information.
     /// `distance_only` is a hint to the implementation that the caller only needs the distance.
     fn sample(&self, p: Vector3<f32>, distance_only: bool) -> SdfSample;
@@ -50,10 +54,38 @@ pub trait SDFSurface/*: SDFSurfaceClone*/ {
     }
 
     /// Modifies the given parameter (only name and value.value matter here).
-    /// If it returns ok, the sub-SDF hierarchy changed and it should be re-rendered.
     /// Implementations will probably need interior mutability to perform this.
+    /// Use [`changed`](#method.changed) to notify what part of the SDF needs to be updated.
     fn set_parameter(&self, _parameter: &SdfParameter) -> Result<(), String> {
         Err("no parameters implemented by default, overwrite this method".to_string())
+    }
+
+    /// Returns the bounding box that was modified since [`changed`](#method.changed) was last called.
+    /// It should also report if the children of this SDF need to be updated.
+    /// This may happen due to a parameter change ([`set_parameter`](#method.set_parameter)) or any
+    /// other event that may have changed the SDF. It should delimit as much as possible the part of the
+    /// SDF that should be updated to improve performance.
+    ///
+    /// Multiple changes should be merged into a single bounding box or queued and returned in several
+    /// [`changed`](#method.changed) calls for a similar effect.
+    /// After returning Some(...) the implementation should assume that it was updated and no longer
+    /// notify of that change (to avoid infinite loops).
+    /// This function is called very frequently so it should be very fast to avoid delaying frames.
+    fn changed(&self) -> Option<[Vector3<f32>; 2]> {
+        self.changed_default_impl()
+    }
+
+    /// Just a default implementation that returns the bounding box of any children.
+    /// Useful when customizing [`changed`](#method.changed). It should not be called directly.
+    #[doc(hidden)]
+    fn changed_default_impl(&self) -> Option<[Vector3<f32>; 2]> {
+        for ch in self.children() {
+            if let Some(changed_box) = ch.changed() {
+                // Note: will return changes to other children in the next call, which is allowed by docs.
+                return Some(changed_box);
+            }
+        }
+        None
     }
 
     // ============ OPTIONAL: CUSTOM MATERIALS (GLSL CODE) ============
@@ -166,4 +198,20 @@ pub enum SdfParameterValue {
         /// The available options to select from for the parameter. If empty, any string is valid.
         choices: Vec<String>,
     },
+}
+
+/// Merges two bounding boxes by performing the union.
+pub fn merge_bounding_boxes(bbox: &[Vector3<f32>; 2], bbox2: &[Vector3<f32>; 2]) -> [Vector3<f32>; 2] {
+    [ // Merge both bounding boxes
+        Vector3::new(
+            bbox[0].x.min(bbox2[0].x),
+            bbox[0].y.min(bbox2[0].y),
+            bbox[0].z.min(bbox2[0].z),
+        ),
+        Vector3::new(
+            bbox[1].x.max(bbox2[1].x),
+            bbox[1].y.max(bbox2[1].y),
+            bbox[1].z.max(bbox2[1].z),
+        ),
+    ]
 }

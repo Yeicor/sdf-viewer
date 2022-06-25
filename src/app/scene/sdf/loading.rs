@@ -4,7 +4,7 @@ use cgmath::Vector3;
 /// whole surface can be seen quickly at low quality and iteratively improves quality.
 pub struct LoadingManager {
     /// The 3D limits
-    limits: Vector3<usize>,
+    pub(crate) limits: Vector3<usize>,
     /// The current number of indices skipped in each dimension.
     /// It explores powers of two, in descending order, stopping at 1.
     step_size: usize,

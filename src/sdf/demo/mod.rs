@@ -24,6 +24,8 @@ pub struct SDFDemo {
     max_distance_custom_material: RefCellF32,
     #[clap(short, long, default_value = "false")]
     disable_sphere: RefCellBool,
+    #[clap(skip)]
+    changed: RefCellBool,
 }
 
 impl Default for SDFDemo {
@@ -48,7 +50,7 @@ impl SDFSurface for SDFDemo {
             let dist = sample_box.distance.max(-sample_sphere.distance);
             // Choose the material based on which object's surface is closer.
             let inter_surface_dist = sample_box.distance.abs() - sample_sphere.distance.abs();
-            let mut sample = if inter_surface_dist > 0.0 { sample_box } else { sample_sphere };
+            let mut sample = if inter_surface_dist < 0.0 { sample_box } else { sample_sphere };
             if inter_surface_dist.abs() <= *self.max_distance_custom_material.borrow() {
                 // - On the connection between the two original surfaces, force an specific material
                 // let force = 1.0;// - inter_surface_dist.abs() / self.max_distance_custom_material;
@@ -106,15 +108,30 @@ impl SDFSurface for SDFDemo {
         if param.name == "max_distance_custom_material" {
             if let SdfParameterValue::Float { value, .. } = param.value {
                 *self.max_distance_custom_material.borrow_mut() = value;
+                *self.changed.borrow_mut() = true;
                 return Ok(());
             }
         } else if param.name == "disable_sphere" {
             if let SdfParameterValue::Boolean { value, .. } = param.value {
                 *self.disable_sphere.borrow_mut() = value;
+                *self.changed.borrow_mut() = true;
                 return Ok(());
             }
         }
         Err(format!("Unknown parameter {} with value {:?}", param.name, param.value))
+    }
+
+    //noinspection DuplicatedCode
+    /// Optional: parameters.
+    fn changed(&self) -> Option<[Vector3<f32>; 2]> {
+        self.changed_default_impl().or_else(|| {
+            // Note: bounding_box() change could be improved.
+            let mut changed = self.changed.borrow_mut();
+            if *changed {
+                *changed = false;
+                Some(self.bounding_box())
+            } else { None }
+        })
     }
 
     /// Optional: optimized normal computation for the difference.
