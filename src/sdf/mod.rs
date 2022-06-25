@@ -95,7 +95,7 @@ pub trait SDFSurface/*: SDFSurfaceClone*/ {
 /// Just a default implementation that returns the bounding box of any children.
 /// Useful when customizing [`changed`](#method.changed). It should not be called directly.
 #[doc(hidden)]
-pub fn changed_default_impl(slf: &impl SDFSurface) -> Option<[Vector3<f32>; 2]> {
+pub fn changed_default_impl(slf: impl SDFSurface) -> Option<[Vector3<f32>; 2]> {
     for ch in slf.children() {
         if let Some(changed_box) = ch.changed() {
             // Note: will return changes to other children in the next call, which is allowed by docs.
