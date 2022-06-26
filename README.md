@@ -25,7 +25,7 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
 - [x] Cross-language: easy to integrate with most languages and frameworks.
     - [x] Works by building your code for wasm and running it at near-native speeds.
     - [x] [Rust demo](src/sdf/demo/ffi.rs), observable and customizable
-      through [this link](://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark).
+      through [this link](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark).
     - [ ] Integration tutorial and list of available integrations.
 - [x] High-performance:
     - [x] Very-fast initialization on all platforms.
@@ -36,9 +36,9 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
     - [x] Parameters to quickly customize your SDF from the UI.
 - [x] Compatible:
     - [x] Upload your SDF to a server and display it anywhere by
-      adding [?cliurl=\<url>](://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark) to the link.
+      adding [?cliurl=\<url>](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark) to the link.
     - [ ] Export a triangle mesh (importing should be provided by your SDF library).
-- [ ] [TODO](search?q=TODO)s, [FIXME](search?q=FIXME)s and [HACK](search?q=HACK)s (any help is appreciated 😉).
+- [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)s, [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
 
 ## Demo ([try it!](https://yeicor.github.io/sdf-viewer/?envdark))
 
