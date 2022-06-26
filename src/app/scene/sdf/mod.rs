@@ -11,7 +11,8 @@ use three_d::{Interpolation, Positions, TextureData, Wrapping};
 use material::SDFViewerMaterial;
 
 use crate::app::scene::sdf::loading::LoadingManager;
-use crate::sdf::{merge_bounding_boxes, SDFSurface};
+use crate::sdf::defaults::merge_bounding_boxes;
+use crate::sdf::SDFSurface;
 
 pub mod material;
 pub mod loading;
@@ -24,6 +25,8 @@ pub struct SDFViewer {
     pub volume: Rc<RefCell<Gm<Mesh, SDFViewerMaterial>>>,
     /// Controls the iterative algorithm used to fill the SDF texture (to provide faster previews).
     pub loading_mgr: LoadingManager,
+    /// A cache of the bounding box of the SDF, as it is not allowed to change for this instance.
+    pub bounding_box: [Vector3<f32>; 2],
     /// Records what part of the SDF has changed (as a bounding box) and has to be rendered
     pub changed_box: Option<[Vector3<f32>; 2]>,
     /// If this is true, another `loading_mgr` pass should be queued after this one
@@ -82,6 +85,7 @@ impl SDFViewer {
             texture,
             volume: Rc::new(RefCell::new(volume)),
             loading_mgr: LoadingManager::new(voxels, loading_passes),
+            bounding_box: *bb,
             changed_box: None,
             changed_box_while_loading: false,
             ctx: ctx.clone(),
@@ -128,7 +132,7 @@ impl SDFViewer {
         // Declare some variables to control the iterations.
         let mut first = true;
         let start_iter = self.loading_mgr.iterations();
-        let sdf_bb = sdf.bounding_box();
+        let sdf_bb = self.bounding_box;
         let sdf_bb_size = sdf_bb[1] - sdf_bb[0];
         let texture_size_minus_1 = Vector3::new(self.texture.width as f32 - 1., self.texture.height as f32 - 1., self.texture.depth as f32 - 1.);
         let start_time = instant::Instant::now();

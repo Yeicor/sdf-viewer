@@ -6,10 +6,12 @@ use std::str::{FromStr, ParseBoolError};
 
 use cgmath::Vector3;
 
-use crate::sdf::{changed_default_impl, SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
+use crate::sdf::{SDFParam, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::demo::sphere::SDFDemoSphere;
 
+#[cfg(feature = "sdfdemoffi")]
+pub mod ffi;
 pub mod cube;
 pub mod sphere;
 
@@ -40,7 +42,7 @@ impl SDFSurface for SDFDemo {
         [Vector3::new(-1.0, -1.0, -1.0), Vector3::new(1.0, 1.0, 1.0)]
     }
 
-    fn sample(&self, p: Vector3<f32>, distance_only: bool) -> SdfSample {
+    fn sample(&self, p: Vector3<f32>, distance_only: bool) -> SDFSample {
         // Compute the distance to the surface by subtracting a sphere to a cube.
         let sample_box = self.cube.sample(p, distance_only);
         if *self.disable_sphere.borrow() {
@@ -72,7 +74,7 @@ impl SDFSurface for SDFDemo {
     }
 
     /// Optional: hierarchy.
-    fn id(&self) -> usize {
+    fn id(&self) -> u32 {
         0
     }
 
@@ -82,20 +84,20 @@ impl SDFSurface for SDFDemo {
     }
 
     /// Optional: parameters.
-    fn parameters(&self) -> Vec<SdfParameter> {
+    fn parameters(&self) -> Vec<SDFParam> {
         vec![
-            SdfParameter {
+            SDFParam {
                 name: "max_distance_custom_material".to_string(),
-                value: SdfParameterValue::Float {
+                value: SDFParamValue::Float {
                     value: *self.max_distance_custom_material.borrow(),
                     range: 0.0..=0.25,
                     step: 0.01,
                 },
                 description: "The maximum distance between both surfaces at which the two materials are merged.".to_string(),
             },
-            SdfParameter {
+            SDFParam {
                 name: "disable_sphere".to_string(),
-                value: SdfParameterValue::Boolean {
+                value: SDFParamValue::Boolean {
                     value: *self.disable_sphere.borrow(),
                 },
                 description: "Whether to hide the sphere or not.".to_string(),
@@ -104,15 +106,15 @@ impl SDFSurface for SDFDemo {
     }
 
     /// Optional: parameters.
-    fn set_parameter(&self, param: &SdfParameter) -> Result<(), String> {
+    fn set_parameter(&self, param: &SDFParam) -> Result<(), String> {
         if param.name == "max_distance_custom_material" {
-            if let SdfParameterValue::Float { value, .. } = param.value {
+            if let SDFParamValue::Float { value, .. } = param.value {
                 *self.max_distance_custom_material.borrow_mut() = value;
                 *self.changed.borrow_mut() = true;
                 return Ok(());
             }
         } else if param.name == "disable_sphere" {
-            if let SdfParameterValue::Boolean { value, .. } = param.value {
+            if let SDFParamValue::Boolean { value, .. } = param.value {
                 *self.disable_sphere.borrow_mut() = value;
                 *self.changed.borrow_mut() = true;
                 return Ok(());
@@ -124,7 +126,7 @@ impl SDFSurface for SDFDemo {
     //noinspection DuplicatedCode
     /// Optional: parameters.
     fn changed(&self) -> Option<[Vector3<f32>; 2]> {
-        changed_default_impl(self).or_else(|| {
+        super::defaults::changed_default_impl(self).or_else(|| {
             // Note: bounding_box() change could be improved.
             let mut changed = self.changed.borrow_mut();
             if *changed {

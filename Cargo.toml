@@ -8,49 +8,88 @@ license = "MIT or Apache-2.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"] # Required for web (and Android...)
+crate-type = ["cdylib"] # Required for web (and Android...). Also publishes the sdf module.
+
+[features]
+# By default build the app and the server (if not on wasm).
+default = ["app", "server", "native"]
+
+# === ARCH-BASED FEATURES (only to select dependencies' features) ===
+web = ["wasmer/js-default", "poll-promise/web"]
+native = ["wasmer/sys-default", "poll-promise/tokio"]
+
+# === FUNCTIONALITY-BASED FEATURES ===
+# The whole app that renders SDFs.
+app = ["standalone", "sdf", "sdfdemo", # <-- other features
+    "three-d", "eframe", "egui_glow", "image", "ehttp", "wasmi", "wasmer", "anyhow"]
+
+# The simple server to watch and serve files to the app.
+server = ["standalone"]
+
+# An executable that runs a program instead of providing an API, i.e., an app and/or a server
+standalone = [
+    "instant", "wasm-bindgen", "wasm-bindgen-futures", "web-sys", "tracing-wasm", "tracing-subscriber",
+    "console_error_panic_hook", "tracing", "profiling", "shadow-rs", "ndk-glue", "openssl", "tokio", "poll-promise"]
+
+# The main SDF trait. Useful for using as a library (remember to disable default features).
+sdf = ["auto_impl", "cgmath", "clap"]
+
+# Declares the demo SDF.
+sdfdemo = ["sdf"]
+
+# Publishes the demo SDF through FFI to be able to export it as a WASM file to be interpreted by the app.
+sdfdemoffi = ["sdfdemo"]
 
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { version = "0.12", default-features = false, features = [] }
-eframe = { version = "0.18", features = ["persistence"] }
-egui_glow = "0.18"
-image = "0.24"  # Required for image loading
+three-d = { version = "0.12", default-features = false, features = [], optional = true }
+eframe = { version = "0.18", features = ["persistence"], optional = true }
+egui_glow = { version = "0.18", optional = true }
+image = { version = "0.24", optional = true }  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
-tracing = "0.1"
-profiling = { version = "1.0", features = ["profile-with-tracing"] } # Provides simpler macro for functions
+tracing = { version = "0.1", optional = true }
+profiling = { version = "1.0", features = ["profile-with-tracing"], optional = true } # Provides simpler macro for functions
 
 # === NETWORK ===
-reqwest = "0.11"
+ehttp = { version = "0.2", optional = true } # Very simple HTTP client that supports web
+# TODO: Simple HTTP server for the "server" feature
+
+# === WEBASSEMBLY COMPILERS/INTERPRETERS ===
+wasmi = { version = "0.11", optional = true } # Low-overhead and cross-platform WebAssembly runtime
+wasmer = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
+# Wasmer includes a patch to perform asynchronous compilation and instantiation of WASM modules (to work around chrome's enforced main thread compilation size limit).
 
 # === CONFIGURATION & CLI ===
-clap = { version = "3.2", features = ["derive"] }
-shadow-rs = { version = "0.11", default-features = false } # Web does not support the git2 optional dependency, which is unnecessary
+clap = { version = "3.2", features = ["derive"], optional = true }
+shadow-rs = { version = "0.11", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 
 # === MISC ===
-auto_impl = "1.0" # Automatic trait implementations for Box<_>, &_, etc.
-instant = { version = "0.1", default-features = false, features = ["wasm-bindgen"] } # Cross platform current time
-cgmath = "0.18" # Shared with three-d
+auto_impl = { version = "1.0", optional = true } # Automatic trait implementations for Box<_>, &_, etc.
+instant = { version = "0.1", default-features = false, features = ["wasm-bindgen"], optional = true } # Cross platform current time
+cgmath = { version = "0.18", optional = true } # Math library (shared with three-d)
+anyhow = { version = "1.0", optional = true } # Error handling
+poll-promise = { git = "https://github.com/EmbarkStudios/poll-promise/", rev = "49daf6c1b91be2dbfe59d41ae5547909268c6d46", optional = true } # Polls a future until it resolves
 
 # === NATIVE (desktop & mobile) ===
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tracing-subscriber = "0.3" # For logging
+tokio = { version = "1.19", features = ["macros", "rt-multi-thread", "sync"], optional = true } # Asynchronous runtime
+tracing-subscriber = { version = "0.3", optional = true } # For logging
 
 # === ANDROID ===
 [target.'cfg(target_os = "android")'.dependencies] # Android dependencies
-ndk-glue = "0.6" # Core bindings
+ndk-glue = { version = "0.6", optional = true } # Core bindings
 # HACK: force-enable vendored OpenSSL sources for android builds
-openssl = { version = "*", features = ["vendored"] }
+openssl = { version = "*", features = ["vendored"], optional = true }
 
 # === WEB ===
 [target.'cfg(target_arch = "wasm32")'.dependencies] # Web dependencies
-wasm-bindgen = "0.2" # Core bindings
-wasm-bindgen-futures = "0.4" # Core bindings
-web-sys = "0.3" # Core bindings
-tracing-wasm = "0.2" # For logging
-console_error_panic_hook = "0.1" # For logging
+wasm-bindgen = { version = "0.2", optional = true } # Core bindings
+wasm-bindgen-futures = { version = "0.4", optional = true } # Core bindings
+web-sys = { version = "0.3", optional = true } # Core bindings
+tracing-wasm = { version = "0.2", optional = true } # For logging
+console_error_panic_hook = { version = "0.1", optional = true } # For logging
 
 # === TESTING ===
 [dev-dependencies]
@@ -58,7 +97,7 @@ approx = "0.5"
 
 # === BUILD ===
 [build-dependencies]
-shadow-rs = "0.11"
+shadow-rs = "0.11" # For build metadata
 
 # ========== RELEASE CONFIGURATION ==========
 [profile.release]

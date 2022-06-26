@@ -164,7 +164,7 @@ impl SDFViewerAppScene {
         let viewport = self.camera.update(info, egui_resp);
         let scissor_box = ScissorBox::from(viewport);
 
-        // Load more of the SDF to the GPU in realtime (if needed)
+        // Load more of the SDF to the GPU in real time (if needed)
         let load_start_cpu = Instant::now();
         let cpu_updates = self.sdf_viewer.update(self.sdf, Duration::from_millis(30));
         if cpu_updates > 0 {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use eframe::{egui, Storage};
-use eframe::egui::{Frame, ProgressBar, ScrollArea, Ui, Vec2};
+use eframe::egui;
+use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
@@ -24,6 +24,10 @@ pub struct SDFViewerApp {
     /// The root SDF surface. This is static as it is generated with Box::leak.
     /// This is needed as we may only be rendering a sub-tree of the SDF.
     pub sdf: &'static dyn SDFSurface,
+    /// The currently loading SDF surface, that will replace the current [`sdf`] when ready.
+    /// It will be polled on update.
+    pub sdf_loading: Option<poll_promise::Promise<Box<(dyn SDFSurface + Send + Sync)>>>,
+    // TODO: A loading (downloading/parsing/compiling wasm) indicator for the user.
     /// The SDF for which we are modifying the parameters, if any.
     pub selected_params_sdf: Option<&'static dyn SDFSurface>,
 }
@@ -43,6 +47,7 @@ impl SDFViewerApp {
         let slf = Self {
             progress: None,
             sdf: Box::leak(Box::new(SDFDemoCube::default())),
+            sdf_loading: None,
             selected_params_sdf: None,
         };
 
@@ -64,6 +69,32 @@ impl SDFViewerApp {
         Self::scene_mut(|scene| scene.set_sdf(self.sdf, 128, 3));
     }
 
+    /// Updates the root SDF using a promise that will be polled on update.
+    /// When the promise is ready, [`set_root_sdf`](#method.set_root_sdf) will be called internally automatically.
+    pub fn set_root_sdf_loading(&mut self, promise: poll_promise::Promise<Box<(dyn SDFSurface + Send + Sync)>>) {
+        self.sdf_loading = Some(promise);
+    }
+
+    /// Called on every update to check if we are ready to render the SDF that was loading.
+    fn update_poll_loading_sdf(&mut self) {
+        // Poll the SDF loading promise if it is set
+        self.sdf_loading = if let Some(promise) = self.sdf_loading.take() {
+            match promise.try_take() {
+                Ok(new_root_sdf) => {
+                    self.set_root_sdf(new_root_sdf);
+                    None
+                }
+                Err(promise_again) => Some(promise_again),
+            }
+        } else { None };
+    }
+
+    pub fn scene_mut<R>(
+        f: impl FnOnce(&mut SDFViewerAppScene) -> R,
+    ) -> Option<R> {
+        SDFViewerAppScene::read_context_thread_local(f)
+    }
+
     fn ui_three_d_scene_widget(&mut self, ui: &mut Ui) {
         let (rect, response) = ui.allocate_exact_size(
             ui.available_size(), egui::Sense::click_and_drag());
@@ -82,7 +113,7 @@ impl SDFViewerApp {
         });
     }
 
-    fn ui_create_hierarchy(&mut self, ui: &mut Ui, sdf: &'static dyn SDFSurface, rendering_sdf_id: usize) {
+    fn ui_create_hierarchy(&mut self, ui: &mut Ui, sdf: &'static dyn SDFSurface, rendering_sdf_id: u32) {
         let id = ui.make_persistent_id(format!("sdf-hierarchy-{}", sdf.id()));
         let children = sdf.children();
         let mut render_child = |ui: &mut Ui| {
@@ -129,16 +160,7 @@ impl SDFViewerApp {
         }
     }
 
-    pub fn scene_mut<R>(
-        f: impl FnOnce(&mut SDFViewerAppScene) -> R,
-    ) -> Option<R> {
-        SDFViewerAppScene::read_context_thread_local(f)
-    }
-}
-
-impl eframe::App for SDFViewerApp {
-    #[profiling::function]
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui_menu_bar(&self, ctx: &Context) {
         // Top panel for the menu bar
         egui::TopBottomPanel::new(TopBottomSide::Top, hash("top"))
             .show(ctx, |ui| {
@@ -155,7 +177,9 @@ impl eframe::App for SDFViewerApp {
                     });
                 });
             });
+    }
 
+    fn ui_left_panel(&mut self, ctx: &Context) {
         // Main side panel for configuration.
         egui::SidePanel::new(Side::Left, hash("left"))
             .show(ctx, |ui| {
@@ -173,7 +197,7 @@ impl eframe::App for SDFViewerApp {
                                     for mut param in selected_sdf.parameters() {
                                         if param.gui(ui) { // If the value was modified
                                             match selected_sdf.set_parameter(&param) {
-                                                Ok(()) => {}, // Implementation should report the change in the next sdf.changed() call
+                                                Ok(()) => {} // Implementation should report the change in the next sdf.changed() call
                                                 Err(e) => warn!("Failed to set parameter: {}", e), // TODO: User-facing error handling
                                             }
                                         }
@@ -182,7 +206,13 @@ impl eframe::App for SDFViewerApp {
                         });
                 }
                 // The main SDF hierarchy with action buttons
-                ui.heading("Hierarchy");
+                ui.horizontal_wrapped(|ui| {
+                    ui.heading("Hierarchy");
+                    if self.sdf_loading.is_some() {
+                        ui.spinner().on_hover_text(
+                            "Currently downloading/compiling a new version of the SDF code");
+                    }
+                });
                 ScrollArea::both()
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
@@ -190,7 +220,9 @@ impl eframe::App for SDFViewerApp {
                         self.ui_create_hierarchy(ui, self.sdf, rendering_sdf_id);
                     });
             });
+    }
 
+    fn ui_bottom_panel(&mut self, ctx: &Context) {
         // Bottom panel, containing the progress bar if applicable.
         egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("bottom"))
             .frame(Frame::default().inner_margin(0.0))
@@ -202,7 +234,9 @@ impl eframe::App for SDFViewerApp {
                     ui.add(ProgressBar::new(*progress).text(text.clone()).animate(true));
                 }
             });
+    }
 
+    fn ui_central_panel(&mut self, ctx: &Context) {
         // 3D Scene main content
         egui::CentralPanel::default()
             .frame(Frame::none().inner_margin(0.0))
@@ -213,11 +247,23 @@ impl eframe::App for SDFViewerApp {
                     });
             });
     }
+}
 
+impl eframe::App for &mut SDFViewerApp {
+    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+        SDFViewerApp::update(self, ctx, frame)
+    }
+}
+
+impl eframe::App for SDFViewerApp {
     #[profiling::function]
-    fn save(&mut self, _storage: &mut dyn Storage) {
-        // TODO: Store app state, indexed by the loaded SDF?
-        // storage.set_string()
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        self.update_poll_loading_sdf();
+        self.ui_menu_bar(ctx);
+        self.ui_left_panel(ctx);
+        self.ui_bottom_panel(ctx);
+        self.ui_central_panel(ctx);
+        ctx.request_repaint();
     }
 }
 

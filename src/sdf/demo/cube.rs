@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use cgmath::{ElementWise, Vector2, Vector3, Zero};
 
-use crate::sdf::{changed_default_impl, SdfParameter, SdfParameterValue, SdfSample, SDFSurface};
+use crate::sdf::{SDFParam, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::{RefCellBool, RefCellF32};
 
 #[derive(clap::Parser, Debug, Clone)]
@@ -47,12 +47,12 @@ impl Display for Material {
 }
 
 impl Material {
-    pub fn render(&self, dist: f32, p: Vector3<f32>, normal: Vector3<f32>) -> SdfSample {
+    pub fn render(&self, dist: f32, p: Vector3<f32>, normal: Vector3<f32>) -> SDFSample {
         match &self {
             // Procedural brick texture
             Material::Brick => sample_brick_texture(p, normal, dist),
             // Simple normal texture
-            Material::Normal => SdfSample::new(dist, normal.map(|e| e.abs())),
+            Material::Normal => SDFSample::new(dist, normal.map(|e| e.abs())),
         }
     }
 }
@@ -70,20 +70,20 @@ impl SDFSurface for SDFDemoCube {
         [Vector3::new(-1.0, -1.0, -1.0), Vector3::new(1.0, 1.0, 1.0)]
     }
 
-    fn sample(&self, p: Vector3<f32>, mut distance_only: bool) -> SdfSample {
+    fn sample(&self, p: Vector3<f32>, mut distance_only: bool) -> SDFSample {
         // Compute the distance to the surface.
         let dist_box = p.x.abs().max(p.y.abs()).max(p.z.abs()) - *self.cube_half_side.borrow();
         // Optimization: the air has no texture, so we can skip the texture lookup.
         distance_only = distance_only || dist_box > 0.1;
         if distance_only {
-            SdfSample::new(dist_box, Vector3::zero())
+            SDFSample::new(dist_box, Vector3::zero())
         } else {
             self.cube_material.borrow().render(dist_box, p, self.normal(p, None))
         }
     }
 
     /// Optional: hierarchy.
-    fn id(&self) -> usize {
+    fn id(&self) -> u32 {
         1
     }
 
@@ -94,11 +94,11 @@ impl SDFSurface for SDFDemoCube {
 
     //noinspection DuplicatedCode
     /// Optional: parameters.
-    fn parameters(&self) -> Vec<SdfParameter> {
+    fn parameters(&self) -> Vec<SDFParam> {
         vec![
-            SdfParameter {
+            SDFParam {
                 name: "material".to_string(),
-                value: SdfParameterValue::String {
+                value: SDFParamValue::String {
                     value: self.cube_material.to_string(),
                     choices: vec![
                         Material::Brick.to_string(),
@@ -107,9 +107,9 @@ impl SDFSurface for SDFDemoCube {
                 },
                 description: "The material to use for the cube.".to_string(),
             },
-            SdfParameter {
+            SDFParam {
                 name: "cube_side".to_string(),
-                value: SdfParameterValue::Int { // Should be float, but testing the int parameter
+                value: SDFParamValue::Int { // Should be float, but testing the int parameter
                     value: (*self.cube_half_side.borrow() * 100.) as i32,
                     range: 0..=100,
                     step: 1,
@@ -121,15 +121,15 @@ impl SDFSurface for SDFDemoCube {
 
     //noinspection DuplicatedCode
     /// Optional: parameters.
-    fn set_parameter(&self, param: &SdfParameter) -> Result<(), String> {
+    fn set_parameter(&self, param: &SDFParam) -> Result<(), String> {
         if param.name == "cube_side" {
-            if let SdfParameterValue::Int { value, .. } = &param.value {
+            if let SDFParamValue::Int { value, .. } = &param.value {
                 *self.cube_half_side.borrow_mut() = *value as f32 / 100.;
                 *self.changed.borrow_mut() = true;
                 return Ok(());
             }
         } else if param.name == "material" {
-            if let SdfParameterValue::String { value, .. } = &param.value {
+            if let SDFParamValue::String { value, .. } = &param.value {
                 *self.cube_material.borrow_mut() = Material::from_str(value.as_str())
                     .expect("predefined choices, should not receive an invalid value");
                 *self.changed.borrow_mut() = true;
@@ -142,7 +142,7 @@ impl SDFSurface for SDFDemoCube {
     //noinspection DuplicatedCode
     /// Optional: parameters.
     fn changed(&self) -> Option<[Vector3<f32>; 2]> {
-        changed_default_impl(self).or_else(|| {
+        super::super::defaults::changed_default_impl(self).or_else(|| {
             // Note: bounding_box() change could be improved.
             let mut changed = self.changed.borrow_mut();
             if *changed {
@@ -170,7 +170,7 @@ impl SDFSurface for SDFDemoCube {
 }
 
 /// Creates a new SDF sample using an example procedural brick texture.
-fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) -> SdfSample {
+fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) -> SDFSample {
     const BRICK_COLOR: Vector3<f32> = Vector3::new(1., 15. / 255., 12. / 255.);
     const BRICK_WIDTH: f32 = 0.5;
     const BRICK_HEIGHT: f32 = 0.25;
@@ -213,7 +213,7 @@ fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) ->
             let uv = Vector2::new(p.x, p.y);
             compute_tex2d(uv)
         };
-    SdfSample { distance, color, metallic, roughness, occlusion }
+    SDFSample { distance, color, metallic, roughness, occlusion }
 }
 
 

@@ -41,5 +41,10 @@ cat >index.html <<EOF
 </html>
 EOF
 
+# Also compile the SDF demo to an example small WASM file and include it in the distribution.
+wasm_demo_file="demo_sdf.wasm"
+cargo build --lib --no-default-features --features sdfdemoffi --release --target wasm32-unknown-unknown
+cp "../wasm32-unknown-unknown/release/sdf_viewer.wasm" "$wasm_demo_file"
+
 # Prepare the release .tar.gz, removing the original file
 tar -czf "../${wasm_file%.*}.tar.gz" .

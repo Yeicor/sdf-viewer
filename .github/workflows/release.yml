@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
+        include: # TODO: Release different feature combinations (app-only, server-only and both)
           # Linux x86_64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -73,7 +73,7 @@ jobs:
             target: wasm32-unknown-unknown
             ext: tar.gz  # After post-processing
             pre: rustup target add wasm32-unknown-unknown && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-            build: wasm-pack build --target web --out-dir ./target/pkg
+            build: wasm-pack build --target web --out-dir ./target/pkg -- --no-default-features --features "app web"
             post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm"
           # Android
           - os: ubuntu-latest
@@ -114,7 +114,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --all-features --target ${{ matrix.target }}
+          args: --release --target ${{ matrix.target }}
       - name: Release build
         if: ${{ matrix.build != '' }}
         run: ${{ matrix.build }}
