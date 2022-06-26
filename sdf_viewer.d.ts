@@ -5,12 +5,20 @@
 * @returns {Promise<void>}
 */
 export function run_app(canvas_id: string): Promise<void>;
+/**
+* A struct representing an aborted instruction execution, with a message
+* indicating the cause.
+*/
+export class WasmerRuntimeError {
+  free(): void;
+}
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly run_app: (a: number, b: number) => number;
+  readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly __wbindgen_export_0: (a: number) => number;
   readonly __wbindgen_export_1: (a: number, b: number, c: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
