@@ -46,7 +46,7 @@ wasm_demo_file="demo_sdf.wasm"
 cargo build --lib --no-default-features --features sdfdemoffi --release --target wasm32-unknown-unknown
 cp "../wasm32-unknown-unknown/release/sdf_viewer.wasm" "$wasm_demo_file"
 
-rm .gitignore # This may conflict with some deployments and it is already ignored in the main repo.
+[ -f .gitignore ] && rm .gitignore # This may conflict with some deployments and it is already ignored in the main repo.
 
 # Prepare the release .tar.gz, removing the original file
 tar -czf "../${wasm_file%.*}.tar.gz" .

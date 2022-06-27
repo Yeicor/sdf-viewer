@@ -28,7 +28,8 @@ pub trait SDFSurface {
     fn bounding_box(&self) -> [Vector3<f32>; 2];
 
     // TODO: Batched sampling to speed up operations for a possible REST API.
-    /// Samples the surface at the given point. See `SdfSample` for more information.
+    /// Samples the surface at the given point. It should include the effect of all of its children
+    /// and none of its parents. See `SdfSample` for more information.
     /// `distance_only` is a hint to the implementation that the caller only needs the distance.
     fn sample(&self, p: Vector3<f32>, distance_only: bool) -> SDFSample;
 

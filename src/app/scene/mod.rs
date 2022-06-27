@@ -189,7 +189,7 @@ impl SDFViewerAppScene {
         // as egui uses a custom RenderTarget?
         // Note: there is no need to clear the scene (already done by egui with the correct color).
         // However, we need to clear the depth buffer as egui does not do this by default.
-        unsafe { self.ctx.clear(context::DEPTH_BUFFER_BIT); }
+        unsafe { self.ctx.clear(context::DEPTH_BUFFER_BIT); } // OpenGL calls are always unsafe
         self.ctx.set_scissor(scissor_box);
         let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
         for obj in &self.objects {
