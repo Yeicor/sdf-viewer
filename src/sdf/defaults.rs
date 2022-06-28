@@ -4,7 +4,7 @@ use crate::sdf::{SDFParam, SDFSurface};
 
 /// Just a default implementation
 #[doc(hidden)]
-pub fn children_default_impl<'a>(_slf: impl SDFSurface + 'a) -> Vec<&'a dyn SDFSurface> {
+pub fn children_default_impl(_slf: impl SDFSurface) -> Vec<Box<dyn SDFSurface>> {
     vec![]
 }
 

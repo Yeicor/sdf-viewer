@@ -18,11 +18,13 @@
 //!
 //! The layout in memory is the following:
 //! - Primitives: as i32 or f32 depending on the type of the primitive.
-//! - Vector3: flat x, y, z floats.
-//! - Structs: flattened attributes.
-//! - Enums: ordinal u8 followed by the struct data.
-//! - Array: pointer to another memory location + length of the array.
-//! - String: pointer to another memory location + length of the string.
+//! - Structs/fixed length arrays (Vector3, SDFSample, \[u8; 2]):
+//!     - input: flattened attributes.
+//!     - output: pointer to memory location with flattened attributes.
+//! - Array/String:
+//!     - input: only Vector3 for now, so flattener.
+//!     - output: pointer to (pointer to another memory location + length of the array in bytes).
+//! - Enums: same as structs (known length), but with an extra initial u8 indicating the ordinal.
 //!
 
 use crate::cli::env_get;

@@ -3,17 +3,17 @@ use std::str::FromStr;
 use cgmath::{InnerSpace, MetricSpace, Vector3, Zero};
 
 use crate::sdf::{SDFParam, SDFParamValue, SDFSample, SDFSurface};
-use crate::sdf::demo::{RefCellBool, RefCellF32};
-use crate::sdf::demo::cube::{Material, RefCellMaterial};
+use crate::sdf::demo::{RcRefCellBool, RcRefCellF32};
+use crate::sdf::demo::cube::{Material, RcRefCellMaterial};
 
 #[derive(clap::Parser, Debug, Clone)]
 pub struct SDFDemoSphere {
     #[clap(short = 'l', long, default_value = "normal")]
-    sphere_material: RefCellMaterial,
+    sphere_material: RcRefCellMaterial,
     #[clap(short, long, default_value = "1.05")]
-    sphere_radius: RefCellF32,
+    sphere_radius: RcRefCellF32,
     #[clap(skip)]
-    changed: RefCellBool,
+    changed: RcRefCellBool,
 }
 
 impl Default for SDFDemoSphere {

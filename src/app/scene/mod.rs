@@ -34,7 +34,7 @@ pub struct SDFViewerAppScene {
     pub ctx: Context,
     // === SDF ===
     /// The CPU-side definition of the SDF object to render (infinite precision)
-    pub sdf: &'static dyn SDFSurface,
+    pub sdf: Rc<Box<dyn SDFSurface>>,
     /// The controller that helps manage and synchronize the GPU material with the CPU SDF.
     pub sdf_viewer: SDFViewer,
     /// When we last updated the GPU texture of the SDF
@@ -55,7 +55,7 @@ impl SDFViewerAppScene {
     pub fn from_glow_context_thread_local<R>(
         gl: &Rc<glow::Context>,
         f: impl FnOnce(&mut SDFViewerAppScene) -> R,
-        sdf: &'static dyn SDFSurface,
+        sdf: Rc<Box<dyn SDFSurface>>,
     ) -> R {
         SCENE.with(|scene| {
             let mut scene = scene.borrow_mut();
@@ -81,7 +81,7 @@ impl SDFViewerAppScene {
         }))
     }
 
-    pub fn new(ctx: Context, sdf: &'static dyn SDFSurface) -> Self {
+    pub fn new(ctx: Context, sdf: Rc<Box<dyn SDFSurface>>) -> Self {
         // Create the camera
         let camera = Camera::new_perspective(
             &ctx,
@@ -154,9 +154,10 @@ impl SDFViewerAppScene {
     }
 
     /// Updates the SDF to render (and clears all required caches).
-    pub fn set_sdf(&mut self, sdf: &'static dyn SDFSurface, max_voxels_side: usize, loading_passes: usize) {
+    pub fn set_sdf(&mut self, sdf: Rc<Box<dyn SDFSurface>>, max_voxels_side: usize, loading_passes: usize) {
+        let bb = sdf.bounding_box();
         self.sdf = sdf;
-        self.sdf_viewer = SDFViewer::from_bb(&self.ctx, &sdf.bounding_box(), Some(max_voxels_side), loading_passes);
+        self.sdf_viewer = SDFViewer::from_bb(&self.ctx, &bb, Some(max_voxels_side), loading_passes);
     }
 
     pub fn render(&mut self, info: &PaintCallbackInfo, egui_resp: &Response) {
@@ -166,7 +167,7 @@ impl SDFViewerAppScene {
 
         // Load more of the SDF to the GPU in real time (if needed)
         let load_start_cpu = Instant::now();
-        let cpu_updates = self.sdf_viewer.update(self.sdf, Duration::from_millis(30));
+        let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30));
         if cpu_updates > 0 {
             // Update the GPU texture sparingly (to mitigate stuttering on high-detail rendering loads)
             if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {

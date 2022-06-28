@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::sync::Arc;
 
 use eframe::egui;
@@ -23,13 +24,13 @@ pub struct SDFViewerApp {
     pub progress: Option<(f32, String)>,
     /// The root SDF surface. This is static as it is generated with Box::leak.
     /// This is needed as we may only be rendering a sub-tree of the SDF.
-    pub sdf: &'static dyn SDFSurface,
+    pub sdf: Rc<Box<dyn SDFSurface>>,
     /// The currently loading SDF surface, that will replace the current [`sdf`] when ready.
     /// It will be polled on update.
     pub sdf_loading: Option<poll_promise::Promise<Box<(dyn SDFSurface + Send + Sync)>>>,
     // TODO: A loading (downloading/parsing/compiling wasm) indicator for the user.
     /// The SDF for which we are modifying the parameters, if any.
-    pub selected_params_sdf: Option<&'static dyn SDFSurface>,
+    pub selected_params_sdf: Option<Rc<Box<dyn SDFSurface>>>,
 }
 
 impl SDFViewerApp {
@@ -46,7 +47,7 @@ impl SDFViewerApp {
         info!("Initialization complete! Starting main loop...");
         let slf = Self {
             progress: None,
-            sdf: Box::leak(Box::new(SDFDemoCube::default())),
+            sdf: Rc::new(Box::new(SDFDemoCube::default())),
             sdf_loading: None,
             selected_params_sdf: None,
         };
@@ -54,19 +55,16 @@ impl SDFViewerApp {
         // In order to configure the 3D scene after initialization, we need to create a new scene now.
         // Warning: future rendering must be done from this thread, or nothing will render.
         SDFViewerAppScene::from_glow_context_thread_local(
-            &cc.gl, |_scene| {}, slf.sdf);
+            &cc.gl, |_scene| {}, Rc::clone(&slf.sdf));
 
         slf
     }
 
     /// Updates the root SDF surface and sets the whole surface as the render target.
     /// The root SDF must be owned at this point.
-    pub fn set_root_sdf(&mut self, sdf: impl SDFSurface + 'static) {
-        // SAFETY: This is safe as self.sdf must always be a static reference created from Box::leak.
-        // The Box::from_raw is only called once, and the sdf field is repopulated just after this.
-        // unsafe { Box::from_raw(self.sdf as *mut _); } // TODO: Clean up previously leaked heap memory
-        self.sdf = Box::leak(Box::new(sdf)); // Leak heap memory to get a 'static reference
-        Self::scene_mut(|scene| scene.set_sdf(self.sdf, 128, 3));
+    pub fn set_root_sdf(&mut self, sdf: Box<dyn SDFSurface>) {
+        self.sdf = Rc::new(sdf); // Reference counted ownership as we need to share it with the scene renderer.
+        Self::scene_mut(|scene| scene.set_sdf(Rc::clone(&self.sdf), 128, 3));
     }
 
     /// Updates the root SDF using a promise that will be polled on update.
@@ -113,11 +111,11 @@ impl SDFViewerApp {
         });
     }
 
-    fn ui_create_hierarchy(&mut self, ui: &mut Ui, sdf: &'static dyn SDFSurface, rendering_sdf_id: u32) {
+    fn ui_create_hierarchy(&mut self, ui: &mut Ui, sdf: Rc<Box<dyn SDFSurface>>, rendering_sdf_id: u32) {
         let id = ui.make_persistent_id(format!("sdf-hierarchy-{}", sdf.id()));
-        let children = sdf.children();
         let mut render_child = |ui: &mut Ui| {
             ui.horizontal_wrapped(|ui| {
+                // Pre-compute (own) some values for the rendering of the SDF (to then move the SDF)
                 ui.label(sdf.name());
                 let rendering_this_sdf = sdf.id() == rendering_sdf_id;
                 ui.add_enabled_ui(!rendering_this_sdf, |ui| {
@@ -126,18 +124,20 @@ impl SDFViewerApp {
                     if render_button_resp.clicked() {
                         info!("Rendering only {}", sdf.name());
                         Self::scene_mut(|scene| {
-                            scene.set_sdf(sdf, 128, 3); // Will progressively regenerate the scene in the next frames
+                            // Will progressively regenerate the scene in the next frames
+                            scene.set_sdf(Rc::clone(&sdf), 128, 3);
                         });
                     }
                 });
                 let params = sdf.parameters();
                 if !params.is_empty() {
-                    let editing_params = self.selected_params_sdf.map(|sdf2| sdf2.id() == sdf.id()).unwrap_or(false);
+                    let editing_params = self.selected_params_sdf.as_ref()
+                        .map(|sdf2| sdf2.id() == sdf.id()).unwrap_or(false);
                     let mut editing_params_now = editing_params;
                     let settings_button_resp = ui.toggle_value(&mut editing_params_now, "⚙?");
                     if editing_params_now {
                         settings_button_resp.on_hover_text("Stop editing parameters".to_string());
-                        self.selected_params_sdf = Some(sdf);
+                        self.selected_params_sdf = Some(Rc::clone(&sdf));
                     } else {
                         settings_button_resp.on_hover_text(format!("Edit {} parameters", params.len()));
                         if editing_params {
@@ -147,14 +147,14 @@ impl SDFViewerApp {
                 }
             });
         };
-        if children.is_empty() {
+        if sdf.children().is_empty() {
             render_child(ui);
         } else {
             CollapsingState::load_with_default_open(ui.ctx(), id, true)
                 .show_header(ui, render_child)
                 .body(move |ui| {
-                    for child in children {
-                        self.ui_create_hierarchy(ui, child, rendering_sdf_id);
+                    for child in sdf.children() {
+                        self.ui_create_hierarchy(ui, Rc::new(child), rendering_sdf_id);
                     }
                 });
         }
@@ -184,7 +184,7 @@ impl SDFViewerApp {
         egui::SidePanel::new(Side::Left, hash("left"))
             .show(ctx, |ui| {
                 // Configuration panel for the parameters of the selected SDF (this must be placed first to reserve space, resizable)
-                if let Some(selected_sdf) = self.selected_params_sdf {
+                if let Some(ref selected_sdf) = self.selected_params_sdf {
                     egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("parameters"))
                         .resizable(true)
                         .default_height(200.0)
@@ -217,7 +217,7 @@ impl SDFViewerApp {
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
                         let rendering_sdf_id = Self::scene_mut(move |scene| scene.sdf.id()).unwrap_or(0);
-                        self.ui_create_hierarchy(ui, self.sdf, rendering_sdf_id);
+                        self.ui_create_hierarchy(ui, Rc::clone(&self.sdf), rendering_sdf_id);
                     });
             });
     }

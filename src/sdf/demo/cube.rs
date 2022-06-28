@@ -2,21 +2,22 @@ use std::cell::RefCell;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::str::FromStr;
 
 use cgmath::{ElementWise, Vector2, Vector3, Zero};
 
 use crate::sdf::{SDFParam, SDFParamValue, SDFSample, SDFSurface};
-use crate::sdf::demo::{RefCellBool, RefCellF32};
+use crate::sdf::demo::{RcRefCellBool, RcRefCellF32};
 
 #[derive(clap::Parser, Debug, Clone)]
 pub struct SDFDemoCube {
     #[clap(short = 't', long, default_value = "brick")]
-    cube_material: RefCellMaterial,
+    cube_material: RcRefCellMaterial,
     #[clap(short, long, default_value = "0.95")]
-    cube_half_side: RefCellF32,
+    cube_half_side: RcRefCellF32,
     #[clap(skip)]
-    changed: RefCellBool,
+    changed: RcRefCellBool,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -218,23 +219,23 @@ fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) ->
 
 
 #[derive(Debug, Clone)]
-pub struct RefCellMaterial(pub RefCell<Material>);
+pub struct RcRefCellMaterial(Rc<RefCell<Material>>);
 
-impl FromStr for RefCellMaterial {
+impl FromStr for RcRefCellMaterial {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(RefCellMaterial(RefCell::new(Material::from_str(s)?)))
+        Ok(RcRefCellMaterial(Rc::new(RefCell::new(Material::from_str(s)?))))
     }
 }
 
-impl Display for RefCellMaterial {
+impl Display for RcRefCellMaterial {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0.borrow())
     }
 }
 
-impl Deref for RefCellMaterial {
+impl Deref for RcRefCellMaterial {
     type Target = RefCell<Material>;
 
     fn deref(&self) -> &Self::Target {

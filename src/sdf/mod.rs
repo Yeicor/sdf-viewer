@@ -35,8 +35,8 @@ pub trait SDFSurface {
 
     // ============ OPTIONAL: HIERARCHY (perform the same operations on any sub-SDF) ============
     /// Returns the list of sub-SDFs that are directly children of this node.
-    /// All returned children are references that share the lifetime of the parent.
-    fn children(&self) -> Vec<&dyn SDFSurface> {
+    /// Note that modifications to the parameters of the returned children MUST affect this node.
+    fn children(&self) -> Vec<Box<dyn SDFSurface>> {
         defaults::children_default_impl(self)
     }
 

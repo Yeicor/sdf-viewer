@@ -1,12 +1,14 @@
 //! An optimized WebAssembly compiler/interpreter that runs at near-native speed!!!
 //! It may not support target platforms added in the future.
 
+use std::fmt::Debug;
 use std::mem::size_of;
 
 use cgmath::{Vector3, Zero};
 use wasmer::*;
 
 use crate::sdf::{SDFSample, SDFSurface};
+use crate::sdf::defaults::{children_default_impl, name_default_impl};
 
 use super::reinterpret_i32_as_u32;
 use super::reinterpret_u32_as_i32;
@@ -48,11 +50,15 @@ macro_rules! load_sdf_wasm_code {
             let memory = instance.exports.get_memory("memory")?.clone();
             let f_bounding_box = instance.exports.get_function("bounding_box")?.clone();
             let f_sample = instance.exports.get_function("sample")?.clone();
+            let f_children = instance.exports.get_function("children").ok().cloned();
+            let f_name = instance.exports.get_function("name").ok().cloned();
 
             Ok(Box::new(WasmerSDF {
                 memory,
                 f_bounding_box,
                 f_sample,
+                f_children,
+                f_name,
                 sdf_id: 0,
             }))
         }
@@ -63,10 +69,13 @@ macro_rules! load_sdf_wasm_code {
 load_sdf_wasm_code!(load_sdf_wasm_send_sync, anyhow::Result<Box<dyn SDFSurface + Send + Sync>>);
 load_sdf_wasm_code!(load_sdf_wasm, anyhow::Result<Box<dyn SDFSurface>>);
 
+#[derive(Debug, Clone)] // Note: cloning is "cheap" (implementation details of wasmer)
 pub struct WasmerSDF {
     memory: Memory,
     f_bounding_box: Function,
     f_sample: Function,
+    f_children: Option<Function>,
+    f_name: Option<Function>,
     sdf_id: u32,
 }
 
@@ -147,6 +156,65 @@ impl SDFSurface for WasmerSDF {
             roughness: f32::from_le_bytes(mem_bytes[5 * size_of::<f32>()..6 * size_of::<f32>()].try_into().unwrap()),
             occlusion: f32::from_le_bytes(mem_bytes[6 * size_of::<f32>()..7 * size_of::<f32>()].try_into().unwrap()),
         }
+    }
+
+    fn children(&self) -> Vec<Box<dyn SDFSurface>> {
+        let f_children = match &self.f_children {
+            Some(f_children) => f_children,
+            None => return children_default_impl(self),
+        };
+        let result = f_children.call(&[
+            Val::I32(reinterpret_u32_as_i32(self.sdf_id)),
+        ]).unwrap_or_else(|err| {
+            tracing::error!("Failed to get children of wasm SDF with ID {}: {}", self.sdf_id, err);
+            Box::new([])
+        });
+        let mem_pointer = match return_value_to_mem_pointer(&result) {
+            Some(mem_pointer) => mem_pointer,
+            None => return children_default_impl(self), // Errors already logged
+        };
+        let mem_bytes = self.read_memory(mem_pointer, 2 * size_of::<u32>());
+        let pointer = u32::from_le_bytes(mem_bytes[0..size_of::<u32>()].try_into().unwrap());
+        let length_bytes = u32::from_le_bytes(mem_bytes[size_of::<u32>()..2 * size_of::<u32>()].try_into().unwrap());
+        let mem_bytes = self.read_memory(pointer, length_bytes as usize);
+        mem_bytes.chunks(size_of::<u32>())
+            .map(|ch| u32::from_le_bytes(ch.try_into().unwrap()))
+            .filter_map(|child_sdf_id| {
+                if child_sdf_id == self.sdf_id {
+                    tracing::error!("Children of wasm SDF with ID {} include itself! Skipping, but this should be fixed.", self.sdf_id);
+                    return None;
+                }
+                Some(Box::new(Self {
+                    sdf_id: child_sdf_id,
+                    ..self.clone() // Cloning is cheap and shares the memory of children parameters
+                }) as Box<dyn SDFSurface>)
+            }).collect()
+    }
+
+    fn id(&self) -> u32 {
+        self.sdf_id // Already known!
+    }
+
+    fn name(&self) -> String {
+        let f_name = match &self.f_name {
+            Some(f_name) => f_name,
+            None => return name_default_impl(self),
+        };
+        let result = f_name.call(&[
+            Val::I32(reinterpret_u32_as_i32(self.sdf_id)),
+        ]).unwrap_or_else(|err| {
+            tracing::error!("Failed to get name of wasm SDF with ID {}: {}", self.sdf_id, err);
+            Box::new([])
+        });
+        let mem_pointer = match return_value_to_mem_pointer(&result) {
+            Some(mem_pointer) => mem_pointer,
+            None => return name_default_impl(self), // Errors already logged
+        };
+        let mem_bytes = self.read_memory(mem_pointer, 2 * size_of::<u32>());
+        let pointer = u32::from_le_bytes(mem_bytes[0..size_of::<u32>()].try_into().unwrap());
+        let length_bytes = u32::from_le_bytes(mem_bytes[size_of::<u32>()..2 * size_of::<u32>()].try_into().unwrap());
+        let mem_bytes = self.read_memory(pointer, length_bytes as usize);
+        String::from_utf8_lossy(mem_bytes.as_slice()).to_string()
     }
 }
 

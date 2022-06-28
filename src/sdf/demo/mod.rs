@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::ffi::OsString;
 use std::num::ParseFloatError;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::str::{FromStr, ParseBoolError};
 
 use cgmath::Vector3;
@@ -23,11 +24,11 @@ pub struct SDFDemo {
     #[clap(flatten)]
     sphere: SDFDemoSphere,
     #[clap(short, long, default_value = "0.05")]
-    max_distance_custom_material: RefCellF32,
+    max_distance_custom_material: RcRefCellF32,
     #[clap(short, long, default_value = "false")]
-    disable_sphere: RefCellBool,
+    disable_sphere: RcRefCellBool,
     #[clap(skip)]
-    changed: RefCellBool,
+    changed: RcRefCellBool,
 }
 
 impl Default for SDFDemo {
@@ -69,8 +70,9 @@ impl SDFSurface for SDFDemo {
     }
 
     /// Optional: hierarchy.
-    fn children(&self) -> Vec<&dyn SDFSurface> {
-        vec![&self.cube, &self.sphere]
+    fn children(&self) -> Vec<Box<dyn SDFSurface>> {
+        // Important: cheap clone with shared references to parameters (to receive modifications)
+        vec![Box::new(self.cube.clone()), Box::new(self.sphere.clone())]
     }
 
     /// Optional: hierarchy.
@@ -150,17 +152,17 @@ impl SDFSurface for SDFDemo {
 }
 
 #[derive(Debug, Clone, Default)]
-struct RefCellF32(RefCell<f32>);
+struct RcRefCellF32(Rc<RefCell<f32>>);
 
-impl FromStr for RefCellF32 {
+impl FromStr for RcRefCellF32 {
     type Err = ParseFloatError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        f32::from_str(s).map(|f| RefCellF32(RefCell::new(f)))
+        f32::from_str(s).map(|f| RcRefCellF32(Rc::new(RefCell::new(f))))
     }
 }
 
-impl Deref for RefCellF32 {
+impl Deref for RcRefCellF32 {
     type Target = RefCell<f32>;
 
     fn deref(&self) -> &Self::Target {
@@ -169,17 +171,17 @@ impl Deref for RefCellF32 {
 }
 
 #[derive(Debug, Clone, Default)]
-struct RefCellBool(RefCell<bool>);
+struct RcRefCellBool(Rc<RefCell<bool>>);
 
-impl FromStr for RefCellBool {
+impl FromStr for RcRefCellBool {
     type Err = ParseBoolError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        bool::from_str(s).map(|f| RefCellBool(RefCell::new(f)))
+        bool::from_str(s).map(|f| RcRefCellBool(Rc::new(RefCell::new(f))))
     }
 }
 
-impl Deref for RefCellBool {
+impl Deref for RcRefCellBool {
     type Target = RefCell<bool>;
 
     fn deref(&self) -> &Self::Target {

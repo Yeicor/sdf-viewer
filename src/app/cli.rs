@@ -38,7 +38,7 @@ impl CliApp {
     pub fn init(&self, app: &mut SDFViewerApp) {
         // Configure the initial SDF provider (may be changed later)
         match self.sdf_provider.clone() {
-            CliSDFProvider::Demo(s) => app.set_root_sdf(s),
+            CliSDFProvider::Demo(s) => app.set_root_sdf(Box::new(s)),
             CliSDFProvider::Url(watch) => {
                 // TODO: Spawn async worker to read, parse, etc., while displaying a loading screen.
                 // TODO: Watch file for changes

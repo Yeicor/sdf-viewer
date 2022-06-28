@@ -27,7 +27,7 @@ pub fn load_sdf_wasm(wasm_bytes: &[u8]) -> anyhow::Result<Box<dyn SDFSurface>> {
     }))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct WasiSDF {
     wasm_instance: ModuleRef,
     sdf_id: u32,
