@@ -6,8 +6,11 @@ use cgmath::Vector3;
 #[cfg(feature = "sdfdemo")]
 pub mod demo;
 
-#[cfg(feature = "app")] // Wasm "interpreters" only available for the app
+#[cfg(feature = "app")] // Main WebAssembly SDF implementations only available for the app
 pub mod wasm;
+
+// TODO: Native library external SDF implementation?
+// TODO: Remote REST API SDF implementation?
 
 pub mod defaults;
 
@@ -129,9 +132,8 @@ pub struct SDFParam {
 }
 
 /// The type, value, bounds and other type-specific metadata of a parameter.
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
-#[repr(C)]
+#[repr(C, u8)] // https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html#explicit-repr-annotation-with-c-compatibility
 pub enum SDFParamValue {
     Boolean {
         value: bool,

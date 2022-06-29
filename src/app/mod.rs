@@ -64,7 +64,7 @@ impl SDFViewerApp {
     /// The root SDF must be owned at this point.
     pub fn set_root_sdf(&mut self, sdf: Box<dyn SDFSurface>) {
         self.sdf = Rc::new(sdf); // Reference counted ownership as we need to share it with the scene renderer.
-        Self::scene_mut(|scene| scene.set_sdf(Rc::clone(&self.sdf), 128, 3));
+        Self::scene_mut(|scene| scene.set_sdf(Rc::clone(&self.sdf), 64, 2));
     }
 
     /// Updates the root SDF using a promise that will be polled on update.
@@ -125,7 +125,7 @@ impl SDFViewerApp {
                         info!("Rendering only {}", sdf.name());
                         Self::scene_mut(|scene| {
                             // Will progressively regenerate the scene in the next frames
-                            scene.set_sdf(Rc::clone(&sdf), 128, 3);
+                            scene.set_sdf(Rc::clone(&sdf), 64, 2);
                         });
                     }
                 });

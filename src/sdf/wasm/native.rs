@@ -49,16 +49,24 @@ macro_rules! load_sdf_wasm_code {
             // Cache the exports of the module.
             let memory = instance.exports.get_memory("memory")?.clone();
             let f_bounding_box = instance.exports.get_function("bounding_box")?.clone();
+            let f_bounding_box_free = instance.exports.get_function("bounding_box_free").ok().cloned();
             let f_sample = instance.exports.get_function("sample")?.clone();
+            let f_sample_free = instance.exports.get_function("sample_free").ok().cloned();
             let f_children = instance.exports.get_function("children").ok().cloned();
+            let f_children_free = instance.exports.get_function("children_free").ok().cloned();
             let f_name = instance.exports.get_function("name").ok().cloned();
+            let f_name_free = instance.exports.get_function("name_free").ok().cloned();
 
             Ok(Box::new(WasmerSDF {
                 memory,
                 f_bounding_box,
+                f_bounding_box_free,
                 f_sample,
+                f_sample_free,
                 f_children,
+                f_children_free,
                 f_name,
+                f_name_free,
                 sdf_id: 0,
             }))
         }
@@ -73,9 +81,13 @@ load_sdf_wasm_code!(load_sdf_wasm, anyhow::Result<Box<dyn SDFSurface>>);
 pub struct WasmerSDF {
     memory: Memory,
     f_bounding_box: Function,
+    f_bounding_box_free: Option<Function>,
     f_sample: Function,
+    f_sample_free: Option<Function>,
     f_children: Option<Function>,
+    f_children_free: Option<Function>,
     f_name: Option<Function>,
+    f_name_free: Option<Function>,
     sdf_id: u32,
 }
 
@@ -104,6 +116,17 @@ impl WasmerSDF {
         }
         res
     }
+
+    fn read_pointer_length_memory(&self, mem_bytes: Vec<u8>) -> Vec<u8> {
+        let pointer = u32::from_le_bytes(mem_bytes[0..size_of::<u32>()].try_into().unwrap());
+        let length_bytes = u32::from_le_bytes(mem_bytes[size_of::<u32>()..2 * size_of::<u32>()].try_into().unwrap());
+        // if length_bytes == 8 {
+        //     // Should be very stable over time if we are properly freeing the memory
+        //     println!("Pointer of 8 bytes at {}", pointer);
+        // }
+        
+        self.read_memory(pointer, length_bytes as usize)
+    }
 }
 
 impl SDFSurface for WasmerSDF {
@@ -120,6 +143,7 @@ impl SDFSurface for WasmerSDF {
             None => return res, // Errors already logged
         };
         let mem_bytes = self.read_memory(mem_pointer, size_of::<[Vector3<f32>; 2]>());
+        self.f_bounding_box_free.as_ref().map(|f| f.call(&result)); // Free the memory, now that we copied it
         res[0].x = f32::from_le_bytes(mem_bytes[0..size_of::<f32>()].try_into().unwrap());
         res[0].y = f32::from_le_bytes(mem_bytes[size_of::<f32>()..2 * size_of::<f32>()].try_into().unwrap());
         res[0].z = f32::from_le_bytes(mem_bytes[2 * size_of::<f32>()..3 * size_of::<f32>()].try_into().unwrap());
@@ -145,6 +169,7 @@ impl SDFSurface for WasmerSDF {
             None => return SDFSample::new(1.0, Vector3::zero()), // Errors already logged
         };
         let mem_bytes = self.read_memory(mem_pointer, size_of::<SDFSample>());
+        self.f_sample_free.as_ref().map(|f| f.call(&result)); // Free the memory, now that we copied it
         SDFSample {
             distance: f32::from_le_bytes(mem_bytes[0..size_of::<f32>()].try_into().unwrap()),
             color: Vector3::new(
@@ -174,10 +199,9 @@ impl SDFSurface for WasmerSDF {
             None => return children_default_impl(self), // Errors already logged
         };
         let mem_bytes = self.read_memory(mem_pointer, 2 * size_of::<u32>());
-        let pointer = u32::from_le_bytes(mem_bytes[0..size_of::<u32>()].try_into().unwrap());
-        let length_bytes = u32::from_le_bytes(mem_bytes[size_of::<u32>()..2 * size_of::<u32>()].try_into().unwrap());
-        let mem_bytes = self.read_memory(pointer, length_bytes as usize);
-        mem_bytes.chunks(size_of::<u32>())
+        let mem_bytes = self.read_pointer_length_memory(mem_bytes);
+        self.f_children_free.as_ref().map(|f| f.call(&result)); // Free the memory, now that we copied it
+        mem_bytes.chunks_exact(size_of::<u32>())
             .map(|ch| u32::from_le_bytes(ch.try_into().unwrap()))
             .filter_map(|child_sdf_id| {
                 if child_sdf_id == self.sdf_id {
@@ -211,9 +235,8 @@ impl SDFSurface for WasmerSDF {
             None => return name_default_impl(self), // Errors already logged
         };
         let mem_bytes = self.read_memory(mem_pointer, 2 * size_of::<u32>());
-        let pointer = u32::from_le_bytes(mem_bytes[0..size_of::<u32>()].try_into().unwrap());
-        let length_bytes = u32::from_le_bytes(mem_bytes[size_of::<u32>()..2 * size_of::<u32>()].try_into().unwrap());
-        let mem_bytes = self.read_memory(pointer, length_bytes as usize);
+        let mem_bytes = self.read_pointer_length_memory(mem_bytes);
+        self.f_name_free.as_ref().map(|f| f.call(&result)); // Free the memory, now that we copied it
         String::from_utf8_lossy(mem_bytes.as_slice()).to_string()
     }
 }

@@ -101,7 +101,7 @@ impl SDFViewerAppScene {
         // Create the SDF loader and viewer
         // TODO: SDF infrastructure (webserver and file drag&drop)
         // let sdf = Box::new(SDFDemoCubeBrick::default());
-        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(128), 3);
+        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(64), 2);
         // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
 
         // Load the skybox (embedded in the binary)

@@ -26,6 +26,9 @@
 //!     - output: pointer to (pointer to another memory location + length of the array in bytes).
 //! - Enums: same as structs (known length), but with an extra initial u8 indicating the ordinal.
 //!
+//! If the <method>_free is available, it will be called after the data is used with the only argument
+//! of the previously returned value by that method. It should be used to properly free the memory.
+//!
 
 use crate::cli::env_get;
 use crate::sdf::SDFSurface;
