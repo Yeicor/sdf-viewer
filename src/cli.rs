@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use clap::once_cell::sync::OnceCell;
+use once_cell::sync::OnceCell;
 use clap::Parser;
 use tracing::error;
 
