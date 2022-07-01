@@ -25,6 +25,9 @@
 //!     - input: only Vector3 for now, so flattener.
 //!     - output: pointer to (pointer to another memory location + length of the array in bytes).
 //! - Enums: same as structs (known length), but with an extra initial u32 indicating the ordinal.
+//!     - Note that Result and Option are just an enum.
+//!
+//! Some types may be wrapped in a Box (pointer to heap memory) if required, see reference implementation.
 //!
 //! If the <method>_free is available, it will be called after the data is used with the only argument
 //! of the previously returned value by that method. It should be used to properly free the memory.

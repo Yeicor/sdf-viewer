@@ -139,7 +139,7 @@ pub extern "C" fn children_free(ret: Box<PointerLength<u32>>) {
 pub extern "C" fn name(sdf_id: u32) -> Box<PointerLength<u8>> { // Return pointer and length
     Box::new(sdf_registry(|r| r.get(&sdf_id)
         .map(|sdf| {
-            PointerLength::from_vec(sdf.name().as_bytes().into_iter().copied().collect::<Vec<_>>())
+            PointerLength::from_vec(sdf.name().as_bytes().to_vec())
         })
         .unwrap_or_else(|| {
             eprintln!("Failed to find SDF with ID {}", sdf_id);
@@ -192,6 +192,20 @@ pub enum SDFParamKindC {
     },
 }
 
+impl SDFParamKindC {
+    fn from_api(kind: &SDFParamKind) -> Self {
+        match kind {
+            SDFParamKind::Boolean => SDFParamKindC::Boolean,
+            SDFParamKind::Int { range, step } => SDFParamKindC::Int { range: *range.start()..*range.end(), step: *step },
+            SDFParamKind::Float { range, step } => SDFParamKindC::Float { range: *range.start()..*range.end(), step: *step },
+            SDFParamKind::String { choices } => SDFParamKindC::String {
+                choices: PointerLength::from_vec(choices.iter()
+                    .map(|s| PointerLength::from_vec(s.as_bytes().to_vec())).collect()),
+            },
+        }
+    }
+}
+
 /// The type's value.
 #[derive(Debug, Clone)]
 #[repr(C, u32)]
@@ -200,6 +214,28 @@ pub enum SDFParamValueC {
     Int(i32),
     Float(f32),
     String(PointerLength<u8>),
+}
+
+impl SDFParamValueC {
+    fn from_api(value: &SDFParamValue) -> Self {
+        match value {
+            SDFParamValue::Boolean(b) => SDFParamValueC::Boolean(*b),
+            SDFParamValue::Int(i) => SDFParamValueC::Int(*i),
+            SDFParamValue::Float(f) => SDFParamValueC::Float(*f),
+            SDFParamValue::String(s) => SDFParamValueC::String(
+                PointerLength::from_vec(s.as_bytes().to_vec())),
+        }
+    }
+
+    fn to_api(&self) -> SDFParamValue {
+        match self {
+            SDFParamValueC::Boolean(b) => SDFParamValue::Boolean(*b),
+            SDFParamValueC::Int(i) => SDFParamValue::Int(*i),
+            SDFParamValueC::Float(f) => SDFParamValue::Float(*f),
+            SDFParamValueC::String(s) => SDFParamValue::String(
+                String::from_utf8_lossy(s.clone().own_again().as_slice()).to_string()),
+        }
+    }
 }
 
 #[no_mangle]
@@ -212,26 +248,10 @@ pub extern "C" fn parameters(sdf_id: u32) -> Box<PointerLength<SDFParamC>> {
             for ref mut param in params {
                 params_res.push(SDFParamC {
                     id: param.id,
-                    name: PointerLength::from_vec(param.name.as_bytes().into_iter().copied().collect::<Vec<_>>()),
-                    kind: match &param.kind {
-                        SDFParamKind::Boolean => SDFParamKindC::Boolean,
-                        SDFParamKind::Int { range, step } =>
-                            SDFParamKindC::Int { range: *range.start()..*range.end(), step: *step },
-                        SDFParamKind::Float { range, step } =>
-                            SDFParamKindC::Float { range: *range.start()..*range.end(), step: *step },
-                        SDFParamKind::String { choices } =>
-                            SDFParamKindC::String {
-                                choices: PointerLength::from_vec(choices.into_iter()
-                                    .map(|s| PointerLength::from_vec(s.as_bytes().into_iter().copied().collect::<Vec<_>>())).collect()),
-                            },
-                    },
-                    value: match &param.value {
-                        SDFParamValue::Boolean(b) => SDFParamValueC::Boolean(*b),
-                        SDFParamValue::Int(i) => SDFParamValueC::Int(*i),
-                        SDFParamValue::Float(f) => SDFParamValueC::Float(*f),
-                        SDFParamValue::String(s) => SDFParamValueC::String(PointerLength::from_vec(s.as_bytes().into_iter().copied().collect::<Vec<_>>())),
-                    },
-                    description: PointerLength::from_vec(param.description.as_bytes().into_iter().copied().collect::<Vec<_>>()),
+                    name: PointerLength::from_vec(param.name.as_bytes().to_vec()),
+                    kind: SDFParamKindC::from_api(&param.kind),
+                    value: SDFParamValueC::from_api(&param.value),
+                    description: PointerLength::from_vec(param.description.as_bytes().to_vec()),
                 });
             }
             PointerLength::from_vec(params_res)
@@ -267,4 +287,58 @@ pub extern "C" fn parameters_free(ret: Box<PointerLength<SDFParamC>>) {
             }
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn set_parameter(sdf_id: u32, param_id: u32, param_value: SDFParamValueC) -> Box<Result<(), PointerLength<u8>>> {
+    Box::new(sdf_registry(|r| r.get(&sdf_id)
+        .map(|sdf| {
+            sdf.set_parameter(param_id, &param_value.to_api())
+                .map_err(|err_str| PointerLength::from_vec(
+                    err_str.as_bytes().to_vec()))
+        })
+        .unwrap_or_else(|| {
+            let msg = format!("Failed to find SDF with ID {}", sdf_id);
+            eprintln!("{}", msg);
+            Err(PointerLength::from_vec(msg.as_bytes().to_vec()))
+        })))
+}
+
+#[no_mangle]
+pub extern "C" fn set_parameter_free(ret: Box<Result<(), PointerLength<u8>>>) {
+    let _ignore = ret.map_err(|err| err.own_again());
+}
+
+#[no_mangle]
+pub extern "C" fn changed(sdf_id: u32) -> Box<Option<[Vector3<f32>; 2]>> {
+    Box::new(sdf_registry(|r| r.get(&sdf_id)
+        .map(|sdf| {
+            sdf.changed()
+        })
+        .unwrap_or_else(|| {
+            eprintln!("Failed to find SDF with ID {}", sdf_id);
+            None
+        })))
+}
+
+#[no_mangle]
+pub extern "C" fn changed_free(ret: Box<Option<[Vector3<f32>; 2]>>) {
+    drop(ret); // The function is required to free memory. The drop() call is optional but specifies what this should do
+}
+
+#[no_mangle]
+pub extern "C" fn normal(sdf_id: u32, p: Vector3<f32>, eps: Box<Option<f32>>) -> Box<Vector3<f32>> {
+    Box::new(sdf_registry(|r| r.get(&sdf_id)
+        .map(|sdf| {
+            sdf.normal(p, *eps)
+        })
+        .unwrap_or_else(|| {
+            eprintln!("Failed to find SDF with ID {}", sdf_id);
+            Vector3::zero()
+        })))
+}
+
+#[no_mangle]
+pub extern "C" fn normal_free(ret: Box<Vector3<f32>>) {
+    drop(ret); // The function is required to free memory. The drop() call is optional but specifies what this should do
 }
