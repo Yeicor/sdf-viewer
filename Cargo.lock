@@ -2767,9 +2767,9 @@ dependencies = [
 
 [[package]]
 name = "three-d"
-version = "0.12.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8813e77c7d50290270ebcab23728c425fba751d6c95d5b5a1e45aa77c9b854a7"
+checksum = "8cc0ef660c02244f00fc2d1759e67d30a3c282541458490de641f0e832c8d3c9"
 dependencies = [
  "cgmath",
  "gloo-timers",
