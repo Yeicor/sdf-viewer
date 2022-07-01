@@ -7,7 +7,7 @@ use std::str::{FromStr, ParseBoolError};
 
 use cgmath::Vector3;
 
-use crate::sdf::{SDFParam, SDFParamValue, SDFSample, SDFSurface};
+use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::demo::sphere::SDFDemoSphere;
 
@@ -29,6 +29,11 @@ pub struct SDFDemo {
     disable_sphere: RcRefCellBool,
     #[clap(skip)]
     changed: RcRefCellBool,
+}
+
+impl SDFDemo {
+    const ID_MAX_DISTANCE_CUSTOM_MATERIAL: u32 = 0;
+    const ID_DISABLE_SPHERE: u32 = 1;
 }
 
 impl Default for SDFDemo {
@@ -89,40 +94,41 @@ impl SDFSurface for SDFDemo {
     fn parameters(&self) -> Vec<SDFParam> {
         vec![
             SDFParam {
+                id: Self::ID_MAX_DISTANCE_CUSTOM_MATERIAL,
                 name: "max_distance_custom_material".to_string(),
-                value: SDFParamValue::Float {
-                    value: *self.max_distance_custom_material.borrow(),
+                kind: SDFParamKind::Float {
                     range: 0.0..=0.25,
                     step: 0.01,
                 },
+                value: SDFParamValue::Float(*self.max_distance_custom_material.borrow()),
                 description: "The maximum distance between both surfaces at which the two materials are merged.".to_string(),
             },
             SDFParam {
+                id: Self::ID_DISABLE_SPHERE,
                 name: "disable_sphere".to_string(),
-                value: SDFParamValue::Boolean {
-                    value: *self.disable_sphere.borrow(),
-                },
+                kind: SDFParamKind::Boolean,
+                value: SDFParamValue::Boolean(*self.disable_sphere.borrow()),
                 description: "Whether to hide the sphere or not.".to_string(),
             },
         ]
     }
 
     /// Optional: parameters.
-    fn set_parameter(&self, param: &SDFParam) -> Result<(), String> {
-        if param.name == "max_distance_custom_material" {
-            if let SDFParamValue::Float { value, .. } = param.value {
-                *self.max_distance_custom_material.borrow_mut() = value;
+    fn set_parameter(&self, param_id: u32, param_value: &SDFParamValue) -> Result<(), String> {
+        if param_id == Self::ID_MAX_DISTANCE_CUSTOM_MATERIAL {
+            if let SDFParamValue::Float(value) = param_value {
+                *self.max_distance_custom_material.borrow_mut() = *value;
                 *self.changed.borrow_mut() = true;
                 return Ok(());
             }
-        } else if param.name == "disable_sphere" {
-            if let SDFParamValue::Boolean { value, .. } = param.value {
-                *self.disable_sphere.borrow_mut() = value;
+        } else if param_id == Self::ID_DISABLE_SPHERE {
+            if let SDFParamValue::Boolean(value) = param_value {
+                *self.disable_sphere.borrow_mut() = *value;
                 *self.changed.borrow_mut() = true;
                 return Ok(());
             }
         }
-        Err(format!("Unknown parameter {} with value {:?}", param.name, param.value))
+        Err(format!("Unknown parameter {} with value {:?}", param_id, param_value))
     }
 
     //noinspection DuplicatedCode

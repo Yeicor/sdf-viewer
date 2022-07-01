@@ -60,11 +60,11 @@ pub trait SDFSurface {
         defaults::parameters_default_impl(self)
     }
 
-    /// Modifies the given parameter (only name and value.value matter here).
+    /// Modifies the given parameter. The value must be valid for the reported type (same kind and within allowed values)
     /// Implementations will probably need interior mutability to perform this.
     /// Use [`changed`](#method.changed) to notify what part of the SDF needs to be updated.
-    fn set_parameter(&self, _parameter: &SDFParam) -> Result<(), String> {
-        defaults::set_parameter_default_impl(self, _parameter)
+    fn set_parameter(&self, param_id: u32, param_value: &SDFParamValue) -> Result<(), String> {
+        defaults::set_parameter_default_impl(self, param_id, param_value)
     }
 
     /// Returns the bounding box that was modified since [`changed`](#method.changed) was last called.
@@ -121,38 +121,49 @@ impl SDFSample {
 
 /// The metadata and current state of a parameter of a SDF.
 #[derive(Debug, Clone)]
-#[repr(C)]
 pub struct SDFParam {
-    /// The name of the parameter. Must be unique within the SDF.
+    /// The ID of the parameter. Must be unique within this SDF (not necessarily within the SDF hierarchy).
+    pub id: u32,
+    /// The name of the parameter.
     pub name: String,
-    /// The current value of the parameter.
+    /// The type definition for the parameter.
+    pub kind: SDFParamKind,
+    /// The current value of the parameter. MUST be of the same kind as the type definition.
     pub value: SDFParamValue,
     /// The user-facing description for the parameter.
     pub description: String,
 }
 
-/// The type, value, bounds and other type-specific metadata of a parameter.
+/// The type, including bounds, choices or other type-specific metadata of a parameter.
 #[derive(Debug, Clone)]
-#[repr(C, u8)] // https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html#explicit-repr-annotation-with-c-compatibility
-pub enum SDFParamValue {
-    Boolean {
-        value: bool,
-    },
+pub enum SDFParamKind {
+    // No parameters required for booleans
+    Boolean,
     Int {
-        value: i32,
+        /// The range (inclusive) that must contain the value.
         range: RangeInclusive<i32>,
+        /// The step size for the slider.
         step: i32,
     },
     Float {
-        value: f32,
+        /// The range (inclusive) that must contain the value.
         range: RangeInclusive<f32>,
+        /// The step size for the slider.
         step: f32,
     },
     String {
-        value: String,
         /// The available options to select from for the parameter. If empty, any string is valid.
         choices: Vec<String>,
     },
+}
+
+/// The type's value.
+#[derive(Debug, Clone)]
+pub enum SDFParamValue {
+    Boolean(bool),
+    Int(i32),
+    Float(f32),
+    String(String),
 }
 
 #[cfg(feature = "app")]
@@ -162,30 +173,46 @@ impl SDFParam {
         use eframe::egui;
         use eframe::egui::Slider;
         use eframe::egui::util::hash;
-        ui.label(format!("{}:", self.name));
-        let changed = match &mut self.value {
-            SDFParamValue::Boolean { value } => {
-                ui.checkbox(value, value.to_string()).changed()
+        ui.label(format!("{}:", self.name)).on_hover_text(&self.description);
+        let changed = match &mut self.kind {
+            SDFParamKind::Boolean => {
+                match &mut self.value {
+                    SDFParamValue::Boolean(value) =>
+                        ui.checkbox(value, value.to_string()).changed(),
+                    _ => false, // Ignore invalid values
+                }
             }
-            SDFParamValue::Int { value, range, step } => {
-                ui.add(Slider::new(value, range.clone()).step_by(*step as f64)).changed()
+            SDFParamKind::Int { range, step } => {
+                match &mut self.value {
+                    SDFParamValue::Int(value) =>
+                        ui.add(Slider::new(value, range.clone()).step_by(*step as f64)).changed(),
+                    _ => false, // Ignore invalid values
+                }
             }
-            SDFParamValue::Float { value, range, step } => {
-                ui.add(Slider::new(value, range.clone()).step_by(*step as f64)).changed()
+            SDFParamKind::Float { range, step } => {
+                match &mut self.value {
+                    SDFParamValue::Float(value) =>
+                        ui.add(Slider::new(value, range.clone()).step_by(*step as f64)).changed(),
+                    _ => false, // Ignore invalid values
+                }
             }
-            SDFParamValue::String { value, choices } => {
-                if choices.is_empty() {
-                    ui.text_edit_multiline(value).changed()
-                } else {
-                    let mut value_index = choices.iter().position(|x| x == value)
-                        .expect("SdfParameterValue: value not in choices!");
-                    let changed = egui::ComboBox::new(hash(format!("sdf-param-{}", self.name)), value.clone())
-                        .show_index(ui, &mut value_index, choices.len(), |i| choices[i].clone())
-                        .changed();
-                    if changed {
-                        *value = choices[value_index].clone();
-                    }
-                    changed
+            SDFParamKind::String { choices } => {
+                match &mut self.value {
+                    SDFParamValue::String(value) =>
+                        if choices.is_empty() {
+                            ui.text_edit_multiline(value).changed()
+                        } else {
+                            let mut value_index = choices.iter().position(|x| x == value)
+                                .expect("SdfParameterValue: value not in choices!");
+                            let changed = egui::ComboBox::new(hash(format!("sdf-param-{}", self.name)), value.clone())
+                                .show_index(ui, &mut value_index, choices.len(), |i| choices[i].clone())
+                                .changed();
+                            if changed {
+                                *value = choices[value_index].clone();
+                            }
+                            changed
+                        },
+                    _ => false, // Ignore invalid values
                 }
             }
         };

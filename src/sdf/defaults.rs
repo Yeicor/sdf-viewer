@@ -1,6 +1,6 @@
 use cgmath::{InnerSpace, Vector3};
 
-use crate::sdf::{SDFParam, SDFSurface};
+use crate::sdf::{SDFParam, SDFParamValue, SDFSurface};
 
 /// Just a default implementation
 #[doc(hidden)]
@@ -28,7 +28,7 @@ pub fn parameters_default_impl(_slf: impl SDFSurface) -> Vec<SDFParam> {
 
 /// Just a default implementation
 #[doc(hidden)]
-pub fn set_parameter_default_impl(_slf: impl SDFSurface, _parameter: &SDFParam) -> Result<(), String> {
+pub fn set_parameter_default_impl(_slf: impl SDFSurface, _param_id: u32, _param_value: &SDFParamValue) -> Result<(), String> {
     Err("no parameters implemented by default, overwrite this method".to_string())
 }
 

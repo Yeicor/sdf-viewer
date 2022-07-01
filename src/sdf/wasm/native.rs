@@ -3,12 +3,13 @@
 
 use std::fmt::Debug;
 use std::mem::size_of;
+use std::ops::RangeInclusive;
 
 use cgmath::{Vector3, Zero};
 use wasmer::*;
 
-use crate::sdf::{SDFSample, SDFSurface};
-use crate::sdf::defaults::{children_default_impl, name_default_impl};
+use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
+use crate::sdf::defaults::{children_default_impl, name_default_impl, parameters_default_impl};
 
 use super::reinterpret_i32_as_u32;
 use super::reinterpret_u32_as_i32;
@@ -56,8 +57,11 @@ macro_rules! load_sdf_wasm_code {
             let f_children_free = instance.exports.get_function("children_free").ok().cloned();
             let f_name = instance.exports.get_function("name").ok().cloned();
             let f_name_free = instance.exports.get_function("name_free").ok().cloned();
+            let f_parameters = instance.exports.get_function("parameters").ok().cloned();
+            let f_parameters_free = instance.exports.get_function("parameters_free").ok().cloned();
 
             Ok(Box::new(WasmerSDF {
+                sdf_id: 0, // This must always be the ID of the root SDF (as specified by the docs)
                 memory,
                 f_bounding_box,
                 f_bounding_box_free,
@@ -67,7 +71,8 @@ macro_rules! load_sdf_wasm_code {
                 f_children_free,
                 f_name,
                 f_name_free,
-                sdf_id: 0,
+                f_parameters,
+                f_parameters_free,
             }))
         }
     };
@@ -79,6 +84,7 @@ load_sdf_wasm_code!(load_sdf_wasm, anyhow::Result<Box<dyn SDFSurface>>);
 
 #[derive(Debug, Clone)] // Note: cloning is "cheap" (implementation details of wasmer)
 pub struct WasmerSDF {
+    sdf_id: u32,
     memory: Memory,
     f_bounding_box: Function,
     f_bounding_box_free: Option<Function>,
@@ -88,7 +94,8 @@ pub struct WasmerSDF {
     f_children_free: Option<Function>,
     f_name: Option<Function>,
     f_name_free: Option<Function>,
-    sdf_id: u32,
+    f_parameters: Option<Function>,
+    f_parameters_free: Option<Function>,
 }
 
 impl WasmerSDF {
@@ -109,7 +116,8 @@ impl WasmerSDF {
             let mem_view = self.memory.view::<u8>();
             for (i, v) in res.iter_mut().enumerate() {
                 *v = mem_view.get(mem_pointer as usize + i).map(|b| b.get()).unwrap_or_else(|| {
-                    tracing::error!("Out of bounds memory access at index {}", mem_pointer as usize + i);
+                    debug_assert!(false, "Out of bounds memory access at index {}, length {}", mem_pointer, length);
+                    tracing::error!("Out of bounds memory access at index {}, length {}", mem_pointer, length);
                     0
                 })
             }
@@ -121,10 +129,9 @@ impl WasmerSDF {
         let pointer = u32::from_le_bytes(mem_bytes[0..size_of::<u32>()].try_into().unwrap());
         let length_bytes = u32::from_le_bytes(mem_bytes[size_of::<u32>()..2 * size_of::<u32>()].try_into().unwrap());
         // if length_bytes == 8 {
-        //     // Should be very stable over time if we are properly freeing the memory
-        //     println!("Pointer of 8 bytes at {}", pointer);
+        //     // DEBUG: "Should" be very stable over time if wasm is properly freeing the memory
+        //     println!("Pointer to 8 bytes at {}", pointer);
         // }
-        
         self.read_memory(pointer, length_bytes as usize)
     }
 }
@@ -198,8 +205,8 @@ impl SDFSurface for WasmerSDF {
             Some(mem_pointer) => mem_pointer,
             None => return children_default_impl(self), // Errors already logged
         };
-        let mem_bytes = self.read_memory(mem_pointer, 2 * size_of::<u32>());
-        let mem_bytes = self.read_pointer_length_memory(mem_bytes);
+        let pointer_length = self.read_memory(mem_pointer, 2 * size_of::<u32>());
+        let mem_bytes = self.read_pointer_length_memory(pointer_length);
         self.f_children_free.as_ref().map(|f| f.call(&result)); // Free the memory, now that we copied it
         mem_bytes.chunks_exact(size_of::<u32>())
             .map(|ch| u32::from_le_bytes(ch.try_into().unwrap()))
@@ -234,10 +241,119 @@ impl SDFSurface for WasmerSDF {
             Some(mem_pointer) => mem_pointer,
             None => return name_default_impl(self), // Errors already logged
         };
-        let mem_bytes = self.read_memory(mem_pointer, 2 * size_of::<u32>());
-        let mem_bytes = self.read_pointer_length_memory(mem_bytes);
+        let pointer_length = self.read_memory(mem_pointer, 2 * size_of::<u32>());
+        let mem_bytes = self.read_pointer_length_memory(pointer_length);
         self.f_name_free.as_ref().map(|f| f.call(&result)); // Free the memory, now that we copied it
         String::from_utf8_lossy(mem_bytes.as_slice()).to_string()
+    }
+
+    fn parameters(&self) -> Vec<SDFParam> {
+        let f_parameters = match &self.f_parameters {
+            Some(f_parameters) => f_parameters,
+            None => return parameters_default_impl(self),
+        };
+        let result = f_parameters.call(&[
+            Val::I32(reinterpret_u32_as_i32(self.sdf_id)),
+        ]).unwrap_or_else(|err| {
+            tracing::error!("Failed to get parameters of wasm SDF with ID {}: {}", self.sdf_id, err);
+            Box::new([])
+        });
+        let mem_pointer = match return_value_to_mem_pointer(&result) {
+            Some(mem_pointer) => mem_pointer,
+            None => return parameters_default_impl(self), // Errors already logged
+        };
+        let pointer_length = self.read_memory(mem_pointer, 2 * size_of::<u32>());
+        let mem_bytes = self.read_pointer_length_memory(pointer_length);
+        let res = mem_bytes.chunks_exact(
+            size_of::<u32>() /* param ID */ +
+                2 * size_of::<u32>() /* name pointer */ +
+                size_of::<u32>() + 3 * size_of::<f32>() /* SDFParamKindC */ +
+                size_of::<u32>() + 2 * size_of::<u32>() /* SDFParamValueC */ +
+                2 * size_of::<u32>() /* description pointer */)
+            .filter_map(|sdf_param_mem| {
+                let mut cur_offset = 0;
+                /* param ID */
+                let param_id = u32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
+                cur_offset += size_of::<u32>();
+                /* name pointer */
+                let name_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                let name_mem_bytes = self.read_pointer_length_memory(name_pointer_length);
+                // println!("sdf_param_mem: {:?} (name: {:?})", sdf_param_mem, String::from_utf8_lossy(&name_mem_bytes));
+                cur_offset += 2 * size_of::<u32>();
+                /* SDFParamKindC */
+                let sdf_param_kind_enum_type = /* enum index = u32 */
+                    u32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
+                cur_offset += size_of::<u32>();
+                let sdf_param_kind = match sdf_param_kind_enum_type {
+                    0 => SDFParamKind::Boolean,
+                    1 => SDFParamKind::Int {
+                        range: RangeInclusive::new(
+                            i32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<i32>()].try_into().unwrap()),
+                            i32::from_le_bytes(sdf_param_mem[cur_offset + size_of::<i32>()..cur_offset + 2 * size_of::<i32>()].try_into().unwrap()),
+                        ),
+                        step: i32::from_le_bytes(sdf_param_mem[cur_offset + 2 * size_of::<i32>()..cur_offset + 3 * size_of::<i32>()].try_into().unwrap()),
+                    },
+                    2 => SDFParamKind::Float {
+                        range: RangeInclusive::new(
+                            f32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<f32>()].try_into().unwrap()),
+                            f32::from_le_bytes(sdf_param_mem[cur_offset + size_of::<f32>()..cur_offset + 2 * size_of::<f32>()].try_into().unwrap()),
+                        ),
+                        step: f32::from_le_bytes(sdf_param_mem[cur_offset + 2 * size_of::<f32>()..cur_offset + 3 * size_of::<f32>()].try_into().unwrap()),
+                    },
+                    3 => {
+                        let choices_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                        let choices_mem_bytes = self.read_pointer_length_memory(choices_pointer_length);
+                        let choices = choices_mem_bytes.chunks_exact(2 * size_of::<u32>())
+                            .map(|choice_mem_bytes| {
+                                let choice_mem_bytes = self.read_pointer_length_memory(choice_mem_bytes.to_vec());
+                                String::from_utf8_lossy(choice_mem_bytes.as_slice()).to_string()
+                            })
+                            .collect();
+                        SDFParamKind::String { choices }
+                    }
+                    _ => {
+                        debug_assert!(false, "Unknown SDF param kind enum type {}", sdf_param_kind_enum_type);
+                        tracing::error!("Unknown SDF param kind enum type {}", sdf_param_kind_enum_type); // TODO: less logging in case of multiple errors
+                        return None;
+                    }
+                };
+                cur_offset += size_of::<f32>() * 3; // Maximum size of SDFParamKindC
+                /* SDFParamValueC */
+                let sdf_param_value_enum_type = /* enum index = u32 */
+                    u32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
+                debug_assert_eq!(sdf_param_kind_enum_type, sdf_param_value_enum_type);
+                cur_offset += size_of::<u32>();
+                let sdf_param_value = match sdf_param_value_enum_type {
+                    0 => SDFParamValue::Boolean(sdf_param_mem[cur_offset] != 0) /* bool = u8 */,
+                    1 => SDFParamValue::Int(i32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<i32>()].try_into().unwrap())),
+                    2 => SDFParamValue::Float(f32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<f32>()].try_into().unwrap())),
+                    3 => {
+                        let value_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                        let value_mem_bytes = self.read_pointer_length_memory(value_pointer_length);
+                        SDFParamValue::String(String::from_utf8_lossy(value_mem_bytes.as_slice()).to_string())
+                    }
+                    _ => {
+                        debug_assert!(false, "Unknown SDF param value enum type {}", sdf_param_value_enum_type);
+                        tracing::error!("Unknown SDF param value enum type {}", sdf_param_value_enum_type); // TODO: less logging in case of multiple errors
+                        return None;
+                    }
+                };
+                cur_offset += 2 * size_of::<u32>(); // Maximum size of SDFParamValueC
+                /* description */
+                let desc_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                let desc_mem_bytes = self.read_pointer_length_memory(desc_pointer_length);
+
+                Some(SDFParam {
+                    id: param_id,
+                    name: String::from_utf8_lossy(name_mem_bytes.as_slice()).to_string(),
+                    kind: sdf_param_kind,
+                    value: sdf_param_value,
+                    description: String::from_utf8_lossy(desc_mem_bytes.as_slice()).to_string(),
+                })
+            })
+            .collect();
+        self.f_parameters_free.as_ref().map(|f| f.call(&result)); // Free the memory, now that we copied it
+        res
     }
 }
 

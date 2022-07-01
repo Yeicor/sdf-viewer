@@ -196,7 +196,7 @@ impl SDFViewerApp {
                                 .show(ui, |ui| {
                                     for mut param in selected_sdf.parameters() {
                                         if param.gui(ui) { // If the value was modified
-                                            match selected_sdf.set_parameter(&param) {
+                                            match selected_sdf.set_parameter(param.id, &param.value) {
                                                 Ok(()) => {} // Implementation should report the change in the next sdf.changed() call
                                                 Err(e) => warn!("Failed to set parameter: {}", e), // TODO: User-facing error handling
                                             }
@@ -263,7 +263,7 @@ impl eframe::App for SDFViewerApp {
         self.ui_left_panel(ctx);
         self.ui_bottom_panel(ctx);
         self.ui_central_panel(ctx);
-        ctx.request_repaint();
+        // ctx.request_repaint(); // Uncomment to always render at maximum framerate instead of lazy renders
     }
 }
 

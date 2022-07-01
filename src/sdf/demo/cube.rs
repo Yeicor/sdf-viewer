@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 use cgmath::{ElementWise, Vector2, Vector3, Zero};
 
-use crate::sdf::{SDFParam, SDFParamValue, SDFSample, SDFSurface};
+use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::{RcRefCellBool, RcRefCellF32};
 
 #[derive(clap::Parser, Debug, Clone)]
@@ -58,6 +58,11 @@ impl Material {
     }
 }
 
+impl SDFDemoCube {
+    const ID_MATERIAL: u32 = 0;
+    const ID_HALF_SIDE: u32 = 1;
+}
+
 impl Default for SDFDemoCube {
     fn default() -> Self {
         use clap::Parser;
@@ -98,23 +103,25 @@ impl SDFSurface for SDFDemoCube {
     fn parameters(&self) -> Vec<SDFParam> {
         vec![
             SDFParam {
+                id: Self::ID_MATERIAL,
                 name: "material".to_string(),
-                value: SDFParamValue::String {
-                    value: self.cube_material.to_string(),
+                kind: SDFParamKind::String {
                     choices: vec![
                         Material::Brick.to_string(),
                         Material::Normal.to_string(),
                     ],
                 },
+                value: SDFParamValue::String(self.cube_material.to_string()),
                 description: "The material to use for the cube.".to_string(),
             },
             SDFParam {
-                name: "cube_side".to_string(),
-                value: SDFParamValue::Int { // Should be float, but testing the int parameter
-                    value: (*self.cube_half_side.borrow() * 100.) as i32,
+                id: Self::ID_HALF_SIDE,
+                name: "half_side".to_string(),
+                kind: SDFParamKind::Int { // Should be float, but testing the int parameter
                     range: 0..=100,
                     step: 1,
                 },
+                value: SDFParamValue::Int((*self.cube_half_side.borrow() * 100.) as i32),
                 description: "Half the length of a side of the cube (mapped from [0-100] to [0.0,1.0]).".to_string(),
             },
         ]
@@ -122,22 +129,22 @@ impl SDFSurface for SDFDemoCube {
 
     //noinspection DuplicatedCode
     /// Optional: parameters.
-    fn set_parameter(&self, param: &SDFParam) -> Result<(), String> {
-        if param.name == "cube_side" {
-            if let SDFParamValue::Int { value, .. } = &param.value {
-                *self.cube_half_side.borrow_mut() = *value as f32 / 100.;
-                *self.changed.borrow_mut() = true;
-                return Ok(());
-            }
-        } else if param.name == "material" {
-            if let SDFParamValue::String { value, .. } = &param.value {
+    fn set_parameter(&self, param_id: u32, param_value: &SDFParamValue) -> Result<(), String> {
+        if param_id == Self::ID_MATERIAL {
+            if let SDFParamValue::String(value) = &param_value {
                 *self.cube_material.borrow_mut() = Material::from_str(value.as_str())
                     .expect("predefined choices, should not receive an invalid value");
                 *self.changed.borrow_mut() = true;
                 return Ok(());
             }
+        } else if param_id == Self::ID_HALF_SIDE {
+            if let SDFParamValue::Int(value) = &param_value {
+                *self.cube_half_side.borrow_mut() = *value as f32 / 100.;
+                *self.changed.borrow_mut() = true;
+                return Ok(());
+            }
         }
-        Err(format!("Unknown parameter {} with value {:?}", param.name, param.value))
+        Err(format!("Unknown parameter {} with value {:?}", param_id, param_value))
     }
 
     //noinspection DuplicatedCode

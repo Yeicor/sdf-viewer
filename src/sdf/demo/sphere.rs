@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use cgmath::{InnerSpace, MetricSpace, Vector3, Zero};
 
-use crate::sdf::{SDFParam, SDFParamValue, SDFSample, SDFSurface};
+use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::{RcRefCellBool, RcRefCellF32};
 use crate::sdf::demo::cube::{Material, RcRefCellMaterial};
 
@@ -14,6 +14,11 @@ pub struct SDFDemoSphere {
     sphere_radius: RcRefCellF32,
     #[clap(skip)]
     changed: RcRefCellBool,
+}
+
+impl SDFDemoSphere {
+    const ID_MATERIAL: u32 = 0;
+    const ID_RADIUS: u32 = 1;
 }
 
 impl Default for SDFDemoSphere {
@@ -56,23 +61,25 @@ impl SDFSurface for SDFDemoSphere {
     fn parameters(&self) -> Vec<SDFParam> {
         vec![
             SDFParam {
+                id: Self::ID_MATERIAL,
                 name: "material".to_string(),
-                value: SDFParamValue::String {
-                    value: self.sphere_material.to_string(),
+                kind: SDFParamKind::String {
                     choices: vec![
                         Material::Brick.to_string(),
                         Material::Normal.to_string(),
                     ],
                 },
+                value: SDFParamValue::String(self.sphere_material.to_string()),
                 description: "The material to use for the sphere.".to_string(),
             },
             SDFParam {
+                id: Self::ID_RADIUS,
                 name: "sphere_radius".to_string(),
-                value: SDFParamValue::Float {
-                    value: *self.sphere_radius.borrow(),
+                kind: SDFParamKind::Float {
                     range: 0.0..=1.25,
                     step: 0.01,
                 },
+                value: SDFParamValue::Float(*self.sphere_radius.borrow()),
                 description: "The radius of the sphere.".to_string(),
             },
         ]
@@ -80,22 +87,22 @@ impl SDFSurface for SDFDemoSphere {
 
     //noinspection DuplicatedCode
     /// Optional: parameters.
-    fn set_parameter(&self, param: &SDFParam) -> Result<(), String> {
-        if param.name == "sphere_radius" {
-            if let SDFParamValue::Float { value, .. } = &param.value {
-                *self.sphere_radius.borrow_mut() = *value;
-                *self.changed.borrow_mut() = true;
-                return Ok(());
-            }
-        } else if param.name == "material" {
-            if let SDFParamValue::String { value, .. } = &param.value {
+    fn set_parameter(&self, param_id: u32, param_value: &SDFParamValue) -> Result<(), String> {
+        if param_id == Self::ID_MATERIAL {
+            if let SDFParamValue::String(value) = &param_value {
                 *self.sphere_material.borrow_mut() = Material::from_str(value.as_str())
                     .expect("predefined choices, should not receive an invalid value");
                 *self.changed.borrow_mut() = true;
                 return Ok(());
             }
+        } else if param_id == Self::ID_RADIUS {
+            if let SDFParamValue::Float(value) = &param_value {
+                *self.sphere_radius.borrow_mut() = *value;
+                *self.changed.borrow_mut() = true;
+                return Ok(());
+            }
         }
-        Err(format!("Unknown parameter {} with value {:?}", param.name, param.value))
+        Err(format!("Unknown parameter {} with value {:?}", param_id, param_value))
     }
 
     //noinspection DuplicatedCode

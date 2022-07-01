@@ -7,10 +7,11 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::mem::size_of;
+use std::ops::Range;
 
 use cgmath::{Vector3, Zero};
 
-use crate::sdf::{SDFSample, SDFSurface};
+use crate::sdf::{SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::SDFDemo;
 
 /// Creates the SDF scene. It only gets called once
@@ -76,24 +77,27 @@ pub extern "C" fn sample_free(ret: Box<SDFSample>) {
 }
 
 /// The structure returned for strings and other arrays.
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub struct PointerLength<T> {
-    ptr: *const T,
-    len_bytes: usize, // Length in bytes, not number of elements
+    ptr: *const u8,
+    len_bytes: usize,
+    // Length in bytes, not number of elements
+    phantom: std::marker::PhantomData<T>,
 }
 
 impl<T> PointerLength<T> {
     /// Creates a Pointer + length from the owned vector, leaking the memory until free is called.
     fn from_vec(mut s: Vec<T>) -> Self {
         s.shrink_to_fit(); // Make sure capacity == len
-        let ptr = s.as_ptr();
+        let ptr = s.as_ptr() as *const _;
         let len_bytes = s.len() * size_of::<T>();
         std::mem::forget(s); // Leak memory, until free is called
-        PointerLength { ptr, len_bytes }
+        PointerLength { ptr, len_bytes, phantom: std::marker::PhantomData }
     }
 
     /// Returns back the vector referenced by this PointerLength, in order to properly free the memory
-    fn free(&self) -> Vec<T> {
+    fn own_again(self) -> Vec<T> {
         if self.ptr.is_null() {
             return Vec::new();
         }
@@ -105,6 +109,7 @@ impl<T> PointerLength<T> {
         PointerLength {
             ptr: std::ptr::null(),
             len_bytes: 0,
+            phantom: std::marker::PhantomData,
         }
     }
 }
@@ -125,7 +130,7 @@ pub extern "C" fn children(sdf_id: u32) -> Box<PointerLength<u32>> {
 
 #[no_mangle]
 pub extern "C" fn children_free(ret: Box<PointerLength<u32>>) {
-    ret.free();
+    ret.own_again();
 }
 
 // Note: ID is automatically known by caller (root is always 0 and knows the rest of IDs)
@@ -144,73 +149,122 @@ pub extern "C" fn name(sdf_id: u32) -> Box<PointerLength<u8>> { // Return pointe
 
 #[no_mangle]
 pub extern "C" fn name_free(ret: Box<PointerLength<u8>>) {
-    ret.free();
+    ret.own_again();
 }
 
-// /// The metadata and current state of a parameter of a SDF.
-// #[repr(C)]
-// pub struct SDFParamC {
-//     /// The name of the parameter. Must be unique within the SDF.
-//     pub name: PointerLength<u8>,
-//     /// The current value of the parameter.
-//     pub value: SDFParamValueC,
-//     /// The user-facing description for the parameter.
-//     pub description: PointerLength<u8>,
-// }
-//
-// /// The type, value, bounds and other type-specific metadata of a parameter.
-// #[repr(C, u8)] // https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html#explicit-repr-annotation-with-c-compatibility
-// pub enum SDFParamValueC {
-//     Boolean {
-//         value: bool,
-//     },
-//     Int {
-//         value: i32,
-//         range: Range<i32>,
-//         step: i32,
-//     },
-//     Float {
-//         value: f32,
-//         range: Range<f32>,
-//         step: f32,
-//     },
-//     String {
-//         value: PointerLength<u8>,
-//         /// The available options to select from for the parameter. If empty, any string is valid.
-//         choices: PointerLength<u8>, // Of PointerLengths!
-//     },
-// }
-//
-// #[no_mangle]
-// pub extern "C" fn parameters(sdf_id: u32) -> Box<PointerLength> {
-//     Box::new(sdf_registry(|r| r.get(&sdf_id)
-//         .map(|sdf| {
-//             let params = sdf.parameters();
-//             // Convert to the C-compatible format
-//             let mut params_res = vec![]
-//             for ref mut param in params {
-//                 params_res.push(SDFParamC {
-//                     name: PointerLength::from_str(param.name.as_str()),
-//                     value: match &param.value {
-//                         SDFParamValue::Boolean { value } => SDFParamValueC::Boolean { value: *value },
-//                         SDFParamValue::Int { value, range, step } =>
-//                             SDFParamValueC::Int { value: *value, range: range.into(), step: *step },
-//                         SDFParamValue::Float { value, range, step } =>
-//                             SDFParamValueC::Float { value: *value, range: range.into(), step: *step },
-//                         SDFParamValue::String { value, choices } =>
-//                             SDFParamValueC::String {
-//                                 value: PointerLength::from_str(value.as_str()),
-//                                 choices: PointerLength::from_vec(choices.into_iter()
-//                                     .map(|s| PointerLength::from_str(s.as_str())).collect()),
-//                             },
-//                     },
-//                     description: PointerLength::from_str(param.description.as_str()),
-//                 });
-//             }
-//             PointerLength::from_vec(&params_res)
-//         })
-//         .unwrap_or_else(|| {
-//             eprintln!("Failed to find SDF with ID {}", sdf_id);
-//             PointerLength::null()
-//         })))
-// }
+/// The metadata and current state of a parameter of a SDF.
+#[derive(Debug, Clone)]
+#[repr(C)]
+pub struct SDFParamC {
+    /// The ID of the parameter. Must be unique within this SDF (not necessarily within the SDF hierarchy).
+    pub id: u32,
+    /// The name of the parameter.
+    pub name: PointerLength<u8>,
+    /// The type definition for the parameter.
+    pub kind: SDFParamKindC,
+    /// The current value of the parameter. MUST be of the same kind as the type definition.
+    pub value: SDFParamValueC,
+    /// The user-facing description for the parameter.
+    pub description: PointerLength<u8>,
+}
+
+/// The type, including bounds, choices or other type-specific metadata of a parameter.
+#[derive(Debug, Clone)]
+#[repr(C, u32)]
+pub enum SDFParamKindC {
+    // No parameters required for booleans
+    Boolean,
+    Int {
+        /// The range (inclusive) that must contain the value.
+        range: Range<i32>,
+        /// The step size for the slider.
+        step: i32,
+    },
+    Float {
+        /// The range (inclusive) that must contain the value.
+        range: Range<f32>,
+        /// The step size for the slider.
+        step: f32,
+    },
+    String {
+        /// The available options to select from for the parameter. If empty, any string is valid.
+        choices: PointerLength<PointerLength<u8>>,
+    },
+}
+
+/// The type's value.
+#[derive(Debug, Clone)]
+#[repr(C, u32)]
+pub enum SDFParamValueC {
+    Boolean(bool),
+    Int(i32),
+    Float(f32),
+    String(PointerLength<u8>),
+}
+
+#[no_mangle]
+pub extern "C" fn parameters(sdf_id: u32) -> Box<PointerLength<SDFParamC>> {
+    Box::new(sdf_registry(|r| r.get(&sdf_id)
+        .map(|sdf| {
+            let params = sdf.parameters();
+            // Convert to the C-compatible format
+            let mut params_res = vec![];
+            for ref mut param in params {
+                params_res.push(SDFParamC {
+                    id: param.id,
+                    name: PointerLength::from_vec(param.name.as_bytes().into_iter().copied().collect::<Vec<_>>()),
+                    kind: match &param.kind {
+                        SDFParamKind::Boolean => SDFParamKindC::Boolean,
+                        SDFParamKind::Int { range, step } =>
+                            SDFParamKindC::Int { range: *range.start()..*range.end(), step: *step },
+                        SDFParamKind::Float { range, step } =>
+                            SDFParamKindC::Float { range: *range.start()..*range.end(), step: *step },
+                        SDFParamKind::String { choices } =>
+                            SDFParamKindC::String {
+                                choices: PointerLength::from_vec(choices.into_iter()
+                                    .map(|s| PointerLength::from_vec(s.as_bytes().into_iter().copied().collect::<Vec<_>>())).collect()),
+                            },
+                    },
+                    value: match &param.value {
+                        SDFParamValue::Boolean(b) => SDFParamValueC::Boolean(*b),
+                        SDFParamValue::Int(i) => SDFParamValueC::Int(*i),
+                        SDFParamValue::Float(f) => SDFParamValueC::Float(*f),
+                        SDFParamValue::String(s) => SDFParamValueC::String(PointerLength::from_vec(s.as_bytes().into_iter().copied().collect::<Vec<_>>())),
+                    },
+                    description: PointerLength::from_vec(param.description.as_bytes().into_iter().copied().collect::<Vec<_>>()),
+                });
+            }
+            PointerLength::from_vec(params_res)
+        })
+        .unwrap_or_else(|| {
+            eprintln!("Failed to find SDF with ID {}", sdf_id);
+            PointerLength::null()
+        })))
+}
+
+#[no_mangle]
+pub extern "C" fn parameters_free(ret: Box<PointerLength<SDFParamC>>) {
+    let ret = ret.own_again();
+    for param in ret {
+        param.name.own_again();
+        param.description.own_again();
+        match param.kind {
+            SDFParamKindC::Boolean { .. } => {}
+            SDFParamKindC::Int { .. } => {}
+            SDFParamKindC::Float { .. } => {}
+            SDFParamKindC::String { choices } => {
+                for previous_value in choices.own_again() {
+                    previous_value.own_again();
+                }
+            }
+        }
+        match param.value {
+            SDFParamValueC::Boolean(_) => {}
+            SDFParamValueC::Int(_) => {}
+            SDFParamValueC::Float(_) => {}
+            SDFParamValueC::String(s) => {
+                s.own_again();
+            }
+        }
+    }
+}
