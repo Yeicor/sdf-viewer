@@ -116,7 +116,7 @@ fn extract_pointer(v: RuntimeValue) -> anyhow::Result<u32> {
 
 struct RuntimeModuleImportResolver;
 
-impl<'a> ModuleImportResolver for RuntimeModuleImportResolver {
+impl ModuleImportResolver for RuntimeModuleImportResolver {
     fn resolve_func(
         &self,
         field_name: &str,
