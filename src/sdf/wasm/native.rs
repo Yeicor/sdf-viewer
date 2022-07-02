@@ -144,6 +144,7 @@ impl WasmerSDF {
     }
 
     fn write_memory(&self, mem_pointer: u32, to_write: &[u8]) {
+        #[allow(unused_unsafe)] // This is not unsafe on wasm32
         unsafe { // SAFETY: No data races.
             self.memory.uint8view()
                 .subarray(mem_pointer, mem_pointer + to_write.len() as u32)
