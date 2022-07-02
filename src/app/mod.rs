@@ -6,8 +6,11 @@ use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
+use klask::LocalizationSettings;
+use once_cell::sync::OnceCell;
 use tracing::{info, warn};
 
+use cli::SDFViewerAppSettings;
 use scene::SDFViewerAppScene;
 
 use crate::app::cli::CliApp;
@@ -53,7 +56,7 @@ impl SDFViewerApp {
             sdf: Rc::new(Box::new(SDFDemoCube::default())),
             sdf_loading: None,
             selected_params_sdf: None,
-            settings_values: SDFViewerAppSettings::Configured { values: cli_args },
+            settings_values: SDFViewerAppSettings::Configured { settings: cli_args },
         };
 
         // In order to configure the 3D scene after initialization, we need to create a new scene now.
@@ -62,7 +65,7 @@ impl SDFViewerApp {
             &cc.gl, |_scene| {}, Rc::clone(&slf.sdf));
 
         // Now that we initialized the scene, apply all the initial CLI arguments and save the settings.
-        slf.settings_values.current().clone().apply(&mut slf);
+        slf.settings_values.current().apply(&mut slf);
 
         slf
     }
@@ -182,16 +185,21 @@ impl SDFViewerApp {
                         });
                         // If settings are not already open, enable the settings button.
                         let (enabled, values) = match &self.settings_values {
-                            SDFViewerAppSettings::Configured { values } => (true, values.clone()),
+                            SDFViewerAppSettings::Configured { settings: values } => (true, values.clone()),
                             SDFViewerAppSettings::Configuring { previous, .. } => (false, previous.clone()),
                         };
                         ui.add_enabled_ui(enabled, |ui| {
-                            egui::menu::menu_button(ui, "⚙ Settings", |_ui| {
+                            let settings_button = egui::menu::menu_button(ui, "⚙ Settings", |_ui| {});
+                            if settings_button.response.clicked() {
+                                use clap::CommandFactory;
+                                static LOC_SETTINGS: OnceCell<LocalizationSettings> = OnceCell::new();
                                 self.settings_values = SDFViewerAppSettings::Configuring {
                                     previous: values.clone(),
-                                    editing: values,
+                                    editing: klask::app_state::AppState::new(
+                                        &CliApp::command(),
+                                        LOC_SETTINGS.get_or_init(|| LocalizationSettings::default())),
                                 };
-                            });
+                            }
                         });
                         // Add an spacer to right-align some options
                         ui.allocate_space(Vec2::new(ui.available_width() - 26.0, 1.0));
@@ -199,42 +207,6 @@ impl SDFViewerApp {
                     });
                 });
             });
-    }
-
-    fn ui_settings_window(&mut self, ctx: &Context) {
-        let (mut open, previous, editing) = match &self.settings_values {
-            SDFViewerAppSettings::Configuring { previous, editing } => {
-                (true, Some(previous), Some(editing))
-            }
-            _ => (false, None, None),
-        };
-        let prev_open = open;
-        let mut change_state = egui::Window::new("Settings")
-            .open(&mut open)
-            .resizable(true)
-            .scroll2([true, true])
-            .show(ctx, |ui| {
-                ui.label("TODO: klask");
-                ui.columns(2, |ui| {
-                    if ui[0].button("Cancel").clicked() {
-                        return Some(SDFViewerAppSettings::Configured { values: previous.cloned().unwrap() });
-                    }
-                    if ui[1].button("Apply").clicked() {
-                        return Some(SDFViewerAppSettings::Configured { values: editing.cloned().unwrap() });
-                    }
-                    None
-                })
-            }).and_then(|r| r.inner.flatten());
-        if prev_open && !open { // Same as cancelling
-            change_state = Some(SDFViewerAppSettings::Configured { values: previous.cloned().unwrap() });
-        }
-        if let Some(new_state) = change_state {
-            if self.settings_values.previous() != new_state.current() {
-                new_state.current().apply(self)
-                // TODO: Auto-refresh the whole SDF.
-            }
-            self.settings_values = new_state;
-        }
     }
 
     fn ui_left_panel(&mut self, ctx: &Context) {
@@ -317,34 +289,10 @@ impl eframe::App for SDFViewerApp {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         self.update_poll_loading_sdf(ctx);
         self.ui_menu_bar(ctx);
-        self.ui_settings_window(ctx);
+        SDFViewerAppSettings::show(self, ctx);
         self.ui_left_panel(ctx);
         self.ui_bottom_panel(ctx);
         self.ui_central_panel(ctx);
         // ctx.request_repaint(); // Uncomment to always render at maximum framerate instead of lazy renders
-    }
-}
-
-
-pub enum SDFViewerAppSettings {
-    /// The settings window is closed.
-    Configured { values: CliApp },
-    /// The settings window is open, but we still remember old values in case editing is cancelled.
-    Configuring { previous: CliApp, editing: CliApp },
-}
-
-impl SDFViewerAppSettings {
-    pub fn previous(&self) -> &CliApp {
-        match self {
-            SDFViewerAppSettings::Configured { values } => values,
-            SDFViewerAppSettings::Configuring { previous, .. } => previous,
-        }
-    }
-
-    pub fn current(&self) -> &CliApp {
-        match self {
-            SDFViewerAppSettings::Configured { values } => values,
-            SDFViewerAppSettings::Configuring { editing, .. } => editing,
-        }
     }
 }

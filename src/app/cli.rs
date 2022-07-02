@@ -1,11 +1,15 @@
 use clap::Parser;
+use eframe::egui;
+use eframe::egui::Context;
+use eframe::egui::Widget;
 use ehttp::Request;
+use klask::app_state::AppState;
 
 use crate::app::SDFViewerApp;
 use crate::sdf::demo::SDFDemo;
 use crate::sdf::wasm::load_sdf_wasm_send_sync;
 
-#[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
+#[derive(clap::Parser, Debug, Clone, PartialEq, Eq, Default)]
 pub struct CliApp {
     #[clap(subcommand)]
     pub sdf_provider: CliSDFProvider,
@@ -13,11 +17,16 @@ pub struct CliApp {
 
 #[derive(Parser, Debug, Clone, PartialEq, Eq)]
 pub enum CliSDFProvider {
-    /// An embedded demo SDF provider for testing purposes
-    Demo(SDFDemo),
     /// Display a WebAssembly file downloaded from the given URL.
-    /// TODO: Automatically detect file:// URLs and watch them directly without using external tools
     Url(CliAppWatchUrl),
+    /// An embedded demo SDF provider for testing and feature-showcasing purposes
+    Demo(SDFDemo),
+}
+
+impl Default for CliSDFProvider {
+    fn default() -> Self {
+        Self::Demo(SDFDemo::default())
+    }
 }
 
 #[derive(Parser, Debug, Clone, PartialEq, Eq)]
@@ -98,5 +107,83 @@ impl CliApp {
             }
         }
         // TODO: More settings
+    }
+}
+
+pub enum SDFViewerAppSettings {
+    /// The settings window is closed.
+    Configured { settings: CliApp },
+    /// The settings window is open, but we still remember old values in case editing is cancelled.
+    Configuring { previous: CliApp, editing: klask::app_state::AppState<'static> },
+}
+
+impl SDFViewerAppSettings {
+    pub fn previous(&self) -> &CliApp {
+        match self {
+            SDFViewerAppSettings::Configured { settings } => settings,
+            SDFViewerAppSettings::Configuring { previous, .. } => previous,
+        }
+    }
+
+    pub fn current(&self) -> CliApp {
+        match self {
+            SDFViewerAppSettings::Configured { settings } => settings.clone(),
+            SDFViewerAppSettings::Configuring { editing, .. } => Self::editing_to_instance(editing),
+        }
+    }
+
+    fn editing_to_instance(editing: &AppState) -> CliApp {
+        let args = editing.get_cmd_args(vec!["app".to_string()])
+            .or_else(|err| {
+                tracing::error!("Failed to parse CLI arguments (from settings GUI): {:?}", err);
+                Ok::<_, ()>(vec![])
+            }).unwrap();
+        <CliApp as clap::Parser>::try_parse_from(&args)
+            .or_else(|err| {
+                tracing::error!("Failed to parse CLI arguments (from settings GUI): {:?} --> {:?}", args, err);
+                Ok::<_, ()>(CliApp::default())
+            }).unwrap()
+    }
+
+    pub fn show(app: &mut SDFViewerApp, ctx: &Context) {
+        let (mut open, previous, mut editing) = match &mut app.settings_values {
+            SDFViewerAppSettings::Configuring { previous, editing } => (true, Some(previous), Some(editing)),
+            _ => (false, None, None),
+        };
+
+        let prev_open = open;
+        let mut change_state = egui::Window::new("Settings")
+            .open(&mut open)
+            .resizable(true)
+            .scroll2([true, true])
+            .show(ctx, |ui| {
+                // # The main settings widget
+                <&mut AppState>::ui(editing.as_mut().unwrap(), ui);
+
+                // # The cancel and apply buttons
+                ui.columns(2, |ui| {
+                    if ui[0].button("Cancel").clicked() {
+                        return Some(SDFViewerAppSettings::Configured { settings: CliApp::clone(previous.as_ref().unwrap()) });
+                    }
+                    if ui[1].button("Apply").clicked() {
+                        let new_settings = Self::editing_to_instance(editing.as_ref().unwrap());
+                        return Some(SDFViewerAppSettings::Configured { settings: new_settings });
+                    }
+                    None
+                })
+
+                // TODO: The command line arguments that would generate this config (for copying)
+            }).and_then(|r| r.inner.flatten());
+        if prev_open && !open { // Closing the window is the same as cancelling
+            change_state = Some(SDFViewerAppSettings::Configured { settings: CliApp::clone(previous.as_ref().unwrap()) });
+        }
+
+        if let Some(new_state) = change_state {
+            if app.settings_values.previous() != &new_state.current() {
+                new_state.current().apply(app)
+                // TODO: Auto-refresh the whole SDF.
+            }
+            app.settings_values = new_state;
+        }
     }
 }

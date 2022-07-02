@@ -1404,7 +1404,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "klask"
 version = "1.0.0"
-source = "git+https://github.com/Yeicor/klask?branch=all-my-requests#8d3fd4842b09665ee462f4e8e0fd87f96a42e9dd"
+source = "git+https://github.com/Yeicor/klask?branch=all-my-requests#3ec6b1bea685935fae8a37d6e37013f7e52bdfc8"
 dependencies = [
  "Inflector",
  "cansi",
@@ -2389,7 +2389,7 @@ dependencies = [
 
 [[package]]
 name = "sdf-viewer"
-version = "0.0.32"
+version = "0.0.31"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
