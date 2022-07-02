@@ -160,7 +160,7 @@ impl SDFViewerAppScene {
         self.sdf_viewer = SDFViewer::from_bb(&self.ctx, &bb, Some(max_voxels_side), loading_passes);
     }
 
-    pub fn render(&mut self, info: &PaintCallbackInfo, egui_resp: &Response) {
+    pub fn render(&mut self, ctx: &eframe::egui::Context, info: &PaintCallbackInfo, egui_resp: &Response) {
         // Update camera viewport and scissor box
         let viewport = self.camera.update(info, egui_resp);
         let scissor_box = ScissorBox::from(viewport);
@@ -169,6 +169,7 @@ impl SDFViewerAppScene {
         let load_start_cpu = Instant::now();
         let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30));
         if cpu_updates > 0 {
+            ctx.request_repaint(); // Make sure we keep loading the SDF by repainting
             // Update the GPU texture sparingly (to mitigate stuttering on high-detail rendering loads)
             if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {
                 let load_start_gpu = Instant::now();
@@ -184,6 +185,7 @@ impl SDFViewerAppScene {
         } else if self.sdf_viewer_last_commit.is_some() {
             self.sdf_viewer.commit();
             self.sdf_viewer_last_commit = None;
+            ctx.request_repaint(); // Make sure we keep loading the SDF by repainting
         }
 
         // Instead of the normal path of RenderTarget::render(), we use the direct rendering methods

@@ -9,6 +9,7 @@ use crate::app::cli::CliApp;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 #[clap(propagate_version = true)]
+/// The SDF Viewer application.
 pub struct Cli {
     #[clap(subcommand)]
     pub command: Commands,

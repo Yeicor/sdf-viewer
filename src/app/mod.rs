@@ -10,6 +10,7 @@ use tracing::{info, warn};
 
 use scene::SDFViewerAppScene;
 
+use crate::app::cli::CliApp;
 use crate::cli::env_get;
 use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::SDFSurface;
@@ -31,11 +32,13 @@ pub struct SDFViewerApp {
     // TODO: A loading (downloading/parsing/compiling wasm) indicator for the user.
     /// The SDF for which we are modifying the parameters, if any.
     pub selected_params_sdf: Option<Rc<Box<dyn SDFSurface>>>,
+    /// The application's potentially partially edited settings, displayed in a window.
+    pub settings_values: SDFViewerAppSettings,
 }
 
 impl SDFViewerApp {
     #[profiling::function]
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, cli_args: CliApp) -> Self {
         // Default to dark mode if no theme is provided by the OS (or environment variables)
         if (cc.integration_info.prefer_dark_mode == Some(false) ||
             env_get("light").is_some()) && env_get("dark").is_none() { // TODO: Save & restore theme settings
@@ -45,17 +48,21 @@ impl SDFViewerApp {
         }
 
         info!("Initialization complete! Starting main loop...");
-        let slf = Self {
+        let mut slf = Self {
             progress: None,
             sdf: Rc::new(Box::new(SDFDemoCube::default())),
             sdf_loading: None,
             selected_params_sdf: None,
+            settings_values: SDFViewerAppSettings::Configured { values: cli_args },
         };
 
         // In order to configure the 3D scene after initialization, we need to create a new scene now.
         // Warning: future rendering must be done from this thread, or nothing will render.
         SDFViewerAppScene::from_glow_context_thread_local(
             &cc.gl, |_scene| {}, Rc::clone(&slf.sdf));
+
+        // Now that we initialized the scene, apply all the initial CLI arguments and save the settings.
+        slf.settings_values.current().clone().apply(&mut slf);
 
         slf
     }
@@ -74,7 +81,7 @@ impl SDFViewerApp {
     }
 
     /// Called on every update to check if we are ready to render the SDF that was loading.
-    fn update_poll_loading_sdf(&mut self) {
+    fn update_poll_loading_sdf(&mut self, ctx: &Context) {
         // Poll the SDF loading promise if it is set
         self.sdf_loading = if let Some(promise) = self.sdf_loading.take() {
             match promise.try_take() {
@@ -82,7 +89,10 @@ impl SDFViewerApp {
                     self.set_root_sdf(new_root_sdf);
                     None
                 }
-                Err(promise_again) => Some(promise_again),
+                Err(promise_again) => {
+                    ctx.request_repaint(); // Request a repaint to keep polling the promise.
+                    Some(promise_again)
+                }
             }
         } else { None };
     }
@@ -99,13 +109,14 @@ impl SDFViewerApp {
         // Synchronize the scene information (from the previous frame, no way to know the future)
         self.progress = Self::scene_mut(|scene| scene.load_progress()).unwrap_or(None);
         // Queue the rendering of the scene
+        let ui_ctx = ui.ctx().clone();
         ui.painter().add(egui::PaintCallback {
             rect,
             callback: Arc::new(move |info, _painter| {
                 // OpenGL API at _painter.downcast_mut::<egui_glow::Painter>().unwrap().gl()
                 let response = response.clone();
                 Self::scene_mut(|scene| {
-                    scene.render(info, &response);
+                    scene.render(&ui_ctx, info, &response);
                 });
             }),
         });
@@ -134,7 +145,7 @@ impl SDFViewerApp {
                     let editing_params = self.selected_params_sdf.as_ref()
                         .map(|sdf2| sdf2.id() == sdf.id()).unwrap_or(false);
                     let mut editing_params_now = editing_params;
-                    let settings_button_resp = ui.toggle_value(&mut editing_params_now, "⚙?");
+                    let settings_button_resp = ui.toggle_value(&mut editing_params_now, format!("⚙ {}", params.len()));
                     if editing_params_now {
                         settings_button_resp.on_hover_text("Stop editing parameters".to_string());
                         self.selected_params_sdf = Some(Rc::clone(&sdf));
@@ -160,15 +171,26 @@ impl SDFViewerApp {
         }
     }
 
-    fn ui_menu_bar(&self, ctx: &Context) {
+    fn ui_menu_bar(&mut self, ctx: &Context) {
         // Top panel for the menu bar
         egui::TopBottomPanel::new(TopBottomSide::Top, hash("top"))
             .show(ctx, |ui| {
                 ScrollArea::new([true, true]).show(ui, |ui| {
                     egui::menu::bar(ui, |ui| {
-                        egui::menu::menu_button(ui, "File", |ui| {
-                            egui::menu::menu_button(ui, "Open SDF...", |_ui| {
-                                // TODO: Open and swap the new SDF manually inserted (url/file)
+                        egui::menu::menu_button(ui, "📄 Open SDF", |_ui| {
+                            // TODO: Open and swap the new SDF manually inserted (url/file)
+                        });
+                        // If settings are not already open, enable the settings button.
+                        let (enabled, values) = match &self.settings_values {
+                            SDFViewerAppSettings::Configured { values } => (true, values.clone()),
+                            SDFViewerAppSettings::Configuring { previous, .. } => (false, previous.clone()),
+                        };
+                        ui.add_enabled_ui(enabled, |ui| {
+                            egui::menu::menu_button(ui, "⚙ Settings", |_ui| {
+                                self.settings_values = SDFViewerAppSettings::Configuring {
+                                    previous: values.clone(),
+                                    editing: values,
+                                };
                             });
                         });
                         // Add an spacer to right-align some options
@@ -179,11 +201,48 @@ impl SDFViewerApp {
             });
     }
 
+    fn ui_settings_window(&mut self, ctx: &Context) {
+        let (mut open, previous, editing) = match &self.settings_values {
+            SDFViewerAppSettings::Configuring { previous, editing } => {
+                (true, Some(previous), Some(editing))
+            }
+            _ => (false, None, None),
+        };
+        let prev_open = open;
+        let mut change_state = egui::Window::new("Settings")
+            .open(&mut open)
+            .resizable(true)
+            .scroll2([true, true])
+            .show(ctx, |ui| {
+                ui.label("TODO: klask");
+                ui.columns(2, |ui| {
+                    if ui[0].button("Cancel").clicked() {
+                        return Some(SDFViewerAppSettings::Configured { values: previous.cloned().unwrap() });
+                    }
+                    if ui[1].button("Apply").clicked() {
+                        return Some(SDFViewerAppSettings::Configured { values: editing.cloned().unwrap() });
+                    }
+                    None
+                })
+            }).and_then(|r| r.inner.flatten());
+        if prev_open && !open { // Same as cancelling
+            change_state = Some(SDFViewerAppSettings::Configured { values: previous.cloned().unwrap() });
+        }
+        if let Some(new_state) = change_state {
+            if self.settings_values.previous() != new_state.current() {
+                new_state.current().apply(self)
+                // TODO: Auto-refresh the whole SDF.
+            }
+            self.settings_values = new_state;
+        }
+    }
+
     fn ui_left_panel(&mut self, ctx: &Context) {
         // Main side panel for configuration.
         egui::SidePanel::new(Side::Left, hash("left"))
             .show(ctx, |ui| {
                 // Configuration panel for the parameters of the selected SDF (this must be placed first to reserve space, resizable)
+                // FIXME: SDF Hierarchy rendered over this panel...
                 if let Some(ref selected_sdf) = self.selected_params_sdf {
                     egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("parameters"))
                         .resizable(true)
@@ -192,7 +251,7 @@ impl SDFViewerApp {
                         .show_inside(ui, |ui| {
                             ui.heading(format!("Parameters for {}", selected_sdf.name()));
                             ScrollArea::both()
-                                .auto_shrink([false, true])
+                                .auto_shrink([false, false])
                                 .show(ui, |ui| {
                                     for mut param in selected_sdf.parameters() {
                                         if param.gui(ui) { // If the value was modified
@@ -229,8 +288,6 @@ impl SDFViewerApp {
             .min_height(0.0) // Hide when unused
             .show(ctx, |ui| {
                 if let Some((progress, text)) = self.progress.as_ref() {
-                    // HACK: Setting animate to true forces the scene to render continuously,
-                    // making the loading process continue a bit each frame.
                     ui.add(ProgressBar::new(*progress).text(text.clone()).animate(true));
                 }
             });
@@ -258,8 +315,9 @@ impl eframe::App for &mut SDFViewerApp {
 impl eframe::App for SDFViewerApp {
     #[profiling::function]
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        self.update_poll_loading_sdf();
+        self.update_poll_loading_sdf(ctx);
         self.ui_menu_bar(ctx);
+        self.ui_settings_window(ctx);
         self.ui_left_panel(ctx);
         self.ui_bottom_panel(ctx);
         self.ui_central_panel(ctx);
@@ -267,3 +325,26 @@ impl eframe::App for SDFViewerApp {
     }
 }
 
+
+pub enum SDFViewerAppSettings {
+    /// The settings window is closed.
+    Configured { values: CliApp },
+    /// The settings window is open, but we still remember old values in case editing is cancelled.
+    Configuring { previous: CliApp, editing: CliApp },
+}
+
+impl SDFViewerAppSettings {
+    pub fn previous(&self) -> &CliApp {
+        match self {
+            SDFViewerAppSettings::Configured { values } => values,
+            SDFViewerAppSettings::Configuring { previous, .. } => previous,
+        }
+    }
+
+    pub fn current(&self) -> &CliApp {
+        match self {
+            SDFViewerAppSettings::Configured { values } => values,
+            SDFViewerAppSettings::Configuring { editing, .. } => editing,
+        }
+    }
+}

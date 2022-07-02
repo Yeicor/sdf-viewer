@@ -10,7 +10,7 @@ use cgmath::{ElementWise, Vector2, Vector3, Zero};
 use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::{RcRefCellBool, RcRefCellF32};
 
-#[derive(clap::Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
 pub struct SDFDemoCube {
     #[clap(short = 't', long, default_value = "brick")]
     cube_material: RcRefCellMaterial,
@@ -20,7 +20,7 @@ pub struct SDFDemoCube {
     changed: RcRefCellBool,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Material {
     Brick,
     Normal,
@@ -225,7 +225,7 @@ fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) ->
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RcRefCellMaterial(Rc<RefCell<Material>>);
 
 impl FromStr for RcRefCellMaterial {

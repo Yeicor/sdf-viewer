@@ -17,7 +17,7 @@ pub mod cube;
 pub mod sphere;
 
 /// An embedded demo `Sdf` implementation to showcase/test most features. Subtracts a cube and a sphere.
-#[derive(clap::Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
 pub struct SDFDemo {
     #[clap(flatten)]
     cube: SDFDemoCube,
@@ -157,7 +157,7 @@ impl SDFSurface for SDFDemo {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 struct RcRefCellF32(Rc<RefCell<f32>>);
 
 impl FromStr for RcRefCellF32 {
@@ -176,7 +176,9 @@ impl Deref for RcRefCellF32 {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+impl Eq for RcRefCellF32 {}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct RcRefCellBool(Rc<RefCell<bool>>);
 
 impl FromStr for RcRefCellBool {

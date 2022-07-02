@@ -60,10 +60,10 @@ jobs:
             ext: ""
             pre: sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev
           # TODO: Mac OS x86_64
-          #          - os: macos-latest
-          #            target: x86_64-apple-darwin
-          #            pre: brew install libx11 libxi
-          #            post: TODO: (pack a .dmg?)
+          # - os: macos-latest
+          #   target: x86_64-apple-darwin
+          #   pre: brew install libx11 libxi
+          #   post: TODO: (pack a .dmg?)
           # Windows x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -75,18 +75,18 @@ jobs:
             pre: rustup target add wasm32-unknown-unknown && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
             build: wasm-pack build --target web --out-dir ./target/pkg -- --no-default-features --features "app web"
             post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm"
-          # Android
-          - os: ubuntu-latest
-            target: android  # Multiple architectures are supported
-            pre: rustup target add aarch64-linux-android && cargo install cargo-apk
-            build: cargo apk build --release --lib
-            ext: apk
+          # TODO: Android
+          # - os: ubuntu-latest
+          #   target: android  # Multiple architectures are supported
+          #   pre: rustup target add aarch64-linux-android && cargo install cargo-apk
+          #   build: cargo apk build --release --lib
+          #   ext: apk
           # TODO: iOS
-    #          - os: macos-latest
-    #            target: ???
-    #            pre: ???
-    #            build: ???
-    #            post: ???
+          # - os: macos-latest
+          #   target: ???
+          #   pre: ???
+          #   build: ???
+          #   post: ???
     steps:
       - name: Checkout
         uses: actions/checkout@v3

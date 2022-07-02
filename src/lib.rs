@@ -27,12 +27,3 @@ pub async fn run_app(canvas_id: String) -> Result<(), wasm_bindgen::prelude::JsV
     }
     Ok(())
 }
-
-// === Entry point for android ===
-#[cfg(target_os = "android")]
-#[cfg(feature = "app")]
-#[cfg_attr(target_os = "android", ndk_glue::main(backtrace = "full"))] // TODO: , logger(level = "debug", tag = "rust.sdf-viewer")
-#[tokio::main] // Not compatible with eframe :(
-async fn main() {
-    run::native_main();
-}

@@ -6,7 +6,7 @@ use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::{RcRefCellBool, RcRefCellF32};
 use crate::sdf::demo::cube::{Material, RcRefCellMaterial};
 
-#[derive(clap::Parser, Debug, Clone)]
+#[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
 pub struct SDFDemoSphere {
     #[clap(short = 'l', long, default_value = "normal")]
     sphere_material: RcRefCellMaterial,

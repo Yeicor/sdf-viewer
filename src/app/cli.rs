@@ -5,13 +5,13 @@ use crate::app::SDFViewerApp;
 use crate::sdf::demo::SDFDemo;
 use crate::sdf::wasm::load_sdf_wasm_send_sync;
 
-#[derive(clap::Parser, Debug)]
+#[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
 pub struct CliApp {
     #[clap(subcommand)]
     pub sdf_provider: CliSDFProvider,
 }
 
-#[derive(Parser, Debug, Clone)]
+#[derive(Parser, Debug, Clone, PartialEq, Eq)]
 pub enum CliSDFProvider {
     /// An embedded demo SDF provider for testing purposes
     Demo(SDFDemo),
@@ -20,7 +20,7 @@ pub enum CliSDFProvider {
     Url(CliAppWatchUrl),
 }
 
-#[derive(Parser, Debug, Clone)]
+#[derive(Parser, Debug, Clone, PartialEq, Eq)]
 pub struct CliAppWatchUrl {
     /// The url where a WebAssembly file representing a SDF is hosted.
     ///
@@ -35,7 +35,7 @@ pub struct CliAppWatchUrl {
 
 impl CliApp {
     /// Sets up a new instance of the application.
-    pub fn init(&self, app: &mut SDFViewerApp) {
+    pub fn apply(&self, app: &mut SDFViewerApp) {
         // Configure the initial SDF provider (may be changed later)
         match self.sdf_provider.clone() {
             CliSDFProvider::Demo(s) => app.set_root_sdf(Box::new(s)),

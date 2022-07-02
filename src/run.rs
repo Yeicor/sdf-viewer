@@ -20,9 +20,7 @@ pub async fn setup_app() -> Option<AppCreator> {
         #[cfg(feature = "app")]
         Commands::App(app_args) => {
             Some(Box::new(move |cc| {
-                let mut app = SDFViewerApp::new(cc);
-                app_args.init(&mut app); // Initialize the app with the given arguments.
-                Box::new(app)
+                Box::new(SDFViewerApp::new(cc, app_args))
             }))
         }
         #[cfg(feature = "server")]
