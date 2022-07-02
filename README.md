@@ -26,6 +26,7 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
     - [x] Works by building your code for wasm and running it at near-native speeds.
     - [x] [Rust demo](src/sdf/demo/ffi.rs), observable and customizable
       through [this link](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark).
+    - [x] Development server to ease integration and allow remote rendering.
     - [ ] Integration tutorial and list of available integrations.
 - [x] High-performance:
     - [x] Very-fast initialization on all platforms.
