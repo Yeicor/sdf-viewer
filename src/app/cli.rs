@@ -1,12 +1,13 @@
 use clap::Parser;
 use eframe::egui;
-use eframe::egui::Context;
+use eframe::egui::{Context, TextEdit};
 use eframe::egui::Widget;
 use ehttp::Request;
 use klask::app_state::AppState;
 
 use crate::app::SDFViewerApp;
 use crate::sdf::demo::SDFDemo;
+use crate::sdf::SDFSurface;
 use crate::sdf::wasm::load_sdf_wasm_send_sync;
 
 #[derive(clap::Parser, Debug, Clone, PartialEq, Eq, Default)]
@@ -71,6 +72,10 @@ impl CliApp {
                                 #[cfg(target_arch = "wasm32")]
                                 {
                                     tracing::error!("Failed to load SDF from URL: {:?}", err);
+                                    sender.send(unsafe {
+                                        // FIXME: Extremely unsafe code (forcing SDFDemo Send+Sync), but only used for this error path
+                                        std::mem::transmute(Box::new(SDFDemo::default()) as Box<dyn SDFSurface>)
+                                    });
                                 }
                                 #[cfg(not(target_arch = "wasm32"))]
                                 {
@@ -88,6 +93,10 @@ impl CliApp {
                                         }
                                         Err(err2) => {
                                             tracing::error!("Failed to load SDF from URL ({:?}) or file ({:?})", err, err2);
+                                            sender.send(unsafe {
+                                                // FIXME: Extremely unsafe code (forcing SDFDemo Send+Sync), but only used for this error path
+                                                std::mem::transmute(Box::new(SDFDemo::default()) as Box<dyn SDFSurface>)
+                                            });
                                         }
                                     }
                                 }
@@ -133,16 +142,14 @@ impl SDFViewerAppSettings {
     }
 
     fn editing_to_instance(editing: &AppState) -> CliApp {
-        let args = editing.get_cmd_args(vec!["app".to_string()])
-            .or_else(|err| {
-                tracing::error!("Failed to parse CLI arguments (from settings GUI): {:?}", err);
-                Ok::<_, ()>(vec![])
-            }).unwrap();
-        <CliApp as clap::Parser>::try_parse_from(&args)
-            .or_else(|err| {
-                tracing::error!("Failed to parse CLI arguments (from settings GUI): {:?} --> {:?}", args, err);
-                Ok::<_, ()>(CliApp::default())
-            }).unwrap()
+        let args = editing.get_cmd_args(vec!["app".to_string()]).unwrap_or_else(|err| {
+            tracing::error!("Failed to parse CLI arguments (from settings GUI): {:?}", err);
+            vec![]
+        });
+        <CliApp as clap::Parser>::try_parse_from(&args).unwrap_or_else(|err| {
+            tracing::error!("Failed to parse CLI arguments (from settings GUI): {:?} --> {:?}", args, err);
+            CliApp::default()
+        })
     }
 
     pub fn show(app: &mut SDFViewerApp, ctx: &Context) {
@@ -161,7 +168,7 @@ impl SDFViewerAppSettings {
                 <&mut AppState>::ui(editing.as_mut().unwrap(), ui);
 
                 // # The cancel and apply buttons
-                ui.columns(2, |ui| {
+                let action = ui.columns(2, |ui| {
                     if ui[0].button("Cancel").clicked() {
                         return Some(SDFViewerAppSettings::Configured { settings: CliApp::clone(previous.as_ref().unwrap()) });
                     }
@@ -170,9 +177,21 @@ impl SDFViewerAppSettings {
                         return Some(SDFViewerAppSettings::Configured { settings: new_settings });
                     }
                     None
-                })
+                });
 
-                // TODO: The command line arguments that would generate this config (for copying)
+                // The command line arguments that would generate this config (for copying)
+                let cmd_args = editing.as_mut().unwrap()
+                    .get_cmd_args(vec![env!("CARGO_PKG_NAME").to_string()])
+                    .unwrap_or_else(|err| vec![format!("Invalid configuration: {}", err)]);
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("CLI: ");
+                    let mut cmd_args_str = cmd_args.join(" "); // TODO: Proper escaping
+                    TextEdit::singleline(&mut cmd_args_str) // Not editable, but copyable
+                        .desired_width(ui.available_width())
+                        .ui(ui)
+                });
+
+                action
             }).and_then(|r| r.inner.flatten());
         if prev_open && !open { // Closing the window is the same as cancelling
             change_state = Some(SDFViewerAppSettings::Configured { settings: CliApp::clone(previous.as_ref().unwrap()) });
@@ -180,6 +199,7 @@ impl SDFViewerAppSettings {
 
         if let Some(new_state) = change_state {
             if app.settings_values.previous() != &new_state.current() {
+                // TODO: Apply only the modified settings (know which settings were left unchanged / as default values)
                 new_state.current().apply(app)
                 // TODO: Auto-refresh the whole SDF.
             }

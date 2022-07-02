@@ -193,11 +193,12 @@ impl SDFViewerApp {
                             if settings_button.response.clicked() {
                                 use clap::CommandFactory;
                                 static LOC_SETTINGS: OnceCell<LocalizationSettings> = OnceCell::new();
+                                let loc_settings = LOC_SETTINGS.get_or_init(LocalizationSettings::default);
                                 self.settings_values = SDFViewerAppSettings::Configuring {
                                     previous: values.clone(),
+                                    // TODO(klask): load initial values from the previous settings
                                     editing: klask::app_state::AppState::new(
-                                        &CliApp::command(),
-                                        LOC_SETTINGS.get_or_init(|| LocalizationSettings::default())),
+                                        &CliApp::command(), loc_settings),
                                 };
                             }
                         });

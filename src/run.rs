@@ -1,4 +1,5 @@
 use eframe::AppCreator;
+use klask::Settings;
 use tracing::info;
 
 use crate::app::SDFViewerApp;
@@ -38,6 +39,13 @@ pub async fn native_main() {
     // Setup logging
     tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::default())
         .expect("Failed to set global default subscriber");
+    // If no arguments are provided, run a GUI interface for configuring the CLI arguments ;)
+    if std::env::args().nth(1).is_none() {
+        #[cfg(feature = "klask")]
+        klask::run_derived::<Cli, _>(Settings::default(), |_app| {
+            // Ignore me: this block will be skipped the second time (as arguments will be set)
+        });
+    }
     // Run app
     let native_options = eframe::NativeOptions::default();
     if let Some(app_creator) = setup_app().await {
