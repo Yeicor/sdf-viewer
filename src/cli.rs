@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
-use once_cell::sync::OnceCell;
 use clap::Parser;
+use once_cell::sync::OnceCell;
 use tracing::error;
-
-use crate::app::cli::CliApp;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -19,16 +17,17 @@ pub struct Cli {
 pub enum Commands {
     #[cfg(feature = "app")]
     /// Start the main application that displays SDFs.
-    App(CliApp),
+    App(crate::app::cli::CliApp),
     #[cfg(feature = "server")]
-    /// Run the server that watches the filesystem and provides the updated SDF to the app.
-    Server(CliApp), // TODO
+    /// Run the server utility that watches the filesystem, compiles and provides the updated SDF to the app.
+    Server(crate::server::CliServer),
 }
 
 /// This holds the environment, as it is unsupported but abstracted on web.
 static ENV: OnceCell<HashMap<String, String>> = OnceCell::new();
 
 /// Retrieves an "environment variable". It automatically adds the prefix of the crate name to the key.
+#[allow(dead_code)] // Not important for this method
 pub fn env_get(key: impl AsRef<str>) -> Option<String> {
     let key = format!("{}_{}", env!("CARGO_PKG_NAME"), key.as_ref());
     ENV.get().and_then(|env| env.get(key.as_str()).cloned())

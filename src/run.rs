@@ -1,14 +1,16 @@
-use eframe::AppCreator;
-use klask::Settings;
 use tracing::info;
 
-use crate::app::SDFViewerApp;
 use crate::cli::{Cli, Commands};
 use crate::metadata::log_version_info;
 
+#[cfg(feature = "app")]
+type AppCreator = Option<eframe::AppCreator>;
+#[cfg(not(feature = "app"))]
+type AppCreator = Option<()>;
+
 /// All entry-points redirect here after platform-specific initialization and
 /// before platform-specific window start (which may be cancelled if None is returned).
-pub async fn setup_app() -> Option<AppCreator> {
+pub async fn setup_app() -> AppCreator {
     // Test logging and provide useful information
     log_version_info();
 
@@ -21,12 +23,12 @@ pub async fn setup_app() -> Option<AppCreator> {
         #[cfg(feature = "app")]
         Commands::App(app_args) => {
             Some(Box::new(move |cc| {
-                Box::new(SDFViewerApp::new(cc, app_args))
+                Box::new(crate::app::SDFViewerApp::new(cc, app_args))
             }))
         }
         #[cfg(feature = "server")]
-        Commands::Server(_srv) => {
-            // TODO: Run the server
+        Commands::Server(srv) => { // Runs the server forever
+            srv.run().await;
             None
         }
     }
@@ -42,13 +44,16 @@ pub async fn native_main() {
     // If no arguments are provided, run a GUI interface for configuring the CLI arguments ;)
     if std::env::args().nth(1).is_none() {
         #[cfg(feature = "klask")]
-        klask::run_derived::<Cli, _>(Settings::default(), |_app| {
+        klask::run_derived::<Cli, _>(klask::Settings::default(), |_app| {
             // Ignore me: this block will be skipped the second time (as arguments will be set)
         });
     }
     // Run app
-    let native_options = eframe::NativeOptions::default();
+    #[cfg(feature = "app")]
+        let native_options = eframe::NativeOptions::default();
+    #[allow(unused_variables)]
     if let Some(app_creator) = setup_app().await {
+        #[cfg(feature = "app")]
         eframe::run_native("SDF Viewer", native_options, app_creator);
     }
 }

@@ -5,6 +5,8 @@ extern crate core;
 pub mod sdf;
 #[cfg(feature = "app")]
 mod app;
+#[cfg(feature = "server")]
+mod server;
 #[cfg(any(feature = "app", feature = "server"))]
 mod metadata;
 #[cfg(any(feature = "app", feature = "server"))]
