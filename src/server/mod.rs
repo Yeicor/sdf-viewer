@@ -1,28 +1,51 @@
 use std::ffi::OsString;
 use std::net::IpAddr;
+use std::thread;
+use std::time::Duration;
+use std::time::SystemTime;
 
+use httpdate::fmt_http_date;
+use lru::LruCache;
+use notify::{RecursiveMode, Watcher, watcher};
+use salvo::http::{HeaderMap, HeaderValue};
+use salvo::http::header::HeaderName;
 use salvo::http::response::Body;
 use salvo::prelude::*;
 use salvo::routing::{Filter, PathState};
+use tokio::sync::broadcast::{channel, Receiver, Sender};
+use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::Mutex;
+use crate::metadata::short_version_info;
 
 #[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
 pub struct CliServer {
-    /// The path of the files that will be served. Usually just one *.wasm file.
+    /// The path of the files that will be served. Usually just one *.wasm file. Only exact path
+    /// matches will be served.
     #[clap(short, long)]
     pub serve_paths: Vec<String>,
     /// The path of the files to watch for changes. Leave empty to avoid watching files and notifying the viewer.
     #[clap(short, long)]
     pub watch_paths: Vec<String>,
+    /// Wait for this amount of nanoseconds after each modification detected to merge modifications
+    /// (for example, when saving multiple files at the same time).
+    /// This is useful to avoid too many notifications, but adds a delay in the detection of changes.
+    #[clap(short = 't', long, parse(try_from_str = parse_duration_ns), default_value = "12345678")]
+    pub watch_merge_ns: Duration,
     /// An optional command to run when a file changes. Useful to automate builds watching source
     /// code changes instead of directly watching the build results.
     #[clap(short, long)]
-    pub command: Option<String>,
+    pub build_command: Vec<String>,
     /// The host to listen on.
     #[clap(short = 'l', long, default_value = "127.0.0.1")]
     pub host: IpAddr,
     /// The port to listen on.
     #[clap(short, long, default_value = "8080")]
     pub port: u16,
+}
+
+fn parse_duration_ns(arg: &str) -> Result<Duration, std::num::ParseIntError> {
+    let seconds = arg.parse()?;
+    Ok(Duration::from_nanos(seconds))
 }
 
 impl Default for CliServer {
@@ -47,43 +70,240 @@ impl CliServer {
             }
         }
 
-        // Files that will be served
+        /// Main handler to serve the files.
         struct FileServerHandler {
+            /// The main configuration
             cfg: CliServer,
+            /// The sender to subscribe for file changes.
+            sender: Sender<u64>,
+            /// Event sequential ID receivers for the watched files.
+            /// This keeps track of whether each client (up to a limit) has watch notifications
+            /// pending, so that if watch is requested again it can immediately return, solving
+            /// races.
+            remote_events: Mutex<LruCache<String, Receiver<u64>>>,
+            /// The last build used the files at least as recent as this event ID.
+            /// It is behind a lock to allow interior mutability, and it is also useful as a
+            /// build lock to avoid spawning multiple build processes at the same time...
+            last_build_event: Mutex<u64>,
         }
+
+        /// Implementation of the main handler
         #[async_trait]
         impl Handler for FileServerHandler {
             async fn handle(&self, req: &mut Request, _depot: &mut Depot, res: &mut Response, _ctrl: &mut FlowCtrl) {
                 // Parse input request
                 let file_path = req.uri().path().strip_prefix('/').unwrap_or_default();
                 let watch_for_changes = req.query::<String>("watch").map(|_| true /* any value is true */).unwrap_or(false);
-                tracing::info!("Handling request of file {} with watch/compile {}", file_path, watch_for_changes);
+                tracing::info!(file_path=file_path, watch_for_changes=watch_for_changes, "Handling request of file");
+
+                // Response headers
+                let mut headers = HeaderMap::new();
+                headers.insert(
+                    salvo::http::header::CACHE_CONTROL,
+                    HeaderValue::from_static("no-cache"),
+                );
+                headers.insert(
+                    salvo::http::header::EXPIRES,
+                    HeaderValue::from_static("0"),
+                );
+                headers.insert(
+                    salvo::http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
+                    HeaderValue::from_static("*"),
+                );
+                headers.insert(
+                    salvo::http::header::ACCESS_CONTROL_ALLOW_HEADERS,
+                    HeaderValue::from_static("*"),
+                );
+                headers.insert(
+                    salvo::http::header::ACCESS_CONTROL_ALLOW_METHODS,
+                    HeaderValue::from_static("GET"),
+                );
+                headers.insert(
+                    salvo::http::header::SERVER,
+                    HeaderValue::from_str(&short_version_info()).unwrap(),
+                );
+
                 // Validate file path
                 if !self.cfg.serve_paths.iter().any(|p| p == file_path) {
                     tracing::error!("Received request to file that is not public {}", file_path);
                     res.set_status_error(StatusError::not_found());
+                    res.set_headers(headers);
                     return;
                 }
+
+                // Identify caller to provide it's own updates
+                let remote_id = req.remote_addr().and_then(|x| match x {
+                    // The same remote will open connections on different ports, so we need to
+                    // use only the remote IP to identify the connection. However, this may cause
+                    // collisions if the same IP is used on multiple machines (NAT).
+                    salvo::addr::SocketAddr::IPv4(addr) => Some(addr.ip().to_string()),
+                    salvo::addr::SocketAddr::IPv6(addr) => Some(addr.ip().to_string()),
+                    salvo::addr::SocketAddr::Unix(addr) => addr.as_pathname()
+                        .map(|p| p.to_string_lossy().to_string()),
+                }).unwrap_or_else(|| "unknown".to_string());
+                let mut build_event = 0;
+
                 // Watch (& compile) file if requested
                 if watch_for_changes {
-                    todo!("Watch file");
+
+                    // Event mutex sync
+                    {
+                        // Check for updates from the file watcher thread for this specific client
+                        tracing::info!(requested_file=file_path, remote_id=remote_id, "Locking the event receiver"); // TODO: Reuse builds if possible
+                        let mut remote_events_table = self.remote_events.lock().await; // Will be dropped after build finishes.
+                        remote_events_table.get_or_insert(remote_id.clone(), || self.sender.subscribe()).unwrap();
+                        let events = remote_events_table.get_mut(&remote_id).unwrap(); // Safe because we just inserted it.
+
+                        // Wait for the first event.
+                        // TODO: Release mutex while this user waits for their event.
+                        tracing::info!(requested_file=file_path, remote_id=remote_id, "Waiting for changes");
+                        // Errors (event capacity overflow) force a rebuild even if the file is not changed.
+                        build_event = events.recv().await.unwrap_or(u64::MAX);
+                        loop { // Aggregate the following events until the timeout is reached.
+                            match tokio::time::timeout(self.cfg.watch_merge_ns, events.recv()).await {
+                                Ok(Ok(event)) => build_event = event,
+                                Ok(Err(RecvError::Lagged(by))) => {
+                                    tracing::warn!(requested_file=file_path, remote_id=remote_id, "Receiver lagged behind (by {} events), try increasing the event capacity!", by);
+                                    *events = self.sender.subscribe(); // Resubscribe to the new channel.
+                                }
+                                Ok(Err(_)) => panic!("Unexpected error from the event receiver"),
+                                Err(_) => break, // Timeout, so stop merging events
+                            }
+                        }
+                    }
+
+                    // "Compile" if needed and configured
+                    if !self.cfg.build_command.is_empty() {
+                        // Build mutex sync
+                        let mut last_build_event_mut = self.last_build_event.lock().await;
+                        if build_event <= *last_build_event_mut {
+                            tracing::info!(requested_file=file_path, remote_id=remote_id, build_event=build_event, last_build_event_mut=*last_build_event_mut, "Build command skipped");
+                        } else {
+                            self.perform_build(res, file_path, &remote_id, build_event).await;
+                            if build_event != u64::MAX {
+                                *last_build_event_mut = build_event;
+                            }
+                        }
+                    }
                 }
+
+                // "Compile" if configured (no way to know if needed)
+                if build_event == 0 {
+                    self.perform_build(res, file_path, &remote_id, build_event).await;
+                }
+
+                // Extract file metadata
+                let metadata_fut = tokio::fs::metadata(file_path).await;
                 // Serve file
-                match tokio::fs::read(file_path).await { // TODO: Streaming?
-                    Ok(file_bytes) => {
+                match metadata_fut.and_then(|m| std::fs::read(file_path).map(|r| (m, r))) { // TODO: Streaming?
+                    Ok((metadata, file_bytes)) => {
+                        headers.insert(
+                            HeaderName::from_static("x-watch-supported"),
+                            HeaderValue::from_static("true"),
+                        );
+                        headers.insert(
+                            salvo::http::header::CONTENT_TYPE,
+                            HeaderValue::from_static("application/wasm"),
+                        );
+                        headers.insert(
+                            salvo::http::header::CONTENT_LENGTH,
+                            HeaderValue::from_str(&file_bytes.len().to_string())
+                                .unwrap_or(HeaderValue::from_str("error").unwrap()),
+                        );
+                        headers.insert(
+                            salvo::http::header::LAST_MODIFIED,
+                            HeaderValue::from_str(&fmt_http_date(
+                                metadata.modified().unwrap_or(SystemTime::now())))
+                                .unwrap_or(HeaderValue::from_str("error").unwrap()),
+                        );
                         res.set_body(Body::from(salvo::hyper::Body::from(file_bytes)));
                     }
                     Err(err) => {
-                        tracing::error!("Failed to open file {}: {}", file_path, err);
+                        tracing::error!("Failed to read file {}: {}", file_path, err);
                         res.set_status_error(StatusError::not_found());
                     }
                 };
+                res.set_headers(headers);
             }
         }
-        let router = Router::new().filter(AnyFilter {}).get(FileServerHandler { cfg: self.clone() });
+
+        impl FileServerHandler {
+            async fn perform_build(&self, res: &mut Response, file_path: &str, remote_id: &String, build_event: u64) {
+                let mut cmd = tokio::process::Command::new(&self.cfg.build_command[0]);
+                cmd.args(self.cfg.build_command.iter().skip(1).map(|el|
+                    if el.starts_with('\\') { el[1..].to_string() } else { el.to_string() }))
+                    .stdout(std::process::Stdio::inherit())
+                    .stderr(std::process::Stdio::inherit());
+                tracing::info!(requested_file=file_path, remote_id=remote_id, cmd=format!("{:?}", cmd), "Starting build");
+                let ret = cmd.spawn().expect("Bad build command!").wait().await;
+                match ret {
+                    Ok(status) => {
+                        if !status.success() {
+                            tracing::error!(requested_file=file_path, remote_id=remote_id, build_event=build_event, "Build command failed");
+                            res.set_status_error(StatusError::internal_server_error());
+                            return;
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!(requested_file=file_path, remote_id=remote_id, build_event=build_event, "Build command failed: {}", e);
+                        res.set_status_error(StatusError::internal_server_error());
+                        return;
+                    }
+                }
+                tracing::info!(requested_file=file_path, remote_id=remote_id, build_event=build_event, "Build completed successfully");
+            }
+        }
+
+        // Start the change watcher
+        let (modified_sender, _modified_receiver) = channel(1);
+        let modified_sender_clone = modified_sender.clone();
+        let watch_paths = self.watch_paths.clone();
+        thread::spawn(move || {
+            // Closure to handle errors easily.
+            let run_thread = move || -> anyhow::Result<()> {
+                let (tx, rx) = std::sync::mpsc::channel();
+
+                // Create a watcher object, delivering debounced events.
+                // The notification back-end is selected based on the platform.
+                let mut watcher = watcher(tx, self.watch_merge_ns)?;
+
+                // Watch all files in the watch_paths (recursively if they are directories).
+                for path in &watch_paths {
+                    tracing::info!(path=path, "Recursively watching path for changes");
+                    watcher.watch(path, RecursiveMode::Recursive)?;
+                }
+
+                let mut cur_event = 1u64;
+                for _x in rx {
+                    // TODO: Event kind filtering?
+                    let notified = modified_sender_clone.send(cur_event)? - 1 /* initial receiver always available */;
+                    tracing::info!(cur_event=cur_event, "Notifying of file update to {} receivers", notified);
+                    cur_event += 1;
+                }
+
+                Err(anyhow::anyhow!("File watcher closed the events channel unexpectedly"))
+            };
+
+            match run_thread() {
+                Ok(_) => (),
+                Err(err) => {
+                    tracing::error!("File watcher thread failed: {}. Won't receive any more watch updates!", err);
+                }
+            }
+        });
+
+        // Create the main router pointing to the main handler
+        let router = Router::new().filter(AnyFilter {}).get(FileServerHandler {
+            cfg: self.clone(),
+            sender: modified_sender,
+            remote_events: Mutex::new(LruCache::new(64)), // Up to N clients (without races that may skip events)
+            last_build_event: Mutex::new(0),
+        });
 
         // Await forever serving requests
-        Server::new(TcpListener::bind((self.host, self.port)))
-            .serve(router).await;
+        // TODO: Graceful shutdown
+        let listener = TcpListener::bind((self.host, self.port));
+        tracing::info!(addr=listener.local_addr().to_string(), paths=format!("{:?}", self.serve_paths), "Listening for requests");
+        Server::new(listener).serve(router).await;
     }
 }

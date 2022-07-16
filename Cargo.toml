@@ -16,7 +16,8 @@ default = ["app", "server", "native"]
 
 # === ARCH-BASED FEATURES (only to select dependencies' features) ===
 web = ["wasmer/js-default", "poll-promise/web"]
-native = ["wasmer/sys-default", "poll-promise/tokio"]
+native = ["wasmer/sys", "wasmer/default-singlepass", # TODO: Faster wasm runtime that is slower to compile?
+    "wasmer/default-universal", "poll-promise/tokio"]
 
 # === FUNCTIONALITY-BASED FEATURES ===
 # The whole app that renders SDFs.
@@ -24,7 +25,7 @@ app = ["standalone", "sdf", "sdfdemo", # <-- other features
     "three-d", "eframe", "egui_glow", "image", "ehttp", "wasmi", "wasmer", "anyhow", "klask"]
 
 # The simple server to watch and serve files to the app.
-server = ["standalone", "salvo", "notify", "anyhow"]
+server = ["standalone", "salvo", "notify", "anyhow", "httpdate", "lru", "tokio/process"]
 
 # An executable that runs a program instead of providing an API, i.e., an app and/or a server
 standalone = [
@@ -58,6 +59,8 @@ ehttp = { version = "0.2", optional = true } # Very simple HTTP client that supp
 # === SERVER ===
 salvo = { version = "0.26", optional = true } # Simple HTTP server
 notify = { version = "4.0", optional = true } # Watch for file changes
+httpdate = { version = "1.0", optional = true } # Formatting of dates
+lru = { version = "0.7", optional = true } # For caching resources
 
 # === WEBASSEMBLY COMPILERS/INTERPRETERS ===
 wasmi = { version = "0.11", optional = true } # Low-overhead and cross-platform WebAssembly runtime

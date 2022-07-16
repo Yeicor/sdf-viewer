@@ -20,6 +20,8 @@ pub enum Commands {
     App(crate::app::cli::CliApp),
     #[cfg(feature = "server")]
     /// Run the server utility that watches the filesystem, compiles and provides the updated SDF to the app.
+    ///
+    /// Example for embedded demo: server -s target/wasm32-unknown-unknown/release/sdf_viewer.wasm -w src -b /bin/sh -b \\-c -b ".github/scripts/release-wasm-post.sh target/pkg/*.wasm"
     Server(crate::server::CliServer),
 }
 

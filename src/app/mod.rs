@@ -8,6 +8,8 @@ use eframe::egui::panel::{Side, TopBottomSide};
 use eframe::egui::util::hash;
 use klask::LocalizationSettings;
 use once_cell::sync::OnceCell;
+use std::sync::mpsc::TryRecvError;
+use std::sync::mpsc::Receiver;
 use tracing::{info, warn};
 
 use cli::SDFViewerAppSettings;
@@ -29,14 +31,17 @@ pub struct SDFViewerApp {
     /// The root SDF surface. This is static as it is generated with Box::leak.
     /// This is needed as we may only be rendering a sub-tree of the SDF.
     pub sdf: Rc<Box<dyn SDFSurface>>,
-    /// The currently loading SDF surface, that will replace the current [`sdf`] when ready.
-    /// It will be polled on update.
-    pub sdf_loading: Option<poll_promise::Promise<Box<(dyn SDFSurface + Send + Sync)>>>,
     // TODO: A loading (downloading/parsing/compiling wasm) indicator for the user.
     /// The SDF for which we are modifying the parameters, if any.
     pub selected_params_sdf: Option<Rc<Box<dyn SDFSurface>>>,
     /// The application's potentially partially edited settings, displayed in a window.
     pub settings_values: SDFViewerAppSettings,
+    // ===== LOADING =====
+    /// The currently loading SDF surface, that will replace the current [`sdf`] when ready.
+    /// It will be polled on update.
+    pub sdf_loading: Option<Receiver<Box<(dyn SDFSurface + Send + Sync)>>>,
+    /// The SDF loading manager: receives values to replace sdf_loading whenever an SDF update is detected.
+    pub sdf_loading_mgr: Option<Receiver<Receiver<Box<(dyn SDFSurface + Send + Sync)>>>>,
 }
 
 impl SDFViewerApp {
@@ -55,6 +60,7 @@ impl SDFViewerApp {
             progress: None,
             sdf: Rc::new(Box::new(SDFDemoCube::default())),
             sdf_loading: None,
+            sdf_loading_mgr: None,
             selected_params_sdf: None,
             settings_values: SDFViewerAppSettings::Configured { settings: cli_args },
         };
@@ -79,22 +85,51 @@ impl SDFViewerApp {
 
     /// Updates the root SDF using a promise that will be polled on update.
     /// When the promise is ready, [`set_root_sdf`](#method.set_root_sdf) will be called internally automatically.
-    pub fn set_root_sdf_loading(&mut self, promise: poll_promise::Promise<Box<(dyn SDFSurface + Send + Sync)>>) {
+    pub fn set_root_sdf_loading(&mut self, promise: Receiver<Box<(dyn SDFSurface + Send + Sync)>>) {
         self.sdf_loading = Some(promise);
+    }
+
+    /// Automatically queues updates for the root SDF using a promise that returns a promise of the updated SDF.
+    /// When the promise is ready, [`set_root_sdf`](#method.set_root_sdf) will be called internally automatically.
+    pub fn set_root_sdf_loading_manager(&mut self, promise: Receiver<Receiver<Box<(dyn SDFSurface + Send + Sync)>>>) {
+        self.sdf_loading_mgr = Some(promise);
     }
 
     /// Called on every update to check if we are ready to render the SDF that was loading.
     fn update_poll_loading_sdf(&mut self, ctx: &Context) {
-        // Poll the SDF loading promise if it is set
-        self.sdf_loading = if let Some(promise) = self.sdf_loading.take() {
-            match promise.try_take() {
-                Ok(new_root_sdf) => {
-                    self.set_root_sdf(new_root_sdf);
+        // Poll the SDF loading manager promise if it is set
+        self.sdf_loading_mgr = if let Some(receiver) = self.sdf_loading_mgr.take() {
+            match receiver.try_recv() {
+                Ok(new_root_sdf_loading) => {
+                    self.set_root_sdf_loading(new_root_sdf_loading);
+                    Some(receiver) // Keep connected for future updates
+                }
+                Err(TryRecvError::Empty) => {
+                    ctx.request_repaint(); // Request a repaint to keep polling the promise.
+                    // TODO: Less frequent repaints?
+                    Some(receiver)
+                }
+                Err(TryRecvError::Disconnected) => {
+                    warn!("sdf_loading_mgr disconnected, won't receive future updates");
                     None
                 }
-                Err(promise_again) => {
+            }
+        } else { None };
+        // Poll the SDF loading promise if it is set
+        self.sdf_loading = if let Some(receiver) = self.sdf_loading.take() {
+            match receiver.try_recv() {
+                Ok(new_root_sdf) => {
+                    self.set_root_sdf(new_root_sdf);
+                    None // Disconnect after the first update (more updates should generate another receiver to display progress)
+                }
+                Err(TryRecvError::Empty) => {
                     ctx.request_repaint(); // Request a repaint to keep polling the promise.
-                    Some(promise_again)
+                    // TODO: Less frequent repaints?
+                    Some(receiver)
+                }
+                Err(TryRecvError::Disconnected) => {
+                    warn!("sdf_loading disconnected, the update was lost");
+                    None
                 }
             }
         } else { None };
@@ -180,9 +215,6 @@ impl SDFViewerApp {
             .show(ctx, |ui| {
                 ScrollArea::new([true, true]).show(ui, |ui| {
                     egui::menu::bar(ui, |ui| {
-                        egui::menu::menu_button(ui, "📄 Open SDF", |_ui| {
-                            // TODO: Open and swap the new SDF manually inserted (url/file)
-                        });
                         // If settings are not already open, enable the settings button.
                         let (enabled, values) = match &self.settings_values {
                             SDFViewerAppSettings::Configured { settings: values } => (true, values.clone()),
