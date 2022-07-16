@@ -16,6 +16,6 @@ pub(crate) fn short_version_info() -> String {
 }
 
 #[allow(dead_code)] // Allow auto-generated code containing unused build metadata
-pub(crate) fn short_version_info_is_ours(s: &String) -> bool {
-    s.contains(&format!("{}", build::PROJECT_NAME))
+pub(crate) fn short_version_info_is_ours(s: &str) -> bool {
+    s.contains(&build::PROJECT_NAME.to_string())
 }

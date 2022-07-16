@@ -125,7 +125,7 @@ impl CliServer {
                 );
                 headers.insert(
                     salvo::http::header::SET_COOKIE,
-                    HeaderValue::from_str(&("server=".to_string()+&short_version_info())).unwrap(),
+                    HeaderValue::from_str(&("server=".to_string() + &short_version_info())).unwrap(),
                 );
 
                 // Validate file path
@@ -214,13 +214,13 @@ impl CliServer {
                         headers.insert(
                             salvo::http::header::CONTENT_LENGTH,
                             HeaderValue::from_str(&file_bytes.len().to_string())
-                                .unwrap_or(HeaderValue::from_str("error").unwrap()),
+                                .unwrap_or_else(|_| HeaderValue::from_str("error").unwrap()),
                         );
                         headers.insert(
                             salvo::http::header::LAST_MODIFIED,
                             HeaderValue::from_str(&fmt_http_date(
-                                metadata.modified().unwrap_or(SystemTime::now())))
-                                .unwrap_or(HeaderValue::from_str("error").unwrap()),
+                                metadata.modified().unwrap_or_else(|_| SystemTime::now())))
+                                .unwrap_or_else(|_| HeaderValue::from_str("error").unwrap()),
                         );
                         res.set_body(Body::from(salvo::hyper::Body::from(file_bytes)));
                     }
@@ -237,7 +237,7 @@ impl CliServer {
             async fn perform_build(&self, res: &mut Response, file_path: &str, remote_id: &String, build_event: u64) {
                 let mut cmd = tokio::process::Command::new(&self.cfg.build_command[0]);
                 cmd.args(self.cfg.build_command.iter().skip(1).map(|el|
-                    if el.starts_with('\\') { el[1..].to_string() } else { el.to_string() }))
+                    el.strip_prefix('\\').unwrap_or(el)))
                     .stdout(std::process::Stdio::inherit())
                     .stderr(std::process::Stdio::inherit());
                 tracing::info!(requested_file=file_path, remote_id=remote_id, cmd=format!("{:?}", cmd), "Starting build");

@@ -92,9 +92,9 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
             Ok(resp) => {
                 // If the server properly supports the ?watch query parameter, we can start checking for changes.
                 tracing::info!("HTTP headers: {:?}", resp.headers);
-                let mut supports_watching = // NOTE: This is a hacky way to detect whether the server supports the ?watch query parameter.
+                let supports_watching = // NOTE: This is a hacky way to detect whether the server supports the ?watch query parameter.
                     resp.headers.get("x-watch-supported").map(|_v| true).unwrap_or(false) ||
-                        resp.headers.get("server").map(|v| short_version_info_is_ours(v)).unwrap_or(false);
+                        resp.headers.get("server").map(|v| short_version_info_is_ours(v.as_ref())).unwrap_or(false);
                 // Web seems to have trouble recording the previous response headers, so try even harder
                 #[cfg(target_arch = "wasm32")]
                 {
