@@ -92,8 +92,15 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
             Ok(resp) => {
                 // If the server properly supports the ?watch query parameter, we can start checking for changes.
                 tracing::info!("HTTP headers: {:?}", resp.headers);
-                let supports_watching = resp.headers.get("server").map(|v|
-                    short_version_info_is_ours(v)).unwrap_or(false);
+                let mut supports_watching = // NOTE: This is a hacky way to detect whether the server supports the ?watch query parameter.
+                    resp.headers.get("x-watch-supported").map(|_v| true).unwrap_or(false) ||
+                        resp.headers.get("server").map(|v| short_version_info_is_ours(v)).unwrap_or(false);
+                // Web seems to have trouble recording the previous response headers, so try even harder
+                #[cfg(target_arch = "wasm32")]
+                {
+                    supports_watching = supports_watching ||
+                        resp.headers.get("expires").map(|v| v == "123456").unwrap_or(false);
+                }
                 if supports_watching {
                     tracing::info!("Server supports watching for file changes, enabling continuous updates.");
                     // Queue a ?watch request to the server, which will wait for source updates, recompile and return the new WASM file!

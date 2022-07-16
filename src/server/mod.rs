@@ -15,6 +15,7 @@ use salvo::routing::{Filter, PathState};
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::Mutex;
+
 use crate::metadata::short_version_info;
 
 #[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
@@ -29,7 +30,7 @@ pub struct CliServer {
     /// Wait for this amount of nanoseconds after each modification detected to merge modifications
     /// (for example, when saving multiple files at the same time).
     /// This is useful to avoid too many notifications, but adds a delay in the detection of changes.
-    #[clap(short = 't', long, parse(try_from_str = parse_duration_ns), default_value = "12345678")]
+    #[clap(short = 't', long, parse(try_from_str = parse_duration_ns), default_value = "123456789")]
     pub watch_merge_ns: Duration,
     /// An optional command to run when a file changes. Useful to automate builds watching source
     /// code changes instead of directly watching the build results.
@@ -104,7 +105,7 @@ impl CliServer {
                 );
                 headers.insert(
                     salvo::http::header::EXPIRES,
-                    HeaderValue::from_static("0"),
+                    HeaderValue::from_static("123456"),
                 );
                 headers.insert(
                     salvo::http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
@@ -122,6 +123,10 @@ impl CliServer {
                     salvo::http::header::SERVER,
                     HeaderValue::from_str(&short_version_info()).unwrap(),
                 );
+                headers.insert(
+                    salvo::http::header::SET_COOKIE,
+                    HeaderValue::from_str(&("server=".to_string()+&short_version_info())).unwrap(),
+                );
 
                 // Validate file path
                 if !self.cfg.serve_paths.iter().any(|p| p == file_path) {
@@ -138,6 +143,7 @@ impl CliServer {
                     // collisions if the same IP is used on multiple machines (NAT).
                     salvo::addr::SocketAddr::IPv4(addr) => Some(addr.ip().to_string()),
                     salvo::addr::SocketAddr::IPv6(addr) => Some(addr.ip().to_string()),
+                    #[cfg(unix)]
                     salvo::addr::SocketAddr::Unix(addr) => addr.as_pathname()
                         .map(|p| p.to_string_lossy().to_string()),
                 }).unwrap_or_else(|| "unknown".to_string());
