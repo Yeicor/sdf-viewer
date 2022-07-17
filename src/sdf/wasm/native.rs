@@ -1,4 +1,5 @@
 //! An optimized WebAssembly compiler/interpreter that runs at near-native speed!!!
+//! It also supports WASI!
 //! It may not support target platforms added in the future.
 
 use std::fmt::Debug;
@@ -7,6 +8,7 @@ use std::ops::RangeInclusive;
 
 use cgmath::{Vector3, Zero};
 use wasmer::*;
+use wasmer_wasi::*;
 
 use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::defaults::{children_default_impl, name_default_impl, parameters_default_impl, set_parameter_default_impl};
@@ -34,8 +36,17 @@ macro_rules! load_sdf_wasm_code {
                     Module::new(&store, wasm_bytes)?
                 }
             };
-            // The module shouldn't import anything, so we create an empty import object.
-            let import_object = imports! {};
+
+            // The module shouldn't import anything, except maybe WASI.
+            let wasi_state = WasiState::new("program_name")
+               // .env(b"HOME", "/home/home".to_string())
+               // .arg("--help")
+               // .preopen(|p| p.directory("src").read(true).write(true).create(true))?
+               // .preopen(|p| p.directory(".").alias("dot").read(true))?
+               .build()?;
+            let mut wasi_env = WasiEnv::new(wasi_state);
+            let import_object = wasi_env.import_object_for_all_wasi_versions(&module)?;
+
             let instance = { // HACK: chrome requires asynchronous instantiation
                 #[cfg(target_arch = "wasm32")]
                 {

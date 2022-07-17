@@ -15,14 +15,14 @@ crate-type = ["cdylib"] # Required for web (and Android...). Also publishes the 
 default = ["app", "server", "native"]
 
 # === ARCH-BASED FEATURES (only to select dependencies' features) ===
-web = ["wasmer/js-default", "poll-promise/web"]
+web = ["wasmer/js-default", "wasmer-wasi/js", "poll-promise/web"]
 native = ["wasmer/sys", "wasmer/default-singlepass", # TODO: Faster wasm runtime that is slower to compile?
-    "wasmer/default-universal", "poll-promise/tokio"]
+    "wasmer/default-universal", "wasmer-wasi/sys", "poll-promise/tokio"]
 
 # === FUNCTIONALITY-BASED FEATURES ===
 # The whole app that renders SDFs.
 app = ["standalone", "sdf", "sdfdemo", # <-- other features
-    "three-d", "eframe", "egui_glow", "image", "ehttp", "wasmi", "wasmer", "anyhow", "klask"]
+    "three-d", "eframe", "egui_glow", "image", "ehttp", "wasmi", "wasmer", "wasmer-wasi", "anyhow", "klask"]
 
 # The simple server to watch and serve files to the app.
 server = ["standalone", "salvo", "notify", "anyhow", "httpdate", "lru", "tokio/process"]
@@ -66,6 +66,7 @@ lru = { version = "0.7", optional = true } # For caching resources
 wasmi = { version = "0.11", optional = true } # Low-overhead and cross-platform WebAssembly runtime
 wasmer = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
 # Wasmer includes a patch to perform asynchronous compilation and instantiation of WASM modules (to work around chrome's enforced main thread compilation size limit).
+wasmer-wasi = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async", default-features = false, optional = true, features = ["mem-fs", "logging"] } # WASI runtime for wasmer
 
 # === CONFIGURATION & CLI ===
 clap = { version = "3.2", features = ["derive"], optional = true } # CLI parser

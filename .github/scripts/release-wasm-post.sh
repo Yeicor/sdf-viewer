@@ -12,8 +12,7 @@ cat >index.html <<EOF
 <html lang="en">
 <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
-    <meta name="viewport"
-          content="initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,width=320,height=device-height,target-densitydpi=device-dpi,user-scalable=yes"/>
+    <meta name="viewport" content="initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,width=320,height=device-height,user-scalable=yes"/>
     <title>SDF Viewer</title>
     <style>
         body {
