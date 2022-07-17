@@ -160,8 +160,12 @@ impl SDFViewer {
                         }
                         if update_required { // Only update if not already computed
                             // Actually sample the SDF.
-                            let sample = sdf.sample(pos, false);
+                            let mut sample = sdf.sample(pos, false);
                             data[flat_index][0] = sample.distance;
+                            if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
+                                // Avoid invisible objects if left as default with dark environment
+                                sample.color = Vector3::new(0.5, 0.5, 0.5);
+                            }
                             data[flat_index][1] = material::pack_color(sample.color);
                             data[flat_index][2] = material::pack_color(Vector3::new(sample.metallic, sample.roughness, sample.occlusion))
                             // info!("Updated voxel color {:?}", data[flat_index][1]);

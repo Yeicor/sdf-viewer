@@ -232,6 +232,17 @@ impl SDFViewerAppSettings {
                         .desired_width(ui.available_width())
                         .ui(ui)
                 });
+                ui.horizontal_wrapped(|ui| {
+                    ui.label("WEB: ");
+                    let cmd_args_str = cmd_args[1..].iter()
+                        .map(|arg| format!("cli{}", arg))
+                        .collect::<Vec<_>>()
+                        .join("&"); // TODO: Proper escaping
+                    let mut text_buf = "?".to_string() + &cmd_args_str;
+                    TextEdit::singleline(&mut text_buf) // Not editable, but copyable
+                        .desired_width(ui.available_width())
+                        .ui(ui)
+                });
 
                 action
             }).and_then(|r| r.inner.flatten());
