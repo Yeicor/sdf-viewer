@@ -17,7 +17,7 @@ pub fn id_default_impl(_slf: impl SDFSurface) -> u32 {
 /// Just a default implementation
 #[doc(hidden)]
 pub fn name_default_impl(_slf: impl SDFSurface) -> String {
-    "Root".to_string()
+    "Object".to_string()
 }
 
 /// Just a default implementation

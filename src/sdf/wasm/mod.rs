@@ -33,10 +33,8 @@
 //! of the previously returned value by that method. It should be used to properly free the memory.
 //!
 
-use crate::cli::env_get;
 use crate::sdf::SDFSurface;
 
-mod universal;
 mod native;
 
 /// See [`load_sdf_wasm`] for more information.
@@ -49,11 +47,7 @@ pub async fn load_sdf_wasm_send_sync(wasm_bytes: &[u8]) -> anyhow::Result<Box<dy
 /// It uses the default WebAssembly interpreter for the platform.
 #[allow(dead_code)] // Not used in the current implementation because Send + Sync is needed for the WebAssembly engine.
 pub async fn load_sdf_wasm(wasm_bytes: &[u8]) -> anyhow::Result<Box<dyn SDFSurface>> {
-    if env_get("wasm_universal").is_some() {
-        universal::load_sdf_wasm(wasm_bytes)
-    } else {
-        native::load_sdf_wasm(wasm_bytes).await
-    }
+    native::load_sdf_wasm(wasm_bytes).await
 }
 
 fn reinterpret_u32_as_i32(sdf_id: u32) -> i32 {

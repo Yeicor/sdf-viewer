@@ -43,7 +43,7 @@ pub trait SDFSurface {
         defaults::children_default_impl(self)
     }
 
-    /// An unique ID within this SDF hierarchy.
+    /// A unique ID within this SDF hierarchy.
     fn id(&self) -> u32 {
         defaults::id_default_impl(self)
     }
@@ -77,7 +77,7 @@ pub trait SDFSurface {
     /// [`changed`](#method.changed) calls for a similar effect.
     /// After returning Some(...) the implementation should assume that it was updated and no longer
     /// notify of that change (to avoid infinite loops).
-    /// This function is called very frequently so it should be very fast to avoid delaying frames.
+    /// This function is called very frequently, so it should be very fast to avoid delaying frames.
     fn changed(&self) -> Option<[Vector3<f32>; 2]> {
         defaults::changed_default_impl(self)
     }
