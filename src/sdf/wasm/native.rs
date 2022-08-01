@@ -359,7 +359,7 @@ impl SDFSurface for WasmerSDF {
                 /* SDFParamValueC */
                 let sdf_param_value_enum_type = /* enum index = u32 */
                     u32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
-                debug_assert_eq!(sdf_param_kind_enum_type, sdf_param_value_enum_type);
+                debug_assert_eq!(sdf_param_kind_enum_type, sdf_param_value_enum_type, "SDF param kind enum type {} != SDF param value enum type {}", sdf_param_kind_enum_type, sdf_param_value_enum_type);
                 cur_offset += size_of::<u32>();
                 let sdf_param_value = match sdf_param_value_enum_type {
                     0 => SDFParamValue::Boolean(sdf_param_mem[cur_offset] != 0) /* bool = u8 */,
@@ -431,13 +431,20 @@ impl SDFSurface for WasmerSDF {
             Some(mem_pointer) => mem_pointer,
             None => return set_parameter_default_impl(self, param_id, param_value), // Errors already logged
         };
-        let mem_bytes = self.read_memory(mem_pointer, 2 * size_of::<u32>());
+        let mem_bytes = self.read_memory(mem_pointer, 3 * size_of::<u32>());
         let mut cur_offset = 0;
         let enum_result_kind = u32::from_le_bytes(mem_bytes[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
         cur_offset += size_of::<u32>();
         let res = match enum_result_kind {
             0 => Ok(()),
-            1 => Err(String::from_utf8_lossy(&mem_bytes[cur_offset..]).to_string()),
+            1 => {
+                let error_string_ptr = u32::from_le_bytes(mem_bytes[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
+                cur_offset += size_of::<u32>();
+                let error_string_length = u32::from_le_bytes(mem_bytes[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
+                // cur_offset += size_of::<u32>();
+                let error_string_bytes = self.read_memory(error_string_ptr, error_string_length as usize);
+                Err(String::from_utf8_lossy(&error_string_bytes[..]).to_string())
+            },
             _ => {
                 debug_assert!(false, "Unknown SDF set parameter result kind enum type {}", enum_result_kind);
                 tracing::error!("Unknown SDF set parameter result kind enum type {}", enum_result_kind); // TODO: less logging in case of multiple errors
