@@ -45,21 +45,28 @@ impl SDFViewer {
         let max_voxels_side = max_voxels_side.unwrap_or(256);
         let bb_size = bb[1] - bb[0];
         let mut voxels = Vector3::new(0usize, 0usize, 0usize);
-        if bb_size.x > bb_size.y {
-            if bb_size.x > bb_size.z {
+        let max_dim = [bb_size.x, bb_size.y, bb_size.z].iter().enumerate().max_by(
+            |el, el2| el.1.partial_cmp(el2.1).unwrap()).unwrap().0;
+        match max_dim {
+            0 => {
                 voxels.x = max_voxels_side;
                 voxels.y = (max_voxels_side as f32 * bb_size.y / bb_size.x) as usize;
                 voxels.z = (max_voxels_side as f32 * bb_size.z / bb_size.x) as usize;
-            } else {
+            }
+            1 => {
                 voxels.x = (max_voxels_side as f32 * bb_size.x / bb_size.y) as usize;
                 voxels.y = max_voxels_side;
                 voxels.z = (max_voxels_side as f32 * bb_size.z / bb_size.y) as usize;
             }
-        } else {
-            voxels.x = (max_voxels_side as f32 * bb_size.x / bb_size.z) as usize;
-            voxels.y = (max_voxels_side as f32 * bb_size.y / bb_size.z) as usize;
-            voxels.z = max_voxels_side;
+            2 => {
+                voxels.x = (max_voxels_side as f32 * bb_size.x / bb_size.z) as usize;
+                voxels.y = (max_voxels_side as f32 * bb_size.y / bb_size.z) as usize;
+                voxels.z = max_voxels_side;
+            }
+            _ => unreachable!(),
         }
+        tracing::info!("Using {}x{}x{} voxels (dimensions: {}x{}x{})", voxels.x, voxels.y, voxels.z,
+            bb_size.x, bb_size.y, bb_size.z);
         Self::new_voxels(ctx, voxels, bb, loading_passes)
     }
 

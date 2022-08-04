@@ -1,4 +1,5 @@
 uniform vec3 cameraPosition;
+uniform mat4 viewProjection;
 uniform mat4 modelMatrix;// Geometry matrix.
 uniform vec4 surfaceColorTint;
 
@@ -97,7 +98,7 @@ vec3 sdfNormal(vec3 p) {
 }
 
 void main() {
-    const int steps = 200;
+    const int steps = 400;
     vec3 sdfBoundsSize = sdfBoundsMax - sdfBoundsMin;
     mat4 invModelMatrix = inverse(modelMatrix);
 
@@ -123,7 +124,7 @@ void main() {
                 const float minDistFromBounds = 0.00001;
                 rayPos = (invModelMatrix*vec4(pos, 1.0)).xyz;
                 rayPos += minDistFromBounds * rayDir;
-                continue; // This fixes the bug where if the surface touches the bounds it overlays everything else (why?!).
+                continue;// This fixes the bug where if the surface touches the bounds it overlays everything else (why?!).
             } else {
                 // Debug the number of steps and bounds: will break rendering order
                 //                outColor = vec4(float(i)/float(steps), 0.0, 0.0, 0.25);
@@ -153,8 +154,14 @@ void main() {
             outColor.a = surfaceColorTint.a;
 
             // Compute the depth to fix rendering order of multiple objects.
-            //float depth = length(cameraPosition - rayPos);
-            //gl_FragDepth = 0.5;// TODO: Figure out how to set this...
+            // TODO: Figure out how to set this...
+            // https://stackoverflow.com/a/12904072
+            float far=gl_DepthRange.far; float near=gl_DepthRange.near;
+            vec4 eye_space_pos = modelMatrix * vec4(rayPos, 1.0);
+            vec4 clip_space_pos = viewProjection * vec4(cameraPosition, 1.0);
+            float ndc_depth = clip_space_pos.z / clip_space_pos.w;
+            float depth = (((far-near) * ndc_depth) + near + far) / 2.0;
+            gl_FragDepth = depth;
             break;
         }
         rayPos += rayDir * sampleDist;

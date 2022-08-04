@@ -32,6 +32,9 @@
 //! If the <method>_free is available, it will be called after the data is used with the only argument
 //! of the previously returned value by that method. It should be used to properly free the memory.
 //!
+//! The WASM module may also optionally export the init() method with no arguments and no return value,
+//! which will be called once before any other method.
+//!
 
 use crate::sdf::SDFSurface;
 

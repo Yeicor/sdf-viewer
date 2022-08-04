@@ -58,6 +58,13 @@ macro_rules! load_sdf_wasm_code {
                 }
             };
 
+            // Call init() to initialize the module (optional).
+            if let Ok(init) = instance.exports.get_function("init") {
+                if let Err(err) = init.call(&[]) {
+                    tracing::error!("Calling init() failed: {:?}", err);
+                }
+            }
+
             // Cache the exports of the module.
             let memory = instance.exports.get_memory("memory")?.clone();
             let f_bounding_box = instance.exports.get_function("bounding_box")?.clone();
@@ -155,6 +162,8 @@ impl WasmerSDF {
     }
 
     fn write_memory(&self, mem_pointer: u32, to_write: &[u8]) {
+        // HACK: How to reserve free memory for this instead of randomly overwriting it?
+        // TODO: Maybe try malloc/free, which is published by tinygo binaries.
         #[allow(unused_unsafe)] // This is not unsafe on wasm32
         unsafe { // SAFETY: No data races.
             self.memory.uint8view()
@@ -182,7 +191,7 @@ impl SDFSurface for WasmerSDF {
             tracing::error!("Failed to get bounding box of wasm SDF with ID {}: {}", self.sdf_id, err);
             Box::new([])
         });
-        let mut res = [Vector3::<f32>::zero(); 2];
+        let mut res = [Vector3::<f32>::zero(), Vector3::<f32>::new(1.0, 1.0, 1.0)];
         let mem_pointer = match return_value_to_mem_pointer(&result) {
             Some(mem_pointer) => mem_pointer,
             None => return res, // Errors already logged
@@ -206,7 +215,7 @@ impl SDFSurface for WasmerSDF {
             Val::F32(p.z),
             Val::I32(if distance_only { 1 } else { 0 }),
         ]).unwrap_or_else(|err| {
-            tracing::error!("Failed to get bounding box of wasm SDF with ID {}: {}", self.sdf_id, err);
+            tracing::error!("Failed to get sample of wasm SDF with ID {}: {}", self.sdf_id, err);
             Box::new([])
         });
         let mem_pointer = match return_value_to_mem_pointer(&result) {
@@ -413,7 +422,6 @@ impl SDFSurface for WasmerSDF {
                 SDFParamValue::Int(value) => *value,
                 SDFParamValue::Float(value) => unsafe { *(value as *const f32 as *const i32) }, // f32 bits to i32
                 SDFParamValue::String(value) => {
-                    // HACK: How to reserve free memory for this instead of randomly overwriting it?
                     let write_string_address = 0x12345;
                     self.write_memory(write_string_address, value.as_bytes());
                     reinterpret_u32_as_i32(write_string_address)
@@ -444,7 +452,7 @@ impl SDFSurface for WasmerSDF {
                 // cur_offset += size_of::<u32>();
                 let error_string_bytes = self.read_memory(error_string_ptr, error_string_length as usize);
                 Err(String::from_utf8_lossy(&error_string_bytes[..]).to_string())
-            },
+            }
             _ => {
                 debug_assert!(false, "Unknown SDF set parameter result kind enum type {}", enum_result_kind);
                 tracing::error!("Unknown SDF set parameter result kind enum type {}", enum_result_kind); // TODO: less logging in case of multiple errors
@@ -512,7 +520,6 @@ impl SDFSurface for WasmerSDF {
             Val::F32(p.y),
             Val::F32(p.z),
             Val::I32({
-                // HACK: How to reserve free memory for this instead of randomly overwriting it?
                 let write_string_address = 0x12300;
                 self.write_memory(write_string_address, match eps {
                     None => &[0, 0, 0, 0],
