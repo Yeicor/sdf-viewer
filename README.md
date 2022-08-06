@@ -20,14 +20,12 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
 ## Features / future plans
 
 - [x] Cross-platform: desktop (Linux, Windows, MacOS) and web.
-    - [ ] MacOS is not tested but should work (help wanted for [CI](.github/workflows/release.yml)).
-    - [ ] Mobile support needs more work on the rendering dependencies.
 - [x] Cross-language: easy to integrate with most languages and frameworks.
     - [x] Works by building your code for wasm and running it at near-native speeds.
     - [x] [Rust demo](src/sdf/demo/ffi.rs), observable and customizable
       through [this link](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark).
     - [x] Development server to ease integration and allow remote rendering.
-    - [ ] Integration tutorial and list of available integrations.
+    - [x] Testing / feature showcase integration and list of [available integrations](#integrations).
 - [x] High-performance:
     - [x] Very-fast initialization on all platforms.
     - [x] Interactive framerate, even while loading (uses the GPU for viewing the SDF).
@@ -39,7 +37,9 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
     - [x] Upload your SDF to a server and display it anywhere by
       adding [?cliurl=\<url>](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark) to the link.
     - [ ] Export a triangle mesh (importing should be provided by your SDF library).
-- [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)s, [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
+- [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)
+  s, [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
+  and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
 
 ## Demo ([try it!](https://yeicor.github.io/sdf-viewer/?envdark))
 
@@ -49,6 +49,27 @@ low-resolution version of the object and iteratively increases the level of deta
 Parameters are configured from the UI, also rendering the changes in real time.
 
 ![demo.gif](.github/docs/demo.gif)
+
+Another slightly more complex example (see [sdf-viewer-go](https://github.com/Yeicor/sdf-viewer-go/) for more
+information):
+
+- It renders an object defined using the Go language.
+- It recompiles and reloads the SDF when a change in the code is detected
+
+![demo2.gif](https://github.com/Yeicor/sdf-viewer-go/raw/main/.github/docs/demo.gif)
+
+## Integrations
+
+| Repo                                                      | Language | Library                                                                                                               | Features                          | Notes                                                                                                     |
+|:----------------------------------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------|-----------------------------------|-----------------------------------------------------------------------------------------------------------|
+| [sdf-viewer](https://github.com/Yeicor/sdf-viewer/)       | Rust     | [Pure Rust](src/sdf/mod.rs)                                                                                           | Core<br/>Hierarchy<br/>Parameters | Demo / feature showcase<br/>Used for testing, not extensible                                              |
+| [sdf-viewer-go](https://github.com/Yeicor/sdf-viewer-go/) | Go       | [Pure Go](https://github.com/Yeicor/sdf-viewer-go/tree/main/sdf-viewer-go)<br/>[SDFX](https://github.com/deadsy/sdfx) | Core<br/>Hierarchy<br/>Parameters | May be used as a guide for implementing your own<br/>integration due to the simplicity of the Go language |
+
+**Feel free to create integrations for other languages and frameworks and add them to this list!**
+
+It is very simple to integrate with other languages and frameworks. The only requirement to provide support for a
+language is the ability to compile to WASM exporting at least the core methods (getting bounding box and sampling the
+distance at any point).
 
 ## Building
 
