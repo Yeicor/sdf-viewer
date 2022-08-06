@@ -1,5 +1,4 @@
 uniform vec3 cameraPosition;
-uniform mat4 viewProjection;
 uniform mat4 modelMatrix;// Geometry matrix.
 uniform vec4 surfaceColorTint;
 
@@ -154,14 +153,8 @@ void main() {
             outColor.a = surfaceColorTint.a;
 
             // Compute the depth to fix rendering order of multiple objects.
-            // TODO: Figure out how to set this...
-            // https://stackoverflow.com/a/12904072
-            float far=gl_DepthRange.far; float near=gl_DepthRange.near;
-            vec4 eye_space_pos = modelMatrix * vec4(rayPos, 1.0);
-            vec4 clip_space_pos = viewProjection * vec4(cameraPosition, 1.0);
-            float ndc_depth = clip_space_pos.z / clip_space_pos.w;
-            float depth = (((far-near) * ndc_depth) + near + far) / 2.0;
-            gl_FragDepth = depth;
+            //float depth = length(cameraPosition - rayPos);
+            //gl_FragDepth = 0.5;// TODO: Figure out how to set this...
             break;
         }
         rayPos += rayDir * sampleDist;
