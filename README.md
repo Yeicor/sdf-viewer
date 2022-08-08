@@ -37,8 +37,7 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
     - [x] Upload your SDF to a server and display it anywhere by
       adding [?cliurl=\<url>](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark) to the link.
     - [ ] Export a triangle mesh (importing should be provided by your SDF library).
-- [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)
-  s, [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
+- [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)s, [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
   and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
 
 ## Demo ([try it!](https://yeicor.github.io/sdf-viewer/?envdark))
@@ -71,7 +70,21 @@ It is very simple to integrate with other languages and frameworks. The only req
 language is the ability to compile to WASM exporting at least the core methods (getting bounding box and sampling the
 distance at any point).
 
-## Building
+## Implementation details
+
+### Rendering
+
+The renderer is a GPU-accelerated raytracer. To take the SDF definition written for the CPU and render it with the GPU, I had to fill a 3D texture that is then raytraced by a shader. This 3D texture represents samples of the SDF in the 3D grid that contains the object. Each sample contains the distance to the surface and some other material properties like the color and roughness.
+
+Afterward, [this GLSL shader](https://github.com/Yeicor/sdf-viewer/blob/master/src/app/scene/sdf/material.frag) does the actual rendering. This shader is applied to a cuboid mesh that represents the bounding box of the object. The mesh is useful for only raytracing the part of the screen that may reach the object, and for extracting the rays for each pixel from the hit points. The shader simply walks along the ray for each pixel, moving by the amount of distance reported by the SDF on each position. If the surface is reached at some point, the normal is computed and the lighting is applied for the material saved in the closest voxel. To get the distance at a point that does not match the grid, interpolation is applied, leading to round corners if the level of detail is not high enough.
+
+The distance function must always be equal to or underestimate the distance to the closest point on the surface of the 3D model. An invalid SDF would cause rendering issues such as "stairs" when looking at a flat surface at an angle. Using this renderer is a nice way of testing for issues while developing objects for an SDF library.
+
+I chose raytracing instead of meshing as building a detailed mesh is slower. While loading the SDF into the 3D texture mentioned above, the shader is capable of rendering a real-time preview of the object, which provides much better interactivity. This is enhanced by the fact that I do several passes to the grid slowly increasing the level of detail by filling more voxels with data, in a way similar to [bitmap interlacing](https://en.wikipedia.org/wiki/Interlacing_(bitmaps)).
+
+A high-quality meshing algorithm that preserves sharp features should be applied to get the final model, but the objective of this app is to interactively render previews while designing 3D models through code.
+
+### Building
 
 All [releases](https://github.com/Yeicor/sdf-viewer/releases) include builds for most platforms.
 Follow the [release.yml](.github/workflows/release.yml) workflow to learn how to build the project by yourself.
