@@ -89,3 +89,14 @@ A high-quality meshing algorithm that preserves sharp features should be applied
 All [releases](https://github.com/Yeicor/sdf-viewer/releases) include builds for most platforms.
 Follow the [release.yml](.github/workflows/release.yml) workflow to learn how to build the project by yourself.
 
+## More demos
+
+### Running on Android
+
+After using [Termux](https://termux.dev/en/) (a terminal app for Android) to install all dependencies and compile from sources [SDF Viewer](https://github.com/Yeicor/sdf-viewer), [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go) and [TinyGo](https://tinygo.org/), you can run everything on your phone without the need for any other device. This demo follows the commands from [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go).
+
+![demo](https://user-images.githubusercontent.com/4929005/183480469-cc52dd14-a386-4955-bdb9-eca22a3b844c.gif)
+
+You can even do everything on the same screen:
+
+![Screenshot_20220808-193511_Termux](https://user-images.githubusercontent.com/4929005/183480629-b6873d67-4f9e-4838-8db1-dc39f2129ace.png)
