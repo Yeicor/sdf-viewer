@@ -1,4 +1,4 @@
-# SDF Viewer ([demo below](#demo-try-it))
+# SDF Viewer ([demo](#demo-try-it), [workflow](#workflow))
 
 *A fast and cross-platform Signed Distance Function (SDF) viewer, easily integrated with your SDF library.*
 
@@ -36,7 +36,7 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
 - [x] Compatible:
     - [x] Upload your SDF to a server and display it anywhere by
       adding [?cliurl=\<url>](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark) to the link.
-    - [ ] Export a triangle mesh (importing should be provided by your SDF library).
+    - [x] The same SDF definition file works on all platforms thanks to WebAssembly.
 - [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)s, [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
   and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
 
@@ -56,6 +56,30 @@ information):
 - It recompiles and reloads the SDF when a change in the code is detected
 
 ![demo2.gif](https://github.com/Yeicor/sdf-viewer-go/raw/main/.github/docs/demo.gif)
+
+## Workflow
+
+These are the steps to follow to start using SDF Viewer.
+
+1. Choose an [integration](#integrations) depending on your preferred language and SDF library.
+2. Copy an example project from the integration's repository.
+3. Compile the source code to generate a WebAssembly file (see documentation of repo).
+4. Display the WebAssembly file that defines the SDF with the app.
+    1. If running the native app, use the CLI to set the path to the file or URL (`sdf-viewer app url <wasm-file>`).
+    2. If running on a web browser, start a server to provide the file and add `?cliurl=<link-to-wasm-file>` to the URL.
+    3. In both cases, you can also use the Settings window inside the app to set the URL.
+
+Any change to the sources of the SDF would require you to repeat steps 3 and 4 to display the updated version.
+This is a bit cumbersome, so the `server` subcommand was created to automate these steps. You give it a set of
+files or folders to watch, a compile command and the generated wasm file path and it will automatically perform these steps
+for you. It will also serve the wasm file at an URL that you can give the app and, in addition, it will notify the app of
+any update, automatically providing the new wasm file.
+
+The `server` subcommand simplifies the workflow to:
+
+1. Start the `server` subcommand with the correct arguments.
+2. Start the `app` subcommand pointing to the server's URL.
+3. Profit! Whenever you modify and save your source code, the new SDF will automatically be displayed by the app.
 
 ## Integrations
 
@@ -89,3 +113,14 @@ A high-quality meshing algorithm that preserves sharp features should be applied
 All [releases](https://github.com/Yeicor/sdf-viewer/releases) include builds for most platforms.
 Follow the [release.yml](.github/workflows/release.yml) workflow to learn how to build the project by yourself.
 
+## More demos
+
+### Running on Android
+
+After using [Termux](https://termux.dev/en/) (a terminal app for Android) to install all dependencies and compile from sources [SDF Viewer](https://github.com/Yeicor/sdf-viewer), [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go) and [TinyGo](https://tinygo.org/), you can run everything on your phone without the need for any other device. This demo follows the commands from [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go).
+
+![demo](https://user-images.githubusercontent.com/4929005/183480469-cc52dd14-a386-4955-bdb9-eca22a3b844c.gif)
+
+You can even do everything on the same screen:
+
+![Screenshot_20220808-193511_Termux](https://user-images.githubusercontent.com/4929005/183480629-b6873d67-4f9e-4838-8db1-dc39f2129ace.png)
