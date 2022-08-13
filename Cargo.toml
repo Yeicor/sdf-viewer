@@ -17,7 +17,8 @@ default = ["app", "server", "native"]
 # === ARCH-BASED FEATURES (only to select dependencies' features) ===
 web = ["wasmer/js-default", "wasmer-wasi/js", "poll-promise/web"]
 native = ["wasmer/sys", "wasmer/default-singlepass", # TODO: Faster wasm runtime that is slower to compile?
-    "wasmer/default-universal", "wasmer-wasi/sys", "poll-promise/tokio"]
+    "wasmer/default-universal", "wasmer-wasi/sys", "native_no_wasmer"]
+native_no_wasmer = ["poll-promise/tokio"] # Android (Termux) server-only builds can't compile wasmer (and don't need it).
 
 # === FUNCTIONALITY-BASED FEATURES ===
 # The whole app that renders SDFs.

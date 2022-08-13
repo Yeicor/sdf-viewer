@@ -1,5 +1,5 @@
 use cgmath::{vec3, Vector3};
-use three_d::{Blend, Camera, Color, Cull, DepthTest, GeometryFunction, Light, LightingModel, lights_shader_source, Material, NormalDistributionFunction, RenderStates, Texture3D, ThreeDResult};
+use three_d::{Blend, Camera, Color, Cull, DepthTest, GeometryFunction, Light, LightingModel, lights_shader_source, Mat4, Material, NormalDistributionFunction, RenderStates, Texture3D, ThreeDResult};
 use three_d::core::Program;
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
@@ -53,6 +53,7 @@ impl Material for SDFViewerMaterial {
         }
 
         program.use_uniform("cameraPosition", camera.position())?;
+        /*program.use_uniform("BVP", bvp_matrix(camera))?;*/
         program.use_uniform("surfaceColorTint", self.color)?;
 
         program.use_texture_3d("sdfTex", &self.voxels)?;
@@ -78,6 +79,14 @@ impl Material for SDFViewerMaterial {
         false
     }
 }
+
+/*// Copied from https://github.com/asny/three-d/blob/9914fc1eb76dee2cb2a58dc781a59085bc413b10/src/renderer/light.rs#L143
+fn bvp_matrix(camera: &Camera) -> Mat4 {
+    let bias_matrix = Mat4::new(
+        0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0,
+    );
+    bias_matrix * camera.projection() * camera.view()
+}*/
 
 // Utility to pack a RGB ([0, 1]) color into a single float in the [0, 1] range.
 // WARNING: GLSL highp floats are 24-bit long!

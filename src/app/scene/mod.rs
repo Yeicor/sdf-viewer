@@ -130,12 +130,12 @@ impl SDFViewerAppScene {
         }
 
         // Load the scene TODO: custom user-defined objects (gltf) with transforms
-        // let tmp_mesh = Mesh::new(&ctx, &CpuMesh::cone(20)).unwrap();
-        // let mut tmp_material = CpuMaterial::default();
-        // tmp_material.albedo = Color::new_opaque(25, 125, 225);
-        // let tmp_object = Gm::new(
-        //     tmp_mesh, PhysicalMaterial::new(&ctx, &tmp_material).unwrap());
-        // objects.push(Box::new(tmp_object));
+        /*let tmp_mesh = Mesh::new(&ctx, &CpuMesh::cube()).unwrap();
+        let mut tmp_material = CpuMaterial::default();
+        tmp_material.albedo = Color::new_opaque(25, 125, 225);
+        let tmp_object = Gm::new(
+            tmp_mesh, PhysicalMaterial::new(&ctx, &tmp_material).unwrap());
+        objects.push(Box::new(tmp_object));*/
 
         // Create more lights
         lights.push(Box::new(DirectionalLight::new(
