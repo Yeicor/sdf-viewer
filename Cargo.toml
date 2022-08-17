@@ -45,7 +45,7 @@ sdfdemoffi = ["sdfdemo"]
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { version = "0.12", default-features = false, features = [], optional = true }
+three-d = { version = "0.13", default-features = false, features = [], optional = true }
 eframe = { version = "0.18", features = ["persistence"], optional = true }
 egui_glow = { version = "0.18", optional = true }
 image = { version = "0.24", optional = true }  # Required for image loading
