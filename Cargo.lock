@@ -3077,7 +3077,7 @@ dependencies = [
 
 [[package]]
 name = "sdf-viewer"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "anyhow",
  "approx 0.5.1",
