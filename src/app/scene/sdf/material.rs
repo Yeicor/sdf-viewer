@@ -1,5 +1,5 @@
 use cgmath::{vec3, Vector3};
-use three_d::{Blend, Camera, Color, Cull, DepthTest, GeometryFunction, Light, LightingModel, lights_shader_source, Mat4, Material, NormalDistributionFunction, RenderStates, Texture3D, ThreeDResult};
+use three_d::{Blend, Camera, Color, Cull, GeometryFunction, Light, LightingModel, lights_shader_source, Material, MaterialType, NormalDistributionFunction, RenderStates, Texture3D};
 use three_d::core::Program;
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
@@ -47,46 +47,44 @@ impl Material for SDFViewerMaterial {
         program: &Program,
         camera: &Camera,
         lights: &[&dyn Light],
-    ) -> ThreeDResult<()> {
+    ) {
         for (i, light) in lights.iter().enumerate() {
-            light.use_uniforms(program, i as u32)?;
+            light.use_uniforms(program, i as u32);
         }
 
-        program.use_uniform("cameraPosition", camera.position())?;
-        /*program.use_uniform("BVP", bvp_matrix(camera))?;*/
-        program.use_uniform("surfaceColorTint", self.color)?;
+        program.use_uniform("cameraPosition", camera.position());
+        // program.use_uniform("BVP", bvp_matrix(camera));
+        program.use_uniform("surfaceColorTint", self.color);
 
-        program.use_texture_3d("sdfTex", &self.voxels)?;
-        program.use_uniform("sdfBoundsMin", self.voxels_bounds[0])?;
-        program.use_uniform("sdfBoundsMax", self.voxels_bounds[1])?;
+        program.use_texture_3d("sdfTex", &self.voxels);
+        program.use_uniform("sdfBoundsMin", self.voxels_bounds[0]);
+        program.use_uniform("sdfBoundsMax", self.voxels_bounds[1]);
         program.use_uniform("sdfTexSize", vec3(
-            self.voxels.width() as f32, self.voxels.height() as f32, self.voxels.depth() as f32))?;
-        program.use_uniform("sdfLODDistBetweenSamples", self.lod_dist_between_samples)?;
-        program.use_uniform("sdfThreshold", self.threshold)?;
-        Ok(())
+            self.voxels.width() as f32, self.voxels.height() as f32, self.voxels.depth() as f32));
+        program.use_uniform("sdfLODDistBetweenSamples", self.lod_dist_between_samples);
+        program.use_uniform("sdfThreshold", self.threshold);
     }
 
     fn render_states(&self) -> RenderStates {
         RenderStates {
-            blend: Blend::TRANSPARENCY, // TODO: breaks opaque surfaces if used anywhere?!
+            blend: Blend::TRANSPARENCY,
             cull: Cull::None, // Also draw the inside
-            depth_test: DepthTest::Less, // FIXME: If surface touches borders, artifacts happen
             ..Default::default()
         }
     }
 
-    fn is_transparent(&self) -> bool {
-        false
+    fn material_type(&self) -> MaterialType {
+        MaterialType::Transparent
     }
 }
 
-/*// Copied from https://github.com/asny/three-d/blob/9914fc1eb76dee2cb2a58dc781a59085bc413b10/src/renderer/light.rs#L143
-fn bvp_matrix(camera: &Camera) -> Mat4 {
-    let bias_matrix = Mat4::new(
-        0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0,
-    );
-    bias_matrix * camera.projection() * camera.view()
-}*/
+// Copied from https://github.com/asny/three-d/blob/9914fc1eb76dee2cb2a58dc781a59085bc413b10/src/renderer/light.rs#L143
+// fn bvp_matrix(camera: &Camera) -> Mat4 {
+//     let bias_matrix = Mat4::new(
+//         0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0,
+//     );
+//     bias_matrix * camera.projection() * camera.view()
+// }
 
 // Utility to pack a RGB ([0, 1]) color into a single float in the [0, 1] range.
 // WARNING: GLSL highp floats are 24-bit long!

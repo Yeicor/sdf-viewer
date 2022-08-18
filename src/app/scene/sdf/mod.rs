@@ -84,9 +84,9 @@ impl SDFViewer {
             wrap_t: Wrapping::MirroredRepeat,
             wrap_r: Wrapping::MirroredRepeat,
         };
-        let mesh = Mesh::new(ctx, &cube_with_bounds(bb)).unwrap();
+        let mesh = Mesh::new(ctx, &cube_with_bounds(bb));
         let material = SDFViewerMaterial::new(
-            Texture3D::new(ctx, &texture).unwrap(), *bb);
+            Texture3D::new(ctx, &texture), *bb);
         let volume = Gm::new(mesh, material);
         Self {
             texture,
@@ -194,7 +194,7 @@ impl SDFViewer {
         vol_mut.material.voxels.fill(match &self.texture.data {
             TextureData::RgbaF32(d) => { d.as_slice() }
             _ => panic!("developer error: expected RgbaF32 texture data"),
-        }).unwrap();
+        });
         vol_mut.material.lod_dist_between_samples = 2f32.pow(self.loading_mgr.passes_left() as u8);
         if vol_mut.material.lod_dist_between_samples == 1. {
             unsafe { // OpenGL calls are always unsafe

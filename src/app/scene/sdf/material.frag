@@ -1,6 +1,6 @@
 uniform vec3 cameraPosition;
 uniform mat4 modelMatrix;// Geometry matrix.
-/*uniform mat4 BVP;*/
+//uniform mat4 BVP;
 uniform vec4 surfaceColorTint;
 
 uniform sampler3D sdfTex;
@@ -154,8 +154,8 @@ void main() {
             outColor.a = surfaceColorTint.a;
 
             // Compute the depth to fix rendering order of multiple objects.
-            /*vec4 rayPosProj = BVP * vec4(rayPos, 1.0); // TODO: Figure out how to set this...
-            gl_FragDepth = rayPosProj.z / rayPosProj.w;*/
+//            vec4 rayPosProj = BVP * vec4(pos, 1.0); // TODO: Figure out how to set this...
+//            gl_FragDepth = rayPosProj.z / rayPosProj.w;
             break;
         }
         rayPos += rayDir * sampleDist;

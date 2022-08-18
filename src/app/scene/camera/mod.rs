@@ -27,7 +27,7 @@ impl CameraController {
             width: viewport.width_px.round().max(1.0) as _,
             height: viewport.height_px.round().max(1.0) as _,
         };
-        self.camera.set_viewport(viewport).unwrap();
+        self.camera.set_viewport(viewport);
         // Handle inputs
         if egui_resp.hovered() { // If interacting with the widget
             let state = egui_resp.ctx.input();
@@ -50,7 +50,7 @@ impl CameraController {
                     let target = *self.camera.target();
                     let zoom_dist = self.camera.position().distance(target);
                     let delta = dragged_delta * self.sensitivity * 0.05 * zoom_dist;
-                    self.camera.rotate_around(&target, delta.x as f32, delta.y as f32).unwrap();
+                    self.camera.rotate_around(&target, delta.x as f32, delta.y as f32);
                 } else {
                     self.is_rotating = Some(false);
                     // Move the camera target
@@ -60,7 +60,7 @@ impl CameraController {
                     let right_direction = self.camera.right_direction();
                     let up_direction = right_direction.cross(self.camera.view_direction());
                     let delta_camera_space = right_direction * -delta.x + up_direction * delta.y;
-                    self.camera.translate(&delta_camera_space).unwrap();
+                    self.camera.translate(&delta_camera_space);
                 }
             } else {
                 self.is_rotating = None;
@@ -74,7 +74,7 @@ impl CameraController {
                 let new_distance = (distance - delta).max(0.01).min(1000.0);
                 let new_position = target - self.camera.view_direction() * new_distance;
                 let up = *self.camera.up();
-                self.camera.set_view(new_position, target, up).unwrap();
+                self.camera.set_view(new_position, target, up);
             }
         }
         // self.camera_ctrl.handle_events(&mut self.camera, &mut events).unwrap();

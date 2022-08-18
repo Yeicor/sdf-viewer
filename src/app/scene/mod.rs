@@ -84,7 +84,6 @@ impl SDFViewerAppScene {
     pub fn new(ctx: Context, sdf: Rc<Box<dyn SDFSurface>>) -> Self {
         // Create the camera
         let camera = Camera::new_perspective(
-            &ctx,
             Viewport { x: 0, y: 0, width: 0, height: 0 }, // Updated at runtime
             vec3(2.5, 3.0, 5.0),
             vec3(0.0, 0.0, 0.0),
@@ -92,7 +91,7 @@ impl SDFViewerAppScene {
             degrees(45.0),
             0.1,
             1000.0,
-        ).unwrap();
+        );
 
         // 3D objects and lights
         let mut objects: Vec<Box<dyn Object>> = vec![];
@@ -120,28 +119,31 @@ impl SDFViewerAppScene {
                 ..CpuTexture::default()
             };
             let skybox = Skybox::new_from_equirectangular(
-                &ctx, &skybox_texture).unwrap();
+                &ctx, &skybox_texture);
             let ambient_light = AmbientLight::new_with_environment(
-                &ctx, 1.0, Color::WHITE, skybox.texture()).unwrap();
+                &ctx, 1.0, Color::WHITE, skybox.texture());
             objects.push(Box::new(skybox));
             lights.push(Box::new(ambient_light));
         } else {
-            lights.push(Box::new(AmbientLight::new(&ctx, 0.25, Color::WHITE).unwrap()));
+            lights.push(Box::new(AmbientLight::new(&ctx, 0.25, Color::WHITE)));
         }
 
         // Load the scene TODO: custom user-defined objects (gltf) with transforms
-        /*let tmp_mesh = Mesh::new(&ctx, &CpuMesh::cube()).unwrap();
-        let mut tmp_material = CpuMaterial::default();
-        tmp_material.albedo = Color::new_opaque(25, 125, 225);
-        let tmp_object = Gm::new(
-            tmp_mesh, PhysicalMaterial::new(&ctx, &tmp_material).unwrap());
-        objects.push(Box::new(tmp_object));*/
+        // let mut tmp_mesh = Mesh::new(&ctx, &CpuMesh::cube());
+        // tmp_mesh.set_transformation(Mat4::from_translation(vec3(1.0, 0.0, 0.0)));
+        // let mut tmp_material = CpuMaterial::default();
+        // tmp_material.albedo = Color::new(25, 125, 225, 128);
+        // let mut tmp_material = PhysicalMaterial::new_transparent(&ctx, &tmp_material);
+        // tmp_material.render_states.cull = Cull::Back;
+        // tmp_material.render_states.blend = Blend::TRANSPARENCY;
+        // let tmp_object = Gm::new(tmp_mesh, tmp_material);
+        // objects.push(Box::new(tmp_object));
 
         // Create more lights
         lights.push(Box::new(DirectionalLight::new(
-            &ctx, 2.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0)).unwrap()));
+            &ctx, 2.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0))));
         lights.push(Box::new(DirectionalLight::new(
-            &ctx, 0.5, Color::WHITE, &vec3(1.0, 1.0, 1.0)).unwrap()));
+            &ctx, 0.5, Color::WHITE, &vec3(1.0, 1.0, 1.0))));
 
         Self {
             ctx,
@@ -197,9 +199,9 @@ impl SDFViewerAppScene {
         self.ctx.set_scissor(scissor_box);
         let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
         for obj in &self.objects {
-            obj.render(&self.camera.camera, lights.as_slice()).unwrap();
+            obj.render(&self.camera.camera, lights.as_slice());
         }
-        self.sdf_viewer.volume.render(&self.camera.camera, lights.as_slice()).unwrap();
+        self.sdf_viewer.volume.render(&self.camera.camera, lights.as_slice());
     }
 
     /// Reports the progress of the SDF loading
