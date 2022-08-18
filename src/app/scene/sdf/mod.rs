@@ -20,7 +20,9 @@ pub mod loading;
 /// The SDF viewer controller, that synchronizes the CPU and GPU sides.
 pub struct SDFViewer {
     /// The CPU side of the 3D SDF texture.
-    pub texture: CpuTexture3D,
+    pub tex0: CpuTexture3D,
+    /// The CPU side of the 3D SDF texture.
+    pub tex1: CpuTexture3D,
     /// The GPU-side mesh and material, including the 3D GPU texture.
     pub volume: Rc<RefCell<Gm<Mesh, SDFViewerMaterial>>>,
     /// Controls the iterative algorithm used to fill the SDF texture (to provide faster previews).
@@ -84,12 +86,16 @@ impl SDFViewer {
             wrap_t: Wrapping::MirroredRepeat,
             wrap_r: Wrapping::MirroredRepeat,
         };
+        let texture1 = texture.clone();
         let mesh = Mesh::new(ctx, &cube_with_bounds(bb));
         let material = SDFViewerMaterial::new(
-            Texture3D::new(ctx, &texture), *bb);
+            Texture3D::new(ctx, &texture),
+            Texture3D::new(ctx, &texture1),
+            *bb);
         let volume = Gm::new(mesh, material);
         Self {
-            texture,
+            tex0: texture,
+            tex1: texture1,
             volume: Rc::new(RefCell::new(volume)),
             loading_mgr: LoadingManager::new(voxels, loading_passes),
             bounding_box: *bb,
@@ -136,50 +142,58 @@ impl SDFViewer {
             }
         }
 
-        // Declare some variables to control the iterations.
+        // Declare some variables to control the iterations and cache some values.
         let mut first = true;
         let start_iter = self.loading_mgr.iterations();
         let sdf_bb = self.bounding_box;
         let sdf_bb_size = sdf_bb[1] - sdf_bb[0];
-        let texture_size_minus_1 = Vector3::new(self.texture.width as f32 - 1., self.texture.height as f32 - 1., self.texture.depth as f32 - 1.);
+        let texture_size_minus_1 = Vector3::new(self.tex0.width as f32 - 1., self.tex0.height as f32 - 1., self.tex0.depth as f32 - 1.);
         let start_time = instant::Instant::now();
+        let tex1_data_ref = match &mut self.tex1.data {
+            TextureData::RgbaF32(data) => data,
+            _ => panic!("developer error: expected RgbaF32 texture data"),
+        };
+        let tex0_data_ref = match &mut self.tex0.data {
+            TextureData::RgbaF32(data) => data,
+            _ => panic!("developer error: expected RgbaF32 texture data"),
+        };
 
         // Start sampling the SDF on the CPU to prepare the data for the GPU, as long as there is time.
         while first || start_time.elapsed() < max_delta_time {
             first = false; // TODO: Cross-platform parallel iteration?
             if let Some(index) = self.loading_mgr.next() {
-                match &mut self.texture.data {
-                    TextureData::RgbaF32(data) => {
-                        // Compute the flat index: 3D texture data is in the row-major order.
-                        let flat_index = (index.z * self.texture.height as usize + index.y) * self.texture.width as usize + index.x;
-                        // Compute the position in the SDF surface.
-                        let mut pos = Vector3::new(index.x as f32, index.y as f32, index.z as f32);
-                        pos.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
-                        pos.mul_assign_element_wise(sdf_bb_size);
-                        pos.add_assign(sdf_bb[0]);
-                        // Check if the update is required: was AIR on initial load, or has changed since.
-                        let mut update_required = data[flat_index][0] == AIR_DIST;
-                        if let Some(changed_box) = self.changed_box {
-                            update_required = update_required ||
-                                pos.x >= changed_box[0].x && pos.x <= changed_box[1].x &&
-                                    pos.y >= changed_box[0].y && pos.y <= changed_box[1].y &&
-                                    pos.z >= changed_box[0].z && pos.z <= changed_box[1].z;
-                        }
-                        if update_required { // Only update if not already computed
-                            // Actually sample the SDF.
-                            let mut sample = sdf.sample(pos, false);
-                            data[flat_index][0] = sample.distance;
-                            if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
-                                // Avoid invisible objects if left as default with dark environment
-                                sample.color = Vector3::new(0.5, 0.5, 0.5);
-                            }
-                            data[flat_index][1] = material::pack_color(sample.color);
-                            data[flat_index][2] = material::pack_color(Vector3::new(sample.metallic, sample.roughness, sample.occlusion))
-                            // info!("Updated voxel color {:?}", data[flat_index][1]);
-                            // TODO: Provide more voxel data to the shader, like a material kind index for using custom GLSL code.
-                        }
+                // Compute the flat index: 3D texture data is in the row-major order.
+                let flat_index = (index.z * self.tex0.height as usize + index.y) * self.tex0.width as usize + index.x;
+                // Compute the position in the SDF surface.
+                let mut pos = Vector3::new(index.x as f32, index.y as f32, index.z as f32);
+                pos.div_assign_element_wise(texture_size_minus_1); // Normalize to [0, 1]
+                pos.mul_assign_element_wise(sdf_bb_size);
+                pos.add_assign(sdf_bb[0]);
+                // Check if the update is required: was AIR on initial load, or has changed since.
+                let mut update_required = tex0_data_ref[flat_index][0] == AIR_DIST;
+                if let Some(changed_box) = self.changed_box {
+                    update_required = update_required ||
+                        pos.x >= changed_box[0].x && pos.x <= changed_box[1].x &&
+                            pos.y >= changed_box[0].y && pos.y <= changed_box[1].y &&
+                            pos.z >= changed_box[0].z && pos.z <= changed_box[1].z;
+                }
+                if update_required { // Only update if not already computed
+                    // Actually sample the SDF.
+                    let mut sample = sdf.sample(pos, false);
+                    tex0_data_ref[flat_index][0] = sample.distance;
+                    if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
+                        // Avoid invisible objects if left as default with dark environment
+                        sample.color = Vector3::new(0.5, 0.5, 0.5);
                     }
-                    _ => panic!("developer error: expected RgbaF32 texture data"),
+                    tex0_data_ref[flat_index][1] = sample.color.x.powf(2.2); // RGB -> sRGB?
+                    tex0_data_ref[flat_index][2] = sample.color.y.powf(2.2);
+                    tex0_data_ref[flat_index][3] = sample.color.z.powf(2.2);
+                    tex1_data_ref[flat_index][0] = sample.metallic;
+                    tex1_data_ref[flat_index][1] = sample.roughness;
+                    // NOTE: Default occlusion is 1, to use the ambient light by default
+                    tex1_data_ref[flat_index][2] = if sample.occlusion <= 0.0 { 1.0 } else { sample.occlusion };
+                    // info!("Updated voxel color {:?}", data[flat_index][1]);
+                    // TODO: Provide more voxel data to the shader, like a material kind index for using custom GLSL code.
                 }
             } else {
                 break; // No more work to do!
@@ -191,21 +205,33 @@ impl SDFViewer {
     /// Commits all previous `update`s to the GPU, updating the GPU-side texture data.
     pub fn commit(&mut self) {
         let mut vol_mut = self.volume.borrow_mut();
-        vol_mut.material.voxels.fill(match &self.texture.data {
+        vol_mut.material.tex0.fill(match &self.tex0.data {
             TextureData::RgbaF32(d) => { d.as_slice() }
             _ => panic!("developer error: expected RgbaF32 texture data"),
         });
         vol_mut.material.lod_dist_between_samples = 2f32.pow(self.loading_mgr.passes_left() as u8);
         if vol_mut.material.lod_dist_between_samples == 1. {
-            unsafe { // OpenGL calls are always unsafe
-                // The texture is bound by previous fill call
-                self.ctx.tex_parameter_i32(context::TEXTURE_3D,
-                                           context::TEXTURE_MIN_FILTER,
-                                           context::LINEAR as i32);
-                self.ctx.tex_parameter_i32(context::TEXTURE_3D,
-                                           context::TEXTURE_MAG_FILTER,
-                                           context::LINEAR as i32);
-            }
+            // NOTE: The texture is bound by previous fill call
+            self.set_texture_3d_filter_linear()
+        }
+        vol_mut.material.tex1.fill(match &self.tex1.data {
+            TextureData::RgbaF32(d) => { d.as_slice() }
+            _ => panic!("developer error: expected RgbaF32 texture data"),
+        });
+        if vol_mut.material.lod_dist_between_samples == 1. {
+            // NOTE: The texture is bound by previous fill call
+            self.set_texture_3d_filter_linear()
+        }
+    }
+
+    fn set_texture_3d_filter_linear(&self) {
+        unsafe { // OpenGL calls are always unsafe
+            self.ctx.tex_parameter_i32(context::TEXTURE_3D,
+                                       context::TEXTURE_MIN_FILTER,
+                                       context::LINEAR as i32);
+            self.ctx.tex_parameter_i32(context::TEXTURE_3D,
+                                       context::TEXTURE_MAG_FILTER,
+                                       context::LINEAR as i32);
         }
     }
 }

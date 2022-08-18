@@ -5,7 +5,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 
-use cgmath::{ElementWise, Vector2, Vector3, Zero};
+use cgmath::{Vector2, Vector3, Zero};
 
 use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::{RcRefCellBool, RcRefCellF32};
@@ -179,7 +179,7 @@ impl SDFSurface for SDFDemoCube {
 
 /// Creates a new SDF sample using an example procedural brick texture.
 fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) -> SDFSample {
-    const BRICK_COLOR: Vector3<f32> = Vector3::new(1., 15. / 255., 12. / 255.);
+    const BRICK_COLOR: Vector3<f32> = Vector3::new(188. / 255., 74. / 255., 60. / 255.);
     const BRICK_WIDTH: f32 = 0.5;
     const BRICK_HEIGHT: f32 = 0.25;
     const CEMENT_COLOR: Vector3<f32> = Vector3::new(126. / 255., 130. / 255., 116. / 255.);
@@ -189,10 +189,7 @@ fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) ->
     let compute_tex2d = |tex_coord: Vector2<f32>| {
         let row_num = tex_coord.y / BRICK_HEIGHT;
         let brick_offset = row_num.floor() / 4.;
-        let brick_num = (tex_coord.x + brick_offset) / BRICK_WIDTH;
         let brick_coords = Vector2::new((tex_coord.x + brick_offset).abs() % BRICK_WIDTH, tex_coord.y.abs() % BRICK_HEIGHT);
-        let mut brick_rand = Vector3::new(brick_num, row_num, brick_num.floor() + row_num.floor());
-        brick_rand = brick_rand.map(|x| (x.floor() + 1000.).powf(1.432).fract() * 0.1 + 0.95);
         let max_cement_displacement = CEMENT_THICKNESS / 2.0 * BRICK_HEIGHT;
         if brick_coords.x < max_cement_displacement || brick_coords.x > BRICK_WIDTH - max_cement_displacement ||
             brick_coords.y < max_cement_displacement || brick_coords.y > BRICK_HEIGHT - max_cement_displacement {
@@ -200,7 +197,7 @@ fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) ->
             (CEMENT_COLOR, 0.4, 0.5, 1.0)
         } else {
             // Brick
-            (BRICK_COLOR.mul_element_wise(brick_rand), 0.2, 0.8, 0.0)
+            (BRICK_COLOR, 0.2, 0.8, 0.0)
         }
     };
 

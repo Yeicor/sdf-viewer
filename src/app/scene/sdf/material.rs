@@ -5,8 +5,10 @@ use three_d::core::Program;
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
 /// with any transformation, which represents the bounding box of the SDF.
 pub struct SDFViewerMaterial {
-    /// The voxel data that defines the isosurface.
-    pub voxels: Texture3D,
+    /// For each voxel, contains the distance in the red channel, and the color in the other channels.
+    pub tex0: Texture3D,
+    /// For each voxel, Contains the material properties.
+    pub tex1: Texture3D,
     /// The bounds in world space of the voxel data stored in the 3D texture.
     pub voxels_bounds: [Vector3<f32>; 2],
     /// See `SDFViewer::update`. Determines how many voxels should be used to define the isosurface.
@@ -21,9 +23,10 @@ pub struct SDFViewerMaterial {
 }
 
 impl SDFViewerMaterial {
-    pub fn new(voxels: Texture3D, voxels_bounds: [Vector3<f32>; 2]) -> Self {
+    pub fn new(tex0: Texture3D, tex1: Texture3D, voxels_bounds: [Vector3<f32>; 2]) -> Self {
         Self {
-            voxels,
+            tex0,
+            tex1,
             voxels_bounds,
             lod_dist_between_samples: 1f32,
             threshold: 0.0,
@@ -56,11 +59,12 @@ impl Material for SDFViewerMaterial {
         // program.use_uniform("BVP", bvp_matrix(camera));
         program.use_uniform("surfaceColorTint", self.color);
 
-        program.use_texture_3d("sdfTex", &self.voxels);
+        program.use_texture_3d("sdfTex0", &self.tex0);
+        program.use_texture_3d("sdfTex1", &self.tex1);
         program.use_uniform("sdfBoundsMin", self.voxels_bounds[0]);
         program.use_uniform("sdfBoundsMax", self.voxels_bounds[1]);
         program.use_uniform("sdfTexSize", vec3(
-            self.voxels.width() as f32, self.voxels.height() as f32, self.voxels.depth() as f32));
+            self.tex0.width() as f32, self.tex0.height() as f32, self.tex0.depth() as f32));
         program.use_uniform("sdfLODDistBetweenSamples", self.lod_dist_between_samples);
         program.use_uniform("sdfThreshold", self.threshold);
     }
@@ -85,53 +89,3 @@ impl Material for SDFViewerMaterial {
 //     );
 //     bias_matrix * camera.projection() * camera.view()
 // }
-
-// Utility to pack a RGB ([0, 1]) color into a single float in the [0, 1] range.
-// WARNING: GLSL highp floats are 24-bit long!
-// WARNING: Keep in sync with GPU code!
-// FIXME: Still some weird artifacts when changing colors in a gradient.
-pub fn pack_color(color: Vector3<f32>) -> f32 {
-    const PRECISION: f32 = 4.0;
-    const PRECISION_P1: f32 = PRECISION + 1.0;
-    let components = color.map(|c| c.min(1.0).max(0.0))
-        .map(|c| (c * PRECISION + 0.5).floor());
-    (components.x + components.y * PRECISION_P1 + components.z * PRECISION_P1 * PRECISION_P1)
-        / (PRECISION_P1 * PRECISION_P1 * PRECISION_P1)
-}
-
-#[cfg(test)]
-mod test {
-    use cgmath::{MetricSpace, Vector3};
-
-    use crate::app::scene::sdf::material::pack_color;
-
-    pub fn unpack_color(packed: f32) -> Vector3<f32> {
-        const PRECISION: f32 = 4.0;
-        const PRECISION_P1: f32 = PRECISION + 1.0;
-        let packed = packed * (PRECISION_P1 * PRECISION_P1 * PRECISION_P1);
-        let x = (packed % PRECISION_P1) / PRECISION;
-        let y = ((packed / PRECISION_P1).floor() % PRECISION_P1) / PRECISION;
-        let z = (packed / (PRECISION_P1 * PRECISION_P1)).floor() / PRECISION;
-        Vector3::new(x, y, z)
-    }
-
-    #[test]
-    fn test_pack_color() {
-        // Pack and unpack all colors performing basic sanity checks.
-        const PRECISION: f32 = 4.0;
-        let mut max_packed: f32 = 0.0;
-        for x in 0..=255 {
-            for y in 0..=255 {
-                for z in 0..=255 {
-                    let color = Vector3::new(x as f32 / 255.0, y as f32 / 255.0, z as f32 / 255.0);
-                    let packed = pack_color(color);
-                    max_packed = max_packed.max(packed);
-                    let unpacked = unpack_color(packed);
-                    // println!("{:?} --[{:?}]--> {:?}", color, packed, unpacked);
-                    approx::assert_relative_eq!(color.distance(unpacked).abs(), 0.0, epsilon = 1.0 / PRECISION);
-                }
-            }
-        }
-        println!("Max packed value: {}", max_packed);
-    }
-}
