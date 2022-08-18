@@ -23,6 +23,9 @@ pub enum Commands {
     ///
     /// Example for embedded demo: server -s target/wasm32-unknown-unknown/release/sdf_viewer.wasm -w src -b /bin/sh -b \\-c -b ".github/scripts/release-wasm-post.sh target/pkg/*.wasm"
     Server(crate::server::CliServer),
+    #[cfg(feature = "meshers")]
+    /// Directly generate a mesh from the SDF using the specified meshing algorithm.
+    Mesh(crate::sdf::meshers::CliMesher),
 }
 
 /// This holds the environment, as it is unsupported but abstracted on web.

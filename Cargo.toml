@@ -12,7 +12,7 @@ crate-type = ["cdylib"] # Required for web (and Android...). Also publishes the 
 
 [features]
 # By default build the app and the server (if not on wasm).
-default = ["app", "server", "native"]
+default = ["app", "server", "meshers", "native"]
 
 # === ARCH-BASED FEATURES (only to select dependencies' features) ===
 web = ["wasmer/js-default", "wasmer-wasi/js", "poll-promise/web"]
@@ -22,11 +22,16 @@ native_no_wasmer = ["poll-promise/tokio"] # Android (Termux) server-only builds 
 
 # === FUNCTIONALITY-BASED FEATURES ===
 # The whole app that renders SDFs.
-app = ["standalone", "sdf", "sdfdemo", # <-- other features
-    "three-d", "eframe", "egui_glow", "image", "ehttp", "wasmer", "wasmer-wasi", "anyhow", "klask"]
+app = ["standalone", "sdf", "sdfdemo", "wasminterpreters", # <-- other features
+    "three-d", "eframe", "egui_glow", "image", "ehttp", "anyhow", "klask"]
 
 # The simple server to watch and serve files to the app.
-server = ["standalone", "salvo", "notify", "anyhow", "httpdate", "lru", "tokio/process"]
+server = ["standalone", # <-- other features
+    "salvo", "notify", "anyhow", "httpdate", "lru", "tokio/process"]
+
+# Convert the SDF to a 3D model. Adds a command and a toolbar option (if app) for generating triangle meshes
+meshers = ["standalone", "sdf", "wasminterpreters", # <-- other features
+    "ply-rs", "isosurface"]
 
 # An executable that runs a program instead of providing an API, i.e., an app and/or a server
 standalone = [
@@ -41,6 +46,9 @@ sdfdemo = ["sdf"]
 
 # Publishes the demo SDF through FFI to be able to export it as a WASM file to be interpreted by the app.
 sdfdemoffi = ["sdfdemo"]
+
+# The wasm interpreters are neede for the app and the meshers, so a new feature is needed for convenience.
+wasminterpreters = ["wasmer", "wasmer-wasi"]
 
 # ========== DEPENDENCIES ==========
 [dependencies]
@@ -72,6 +80,10 @@ wasmer-wasi = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async"
 clap = { version = "3.2", features = ["derive"], optional = true } # CLI parser
 klask = { git = "https://github.com/Yeicor/klask", branch = "all-my-requests", optional = true }  # CLI to GUI converter
 shadow-rs = { version = "0.16", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
+
+# === MESHERS ===
+ply-rs = { version = "0.1", optional = true } # Mesh output format
+isosurface = { git = "https://github.com/swiftcoder/isosurface", optional = true } # Generate triangle meshes from SDFs
 
 # === MISC ===
 auto_impl = { version = "1.0", optional = true } # Automatic trait implementations for Box<_>, &_, etc.

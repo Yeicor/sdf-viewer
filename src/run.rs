@@ -1,6 +1,7 @@
 use tracing::info;
 
 use crate::cli::{Cli, Commands};
+use crate::cli::Commands::Mesh;
 use crate::metadata::log_version_info;
 
 #[cfg(feature = "app")]
@@ -21,7 +22,7 @@ pub async fn setup_app() -> AppCreator {
 
     match args.command {
         #[cfg(feature = "app")]
-        Commands::App(app_args) => {
+        Commands::App(app_args) => { // Start the GUI app
             Some(Box::new(move |cc| {
                 Box::new(crate::app::SDFViewerApp::new(cc, app_args))
             }))
@@ -29,6 +30,11 @@ pub async fn setup_app() -> AppCreator {
         #[cfg(feature = "server")]
         Commands::Server(srv) => { // Runs the server forever
             srv.run().await;
+            None
+        }
+        #[cfg(feature = "meshers")]
+        Mesh(mesher) => { // Run the meshing algorithm and exit
+            mesher.run().await;
             None
         }
     }

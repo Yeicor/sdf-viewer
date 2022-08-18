@@ -30,14 +30,14 @@ jobs:
         name: Test
         with:
           command: test
-          args: --features "app server sdfdemo" --lib # Test different feature combinations?
+          args: --features "app server sdfdemo meshers" --lib # Test different feature combinations?
 
       - run: rustup component add clippy # rustfmt
       - name: Install clippy extras
         run: cargo install clippy-sarif sarif-fmt
       - name: Run rust-clippy
         run:
-          cargo clippy --features "app server sdfdemo" --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+          cargo clippy --features "app server sdfdemo meshers" --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
         continue-on-error: true
       - name: Upload analysis results to GitHub
         uses: github/codeql-action/upload-sarif@v2

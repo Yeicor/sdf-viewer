@@ -9,6 +9,9 @@ pub mod demo;
 #[cfg(feature = "app")] // Main WebAssembly SDF implementations only available for the app
 pub mod wasm;
 
+#[cfg(feature = "meshers")]
+pub mod meshers;
+
 // TODO: Native library external SDF implementation?
 // TODO: Remote REST API SDF implementation?
 
