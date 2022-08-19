@@ -19,7 +19,7 @@ mod mesh;
 mod isosurface;
 
 /// Export your SDF by converting it to a triangle mesh compatible with most 3D modelling tools.
-#[derive(clap::Parser, Debug, Clone, PartialEq, Default)]
+#[derive(clap::Parser, Debug, Clone, PartialEq, Eq, Default)]
 pub struct CliMesher {
     /// Input file or URL: .wasm file representing a SDF.
     /// If using the GUI, this will be overwritten with the current root SDF.
