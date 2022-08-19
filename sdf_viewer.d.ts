@@ -18,6 +18,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly run_app: (a: number, b: number) => number;
+  readonly evaluateSVD: (a: number, b: number, c: number, d: number) => void;
   readonly __wbg_wasmerruntimeerror_free: (a: number) => void;
   readonly __wbindgen_export_0: (a: number) => number;
   readonly __wbindgen_export_1: (a: number, b: number, c: number) => number;

@@ -37,7 +37,9 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
     - [x] Upload your SDF to a server and display it anywhere by
       adding [?cliurl=\<url>](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark) to the link.
     - [x] The same SDF definition file works on all platforms thanks to WebAssembly.
-- [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)s, [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
+    - [x] [Export](#exporting) your SDF as a standard triangle mesh with colors, compatible with most tools.
+- [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)s,
+  [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
   and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
 
 ## Demo ([try it!](https://yeicor.github.io/sdf-viewer/?envdark))
@@ -71,15 +73,31 @@ These are the steps to follow to start using SDF Viewer.
 
 Any change to the sources of the SDF would require you to repeat steps 3 and 4 to display the updated version.
 This is a bit cumbersome, so the `server` subcommand was created to automate these steps. You give it a set of
-files or folders to watch, a compile command and the generated wasm file path and it will automatically perform these steps
-for you. It will also serve the wasm file at an URL that you can give the app and, in addition, it will notify the app of
+files or folders to watch, a compile command and the generated wasm file path and it will automatically perform these
+steps
+for you. It will also serve the wasm file at an URL that you can give the app and, in addition, it will notify the app
+of
 any update, automatically providing the new wasm file.
 
 The `server` subcommand simplifies the workflow to:
 
-1. Start the `server` subcommand with the correct arguments.
-2. Start the `app` subcommand pointing to the server's URL.
+1. Start the `server` subcommand with the correct arguments (see `server --help`).
+2. Start the `app` subcommand pointing to the server's URL (see `app --help`).
 3. Profit! Whenever you modify and save your source code, the new SDF will automatically be displayed by the app.
+
+*Note that all subcommands are also available in the menu bar of the application window. You can read the docs and
+execute them from the app itself!*
+
+### Exporting
+
+Once you are ready to export your SDF, you can use the `mesh` subcommand (or UI button) to export it as a standard
+triangle mesh. You'll have to select and configure a meshing algorithm.
+The output is in the [`PLY`](http://paulbourke.net/dataformats/ply/) format, as it is simple (text-based), and can
+contain material information embedded in the same file. You can easily view it and convert it to other formats with
+tools like [meshlab](https://www.meshlab.net/).
+
+Note that this is a lossy operation (the triangles of the mesh only approximate the underlying SDF), and you should keep
+the source code or the wasm file in order to export higher quality meshes in the future.
 
 ## Integrations
 
@@ -98,15 +116,31 @@ distance at any point).
 
 ### Rendering
 
-The renderer is a GPU-accelerated raytracer. To take the SDF definition written for the CPU and render it with the GPU, I had to fill a 3D texture that is then raytraced by a shader. This 3D texture represents samples of the SDF in the 3D grid that contains the object. Each sample contains the distance to the surface and some other material properties like the color and roughness.
+The renderer is a GPU-accelerated raytracer. To take the SDF definition written for the CPU and render it with the GPU,
+I had to fill a 3D texture that is then raytraced by a shader. This 3D texture represents samples of the SDF in the 3D
+grid that contains the object. Each sample contains the distance to the surface and some other material properties like
+the color and roughness.
 
-Afterward, [this GLSL shader](https://github.com/Yeicor/sdf-viewer/blob/master/src/app/scene/sdf/material.frag) does the actual rendering. This shader is applied to a cuboid mesh that represents the bounding box of the object. The mesh is useful for only raytracing the part of the screen that may reach the object, and for extracting the rays for each pixel from the hit points. The shader simply walks along the ray for each pixel, moving by the amount of distance reported by the SDF on each position. If the surface is reached at some point, the normal is computed and the lighting is applied for the material saved in the closest voxel. To get the distance at a point that does not match the grid, interpolation is applied, leading to round corners if the level of detail is not high enough.
+Afterward, [this GLSL shader](https://github.com/Yeicor/sdf-viewer/blob/master/src/app/scene/sdf/material.frag) does the
+actual rendering. This shader is applied to a cuboid mesh that represents the bounding box of the object. The mesh is
+useful for only raytracing the part of the screen that may reach the object, and for extracting the rays for each pixel
+from the hit points. The shader simply walks along the ray for each pixel, moving by the amount of distance reported by
+the SDF on each position. If the surface is reached at some point, the normal is computed and the lighting is applied
+for the material saved in the closest voxel. To get the distance at a point that does not match the grid, interpolation
+is applied, leading to round corners if the level of detail is not high enough.
 
-The distance function must always be equal to or underestimate the distance to the closest point on the surface of the 3D model. An invalid SDF would cause rendering issues such as "stairs" when looking at a flat surface at an angle. Using this renderer is a nice way of testing for issues while developing objects for an SDF library.
+The distance function must always be equal to or underestimate the distance to the closest point on the surface of the
+3D model. An invalid SDF would cause rendering issues such as "stairs" when looking at a flat surface at an angle. Using
+this renderer is a nice way of testing for issues while developing objects for an SDF library.
 
-I chose raytracing instead of meshing as building a detailed mesh is slower. While loading the SDF into the 3D texture mentioned above, the shader is capable of rendering a real-time preview of the object, which provides much better interactivity. This is enhanced by the fact that I do several passes to the grid slowly increasing the level of detail by filling more voxels with data, in a way similar to [bitmap interlacing](https://en.wikipedia.org/wiki/Interlacing_(bitmaps)).
+I chose raytracing instead of meshing as building a detailed mesh is slower. While loading the SDF into the 3D texture
+mentioned above, the shader is capable of rendering a real-time preview of the object, which provides much better
+interactivity. This is enhanced by the fact that I do several passes to the grid slowly increasing the level of detail
+by filling more voxels with data, in a way similar
+to [bitmap interlacing](https://en.wikipedia.org/wiki/Interlacing_(bitmaps)).
 
-A high-quality meshing algorithm that preserves sharp features should be applied to get the final model, but the objective of this app is to interactively render previews while designing 3D models through code.
+A high-quality meshing algorithm that preserves sharp features should be applied to get the final model, but the
+objective of this app is to interactively render previews while designing 3D models through code.
 
 ### Building
 
@@ -117,10 +151,17 @@ Follow the [release.yml](.github/workflows/release.yml) workflow to learn how to
 
 ### Running on Android
 
-After using [Termux](https://termux.dev/en/) (a terminal app for Android) to install all dependencies and compile from sources [SDF Viewer](https://github.com/Yeicor/sdf-viewer), [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go) and [TinyGo](https://tinygo.org/), you can run everything on your phone without the need for any other device. This demo follows the commands from [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go).
+After using [Termux](https://termux.dev/en/) (a terminal app for Android) to install all dependencies and compile from
+sources [SDF Viewer](https://github.com/Yeicor/sdf-viewer), [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go)
+and [TinyGo](https://tinygo.org/), you can run everything on your phone without the need for any other device. This demo
+follows the commands from [SDF Viewer Go](https://github.com/Yeicor/sdf-viewer-go).
 
 ![demo](https://user-images.githubusercontent.com/4929005/183480469-cc52dd14-a386-4955-bdb9-eca22a3b844c.gif)
 
 You can even do everything on the same screen:
 
 ![Screenshot_20220808-193511_Termux](https://user-images.githubusercontent.com/4929005/183480629-b6873d67-4f9e-4838-8db1-dc39f2129ace.png)
+
+### v1.1.0: Better commands UI and exporting triangle meshes
+
+![Demo export](https://user-images.githubusercontent.com/4929005/185709943-f0b68ec6-86a4-4652-84d5-48c2ae3c07b6.png)
