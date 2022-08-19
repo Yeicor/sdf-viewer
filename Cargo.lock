@@ -3088,18 +3088,18 @@ checksum = "4501abdff3ae82a1c1b477a17252eb69cee9e66eb915c1abaa4f44d873df9f09"
 
 [[package]]
 name = "salvo"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58880555dcf7356d471cc315bb6ee6bf405133ead83691c039fedce3167021e9"
+checksum = "8f10b55d8f26cdf0dd48a1bac558f54198490334867f4c7541cee56ccda05f62"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo_core"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69b55577c05357a7e561bd7ea4769073a1b19e5e0278c10f8fcf5c28a7b9a3e7"
+checksum = "007709115c256a25f3abf06cb60a124a61cab7c1e08105805b4da8145ee0d5e4"
 dependencies = [
  "Inflector",
  "async-compression",
@@ -3139,9 +3139,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43d51bf10cc4bf7d26ed4e4be37a542016449ebc5ef2de6c667615b85224a6cb"
+checksum = "88591e21a764e3272e74220e771a5ab358fbf1a4f76a0f28ea7d7e057beeeebc"
 dependencies = [
  "Inflector",
  "darling 0.14.1",
@@ -3205,6 +3205,7 @@ dependencies = [
  "image",
  "instant",
  "isosurface",
+ "js-sys",
  "klask",
  "lru",
  "notify",

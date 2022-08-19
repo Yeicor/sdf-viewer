@@ -12,12 +12,11 @@ use wasmer_wasi::*;
 
 use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::defaults::{children_default_impl, name_default_impl, parameters_default_impl, set_parameter_default_impl};
-
 use crate::sdf::wasm::util::reinterpret_i32_as_u32;
 use crate::sdf::wasm::util::reinterpret_u32_as_i32;
 
 #[cfg(all(not(feature = "web"), target_arch = "wasm32"))]
-compile_error!("On wasm32 targets, you need to enable the js feature to be able to run wasmer.");
+compile_error!("On wasm32 targets, you need to enable the web feature (and disable any native* features).");
 
 macro_rules! load_sdf_wasm_code {
     ($name: ident, $kind: ty) => {
@@ -29,6 +28,8 @@ macro_rules! load_sdf_wasm_code {
             let module = { // HACK: chrome requires asynchronous compilation
                 #[cfg(target_arch = "wasm32")]
                 {
+                    // HACK: Basic validation because the wasm32 wasmer crate doesn't do it for us.
+                    Module::validate(&store, wasm_bytes)?;
                     Module::new(&store, wasm_bytes).await?
                 }
                 #[cfg(not(target_arch = "wasm32"))]

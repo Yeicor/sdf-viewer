@@ -194,7 +194,7 @@ impl CliServer {
                 }
 
                 // "Compile" if configured (no way to know if needed)
-                if build_event == 0 {
+                if build_event == 0 && !self.cfg.build_command.is_empty() {
                     self.perform_build(res, file_path, &remote_id, build_event).await;
                 }
 

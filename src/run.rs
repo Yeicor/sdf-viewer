@@ -1,7 +1,6 @@
 use tracing::info;
 
 use crate::cli::{Cli, Commands};
-use crate::cli::Commands::Mesh;
 use crate::metadata::log_version_info;
 
 #[cfg(feature = "app")]
@@ -33,7 +32,7 @@ pub async fn setup_app() -> AppCreator {
             None
         }
         #[cfg(feature = "meshers")]
-        Mesh(mesher) => { // Run the meshing algorithm and exit
+        Commands::Mesh(mesher) => { // Run the meshing algorithm and exit
             mesher.run_cli().await.unwrap();
             None
         }

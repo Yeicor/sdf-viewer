@@ -1,8 +1,9 @@
 use std::future::Future;
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
 
+use anyhow::anyhow;
 use ehttp::Request;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::metadata::short_version_info_is_ours;
 use crate::sdf::demo::SDFDemo;
@@ -30,17 +31,30 @@ pub fn load_sdf_from_path_or_url(sender_of_updates: Sender<Receiver<Box<dyn SDFS
     });
 }
 
-/// Native: creates a new runtime that blocks on the given task.
-/// Web: spawns the asynchronous task (should not block the main thread)
-pub fn block_on_or_spawn_async(fut: impl Future<Output=()> + 'static) {
-    #[cfg(target_arch = "wasm32")]
-    {
-        wasm_bindgen_futures::spawn_local(fut);
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        // ehttp::fetch creates a new thread on native, which needs a new tokio runtime!
-        tokio::runtime::Runtime::new().unwrap().block_on(fut);
+/// Native: creates a new thread with a new async runtime that blocks on the given task.
+/// Web: spawns the asynchronous task.
+///
+/// The new_runtime parameter is required in native to specify if the current thread has a runtime or not.
+/// Both cases will continue the execution even if the task is not completed.
+#[cfg(target_arch = "wasm32")]
+pub fn spawn_async(fut: impl Future<Output=()> + 'static, _new_runtime: bool) {
+    wasm_bindgen_futures::spawn_local(fut);
+}
+
+/// Native: creates a new thread with a new async runtime that blocks on the given task.
+/// Web: spawns the asynchronous task. Note that it SHOULD NOT BLOCK as it actually runs concurrently
+/// in the main thread.
+///
+/// The new_runtime parameter is required in native to specify if the current thread has a runtime or not.
+/// Both cases will continue the execution even if the task is not completed.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_async(fut: impl Future<Output=()> + Send + 'static, new_runtime: bool) {
+    if !new_runtime {
+        // After creating a new thread on native, it needs a new tokio runtime to block on a future!
+        tokio::spawn(fut);
+    } else {
+        // To follow the convention of not blocking, we create a new thread for the runtime and return immediately.
+        std::thread::spawn(move || tokio::runtime::Runtime::new().unwrap().block_on(fut));
     }
 }
 
@@ -50,8 +64,11 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
                             sender_of_updates: Sender<Receiver<Box<dyn SDFSurface + Send + Sync>>>) {
     // First, try to request the file as an URL on any platform (with some fallbacks).
     let fut = async move {
-        let (sender_single_update, receiver_single_update) = mpsc::channel();
-        sender_of_updates.send(receiver_single_update).unwrap();
+        let (sender_single_update, receiver_single_update) = mpsc::channel(1);
+        if let Err(_) = sender_of_updates.send(receiver_single_update).await {
+            tracing::warn!("The listener ignored our update notification, won't send more notifications");
+            return; // Stop recursion here
+        }
         let res = match data {
             Ok(resp) => {
                 // If the server properly supports the ?watch query parameter, we can start checking for changes.
@@ -83,18 +100,18 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
             }
             Err(err_str) => Err(anyhow::anyhow!(err_str)),
         };
-        match res {
+        let channel_send_err = match res {
             Ok(sdf) => { // If successful, load it now
-                sender_single_update.send(sdf).unwrap();
+                sender_single_update.send(sdf).await.map_err(|_| anyhow!("can't send SDF update"))
             }
             Err(err) => { // If not, try to load it as a local file on native platforms.
                 #[cfg(target_arch = "wasm32")]
                 {
                     tracing::error!("Failed to load SDF from URL: {:?}", err);
-                    sender_single_update.send(unsafe {
+                    sender_single_update.try_send(unsafe {
                         // FIXME: Extremely unsafe code (forcing SDFDemo Send+Sync), but only used for this error path
                         std::mem::transmute(Box::new(SDFDemo::default()) as Box<dyn SDFSurface>)
-                    }).unwrap();
+                    }).map_err(|_| anyhow!("can't send SDF update"))
                 }
                 #[cfg(not(target_arch = "wasm32"))]
                 {
@@ -108,19 +125,22 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
                     };
                     match res {
                         Ok(sdf) => {
-                            sender_single_update.send(sdf).unwrap();
+                            sender_single_update.send(sdf).await.map_err(|_| anyhow!("can't send SDF update"))
                         }
                         Err(err2) => {
                             tracing::error!("Failed to load SDF from URL ({:?}) or file ({:?})", err, err2);
-                            sender_single_update.send(unsafe {
+                            sender_single_update.try_send(unsafe {
                                 // FIXME: Extremely unsafe code (forcing SDFDemo Send+Sync), but only used for this error path
                                 std::mem::transmute(Box::new(SDFDemo::default()) as Box<dyn SDFSurface>)
-                            }).unwrap();
+                            }).map_err(|_| anyhow!("can't send SDF update"))
                         }
                     }
                 }
             }
+        };
+        if let Err(_) = channel_send_err {
+            tracing::warn!("The listener ignored our update notification (2)");
         }
     };
-    block_on_or_spawn_async(fut)
+    spawn_async(fut, true)
 }

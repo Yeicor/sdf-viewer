@@ -85,13 +85,16 @@ The `server` subcommand simplifies the workflow to:
 2. Start the `app` subcommand pointing to the server's URL (see `app --help`).
 3. Profit! Whenever you modify and save your source code, the new SDF will automatically be displayed by the app.
 
+*Note that all subcommands are also available in the menu bar of the application window. You can read the docs and
+execute them from the app itself!*
+
 ### Exporting
 
-Once you are ready to export your SDF, you can use the `mesh` subcommand to export it as a standard triangle mesh.
-You'll have to select and configure a meshing algorithm, run `mesh --help` for more information.
-The output is in the `PLY` format, as it is text-based (easy to copy from the web browser) and can contain material
-information embedded in the same file. For example, you can use [meshlab](https://www.meshlab.net/) to view the
-file and convert it to other formats.
+Once you are ready to export your SDF, you can use the `mesh` subcommand (or UI button) to export it as a standard
+triangle mesh. You'll have to select and configure a meshing algorithm.
+The output is in the [`PLY`](http://paulbourke.net/dataformats/ply/) format, as it is simple (text-based), and can
+contain material information embedded in the same file. You can easily view it and convert it to other formats with
+tools like [meshlab](https://www.meshlab.net/).
 
 Note that this is a lossy operation (the triangles of the mesh only approximate the underlying SDF), and you should keep
 the source code or the wasm file in order to export higher quality meshes in the future.
@@ -159,10 +162,6 @@ You can even do everything on the same screen:
 
 ![Screenshot_20220808-193511_Termux](https://user-images.githubusercontent.com/4929005/183480629-b6873d67-4f9e-4838-8db1-dc39f2129ace.png)
 
-### Exported mesh (marching cubes)
+### v1.1.0: Better commands UI and exporting triangle meshes
 
-Marching cubes is the simplest of the available algorithms to export meshes. You can also try others like Dual
-Contouring that tries to preserve sharp features. Another option is increasing the level of detail at the cost of more
-CPU time and more storage space. You should simplify the mesh if you used a high level of detail.
-
-![Demo export](.github/docs/demo_export.png)
+![Demo export](https://user-images.githubusercontent.com/4929005/185709943-f0b68ec6-86a4-4652-84d5-48c2ae3c07b6.png)

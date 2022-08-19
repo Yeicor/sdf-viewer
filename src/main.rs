@@ -16,7 +16,7 @@ mod cli;
 
 // === Entry point for desktop ===
 #[cfg(not(any(target_arch = "wasm32")))]
-#[tokio::main] // Not compatible with eframe :(
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
     run::native_main().await;
 }
