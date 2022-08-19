@@ -115,7 +115,7 @@ impl Mesh {
             let mut faces = Vec::with_capacity(self.indices.len() / 3);
             for v in self.indices.as_slice().chunks_exact(3) {
                 let mut face = DefaultElement::with_capacity(face_el_properties_len);
-                face.insert("vertex_index".to_string(), Property::ListInt(v.into_iter().map(|e| *e as i32).collect()));
+                face.insert("vertex_index".to_string(), Property::ListInt(v.iter().map(|e| *e as i32).collect()));
                 faces.push(face);
             }
             ply.payload.insert("face".to_string(), faces);

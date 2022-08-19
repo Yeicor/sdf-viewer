@@ -62,7 +62,6 @@ pub(crate) fn mesh(algorithm: u8, cfg: Config, sdf: &dyn SDFSurface) -> Mesh {
     Mesh {
         vertices,
         indices,
-        ..Mesh::default()
     }
 }
 
