@@ -6,7 +6,7 @@ use cgmath::Vector3;
 #[cfg(feature = "sdfdemo")]
 pub mod demo;
 
-#[cfg(feature = "app")] // Main WebAssembly SDF implementations only available for the app
+#[cfg(feature = "wasminterpreters")] // Main WebAssembly SDF implementations
 pub mod wasm;
 
 #[cfg(feature = "meshers")]

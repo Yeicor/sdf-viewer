@@ -34,7 +34,7 @@ pub async fn setup_app() -> AppCreator {
         }
         #[cfg(feature = "meshers")]
         Mesh(mesher) => { // Run the meshing algorithm and exit
-            mesher.run().await;
+            mesher.run_cli().await.unwrap();
             None
         }
     }

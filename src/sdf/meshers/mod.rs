@@ -1,15 +1,15 @@
 use std::fmt::Debug;
 use std::fs::File;
-use std::io::BufWriter;
-use std::io::Read;
+use std::io::{BufWriter, Write};
 use std::path::PathBuf;
+use std::sync::mpsc;
 
 use clap::ValueHint;
 
 use mesh::Mesh;
 
 use crate::sdf::SDFSurface;
-use crate::sdf::wasm::load_sdf_wasm;
+use crate::sdf::wasm::load;
 
 mod mesh;
 
@@ -18,10 +18,10 @@ mod isosurface;
 
 #[derive(clap::Parser, Debug, Clone)]
 pub struct CliMesher {
-    /// Input file: .wasm file representing a SDF.
-    #[clap(short, long = "input", parse(from_os_str), value_hint = ValueHint::FilePath)]
-    input_file: PathBuf,
-    /// Output file: .ply 3D model made of triangles. IT WILL BE OVERWRITTEN.
+    /// Input file or URL: .wasm file representing a SDF.
+    #[clap(short, long = "input")]
+    input: String,
+    /// Output file: .ply 3D model made of triangles. Set to "-" to write to stdout.
     #[clap(short, long = "output", parse(from_os_str), value_hint = ValueHint::FilePath)]
     output_file: PathBuf,
     #[clap(flatten)]
@@ -31,29 +31,57 @@ pub struct CliMesher {
 }
 
 impl CliMesher {
-    pub async fn run(self) {
+    /// Runs the CLI for the mesher, using all the configured parameters.
+    pub async fn run_cli(mut self) -> anyhow::Result<()> {
+        // Check that the output file does not exist yet or fail
+        if self.output_file.to_str().eq(&Some("-")) {
+            self.output_file = "/dev/stdout".into();
+        }
+        if self.output_file.to_str().eq(&Some("/dev/stdout")) ||
+            File::open(&self.output_file).is_ok() {
+            anyhow::bail!("Output file already exists");
+        }
         // Create/truncate the output file or fail
-        let f = File::create(&self.output_file).expect("Could not create output file");
+        let f = File::create(&self.output_file)?;
         // Buffer writes for faster performance
         let mut f = BufWriter::new(f);
-        // Load the input SDF or fail
-        tracing::info!("Loading SDF from {:?}...", self.input_file);
-        let mut input_file = File::open(&self.input_file).expect("Could not open input file");
-        let mut input_bytes = vec![];
-        input_file.read_to_end(&mut input_bytes).expect("Could not read input file");
-        drop(input_file);
-        let input_sdf = load_sdf_wasm(&input_bytes).await.expect("Could not load input SDF");
+        // Run as usual
+        let written = self.run_custom_out(&mut f).await?;
+        // Remove the last \n which breaks some programs like meshlab
+        let f = f.into_inner()?;
+        f.set_len((written - 1) as u64)?;
+        Ok(())
+    }
+
+    /// Runs the mesher and writes the output to the given writer instead of the configured file.
+    pub async fn run_custom_out<W: Write>(self, w: &mut W) -> anyhow::Result<usize> {
+        // Start loading input SDF (using common code with the app)
+        tracing::info!("Loading SDF from {:?}...", self.input);
+        let (sender_of_updates, receiver_of_updates) = mpsc::channel();
+        let load_fn = move || {
+            load::load_sdf_from_path_or_url(sender_of_updates, self.input.clone());
+        };
+        #[cfg(target_arch = "wasm32")]
+        {
+            load_fn().await; // Will run asynchronously
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            std::thread::spawn(load_fn); // Will run synchronously in a new thread
+        }
+        // Wait for the loaded SDF to be ready
+        let input_sdf = receiver_of_updates.recv()?.recv()?;
+        drop(receiver_of_updates);
         // Apply the meshing algorithm as configured
         tracing::info!("Running the meshing algorithm with {:?} {:?}...", self.cfg, self.mesher);
+        // TODO: Progress reporting + ETA?
         let mut mesh = self.mesher.mesh(&input_sdf, self.cfg);
         // Post-process the mesh to get the materials
         tracing::info!("Post-processing the mesh ({} vertices, {} triangles)...", mesh.vertices.len(), mesh.indices.len() / 3);
         mesh.postproc(&input_sdf);
         // Write the mesh to the output file or fail
-        tracing::info!("(Over)writing output mesh to {:?}...", self.output_file);
-        let written = mesh.serialize_ply(&mut f).expect("Could not write mesh to output file");
-        let f = f.into_inner().unwrap();
-        f.set_len((written - 1) as u64).unwrap(); // Remove the last \n which breaks some programs like meshlab
+        tracing::info!("Serializing output mesh...");
+        Ok(mesh.serialize_ply(w)?)
     }
 }
 

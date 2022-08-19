@@ -36,27 +36,7 @@
 //! which will be called once before any other method.
 //!
 
-use crate::sdf::SDFSurface;
 
+pub(crate) mod load;
 mod native;
-
-/// See [`load_sdf_wasm`] for more information.
-pub async fn load_sdf_wasm_send_sync(wasm_bytes: &[u8]) -> anyhow::Result<Box<dyn SDFSurface + Send + Sync>> {
-    native::load_sdf_wasm_send_sync(wasm_bytes).await
-}
-
-/// Loads the given bytes as a WebAssembly module that is then queried to satisfy the SDF trait.
-///
-/// It uses the default WebAssembly interpreter for the platform.
-#[allow(dead_code)] // Not used in the current implementation because Send + Sync is needed for the WebAssembly engine.
-pub async fn load_sdf_wasm(wasm_bytes: &[u8]) -> anyhow::Result<Box<dyn SDFSurface>> {
-    native::load_sdf_wasm(wasm_bytes).await
-}
-
-fn reinterpret_u32_as_i32(sdf_id: u32) -> i32 {
-    i32::from_le_bytes(sdf_id.to_le_bytes()) // Reinterpret without modifications
-}
-
-fn reinterpret_i32_as_u32(sdf_id: i32) -> u32 {
-    u32::from_le_bytes(sdf_id.to_le_bytes()) // Reinterpret without modifications
-}
+mod util;

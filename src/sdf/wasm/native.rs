@@ -13,8 +13,8 @@ use wasmer_wasi::*;
 use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::defaults::{children_default_impl, name_default_impl, parameters_default_impl, set_parameter_default_impl};
 
-use super::reinterpret_i32_as_u32;
-use super::reinterpret_u32_as_i32;
+use crate::sdf::wasm::util::reinterpret_i32_as_u32;
+use crate::sdf::wasm::util::reinterpret_u32_as_i32;
 
 #[cfg(all(not(feature = "web"), target_arch = "wasm32"))]
 compile_error!("On wasm32 targets, you need to enable the js feature to be able to run wasmer.");
