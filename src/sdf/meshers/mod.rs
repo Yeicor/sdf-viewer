@@ -109,7 +109,7 @@ pub trait Mesher: Debug {
 }
 
 /// Meshers holds the list of currently implemented meshing algorithms.
-#[derive(clap::Parser, Debug, Clone, PartialEq)]
+#[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Meshers {
     #[cfg(feature = "isosurface")]

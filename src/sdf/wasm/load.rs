@@ -65,7 +65,7 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
     // First, try to request the file as an URL on any platform (with some fallbacks).
     let fut = async move {
         let (sender_single_update, receiver_single_update) = mpsc::channel(1);
-        if let Err(_) = sender_of_updates.send(receiver_single_update).await {
+        if sender_of_updates.send(receiver_single_update).await.is_err() {
             tracing::warn!("The listener ignored our update notification, won't send more notifications");
             return; // Stop recursion here
         }
@@ -138,7 +138,7 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
                 }
             }
         };
-        if let Err(_) = channel_send_err {
+        if channel_send_err.is_err() {
             tracing::warn!("The listener ignored our update notification (2)");
         }
     };
