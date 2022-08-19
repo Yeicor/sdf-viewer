@@ -1,6 +1,6 @@
 [package]
 name = "sdf-viewer"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Yeicor <yeicor1212@gmail.com>"]
 description = "SDF Viewer"
 repository = "https://github.com/Yeicor/sdf-viewer"
