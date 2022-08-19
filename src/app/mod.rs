@@ -359,16 +359,24 @@ impl SDFViewerApp {
             let output_file_clone = mesher.output_file.to_str().unwrap_or("").to_string();
             if output_file_clone.is_empty() || output_file_clone.eq("-") {
                 if let Err(err) = mesher.run_custom_out(&mut in_memory_model).await {
-                    error!("Failed to export model: {}", err);
+                    let msg = format!("Failed to export model: {}", err);
+                    error!("{}", msg);
+                    in_memory_model = msg.into_bytes();
                 }
             } else {
                 #[cfg(not(target_arch = "wasm32"))]
                 if let Err(err) = mesher.run_cli().await {
-                    error!("Failed to export model: {}", err);
+                    let msg = format!("Failed to export model: {}", err);
+                    error!("{}", msg);
+                    in_memory_model = msg.into_bytes();
+                } else {
+                    in_memory_model = "Done!".to_string().into_bytes();
                 }
                 #[cfg(target_arch = "wasm32")]
                 if let Err(err) = mesher.run_custom_out(&mut in_memory_model).await {
-                    error!("Failed to export model: {}", err);
+                    let msg = format!("Failed to export model: {}", err);
+                    error!("{}", msg);
+                    in_memory_model = msg.into_bytes();
                 } else {
                     // Saving to a file on wasm32 is a special case, which buffers the data and then forces a download
                     if let Err(err) = js_sys::eval(js_download_file_code(
@@ -376,7 +384,6 @@ impl SDFViewerApp {
                         error!("Failed to export model using JS code: {:?}", err);
                     }
                 }
-                in_memory_model = "Done!".to_string().into_bytes();
             }
             // PLY is valid ASCII text! Future model formats may not keep this property (use file outputs for them)
             let in_memory_model_text = String::from_utf8_lossy(in_memory_model.as_bytes());
