@@ -26,7 +26,6 @@ pub async fn run_app(canvas_id: String) -> Result<(), wasm_bindgen::prelude::JsV
 
     if let Some(app_creator) = run::setup_app().await {
         let web_options = eframe::WebOptions {
-            depth_buffer: 16, // Needed for 3D rendering
             ..eframe::WebOptions::default()
         };
         eframe::start_web(&canvas_id, web_options, app_creator)?;
