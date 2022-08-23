@@ -14,8 +14,6 @@ pub struct SDFViewerMaterial {
     /// See `SDFViewer::update`. Determines how many voxels should be used to define the isosurface.
     /// A value of n means that n samples should be skipped in each dimension in between each read.
     pub lod_dist_between_samples: f32,
-    /// Threshold (in the range [0..1]) that defines the surface in the voxel data.
-    pub threshold: f32,
     /// Base surface color (tint). Assumed to be in linear color space.
     pub color: Color,
     /// The lighting model used to render the voxel data.
@@ -29,7 +27,6 @@ impl SDFViewerMaterial {
             tex1,
             voxels_bounds,
             lod_dist_between_samples: 1f32,
-            threshold: 0.0,
             color: Color::WHITE,
             lighting_model: LightingModel::Cook(
                 NormalDistributionFunction::TrowbridgeReitzGGX,
@@ -56,7 +53,7 @@ impl Material for SDFViewerMaterial {
         }
 
         program.use_uniform("cameraPosition", camera.position());
-        // program.use_uniform("BVP", bvp_matrix(camera));
+        program.use_uniform("BVP", bvp_matrix(camera));
         program.use_uniform("surfaceColorTint", self.color);
 
         program.use_texture_3d("sdfTex0", &self.tex0);
@@ -66,7 +63,6 @@ impl Material for SDFViewerMaterial {
         program.use_uniform("sdfTexSize", vec3(
             self.tex0.width() as f32, self.tex0.height() as f32, self.tex0.depth() as f32));
         program.use_uniform("sdfLODDistBetweenSamples", self.lod_dist_between_samples);
-        program.use_uniform("sdfThreshold", self.threshold);
     }
 
     fn render_states(&self) -> RenderStates {
@@ -83,9 +79,12 @@ impl Material for SDFViewerMaterial {
 }
 
 // Copied from https://github.com/asny/three-d/blob/9914fc1eb76dee2cb2a58dc781a59085bc413b10/src/renderer/light.rs#L143
-// fn bvp_matrix(camera: &Camera) -> Mat4 {
-//     let bias_matrix = Mat4::new(
-//         0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0,
-//     );
-//     bias_matrix * camera.projection() * camera.view()
-// }
+fn bvp_matrix(camera: &Camera) -> three_d::Mat4 {
+    let bias_matrix = three_d::Mat4::new(
+        0.5, 0.0, 0.0, 0.0,
+        0.0, 0.5, 0.0, 0.0,
+        0.0, 0.0, 0.5, 0.0,
+        0.5, 0.5, 0.5, 1.0,
+    );
+    bias_matrix * camera.projection() * camera.view()
+}

@@ -1,5 +1,7 @@
-use eframe::egui::{PaintCallbackInfo, PointerButton, Response};
+use eframe::egui::{PointerButton, Response};
 use three_d::*;
+
+use crate::app::frameinput::FrameInput;
 
 /// The camera movement code.
 pub struct CameraController {
@@ -18,16 +20,9 @@ impl CameraController {
 
     /// Updates the viewport according to the egui context.
     /// Also handles the events modifying the camera transform according to the events.
-    pub fn update(&mut self, info: &PaintCallbackInfo, egui_resp: &Response) -> Viewport {
-        // Update viewport
-        let viewport = info.viewport_in_pixels();
-        let viewport = Viewport {
-            x: viewport.left_px.round() as _,
-            y: viewport.from_bottom_px.round() as _,
-            width: viewport.width_px.round().max(1.0) as _,
-            height: viewport.height_px.round().max(1.0) as _,
-        };
-        self.camera.set_viewport(viewport);
+    pub fn update(&mut self, frame_input: &FrameInput<'_>, egui_resp: &Response) {
+        // Ensure the viewport matches the current window viewport which changes if the window is resized
+        self.camera.set_viewport(frame_input.viewport);
         // Handle inputs
         if egui_resp.hovered() { // If interacting with the widget
             let state = egui_resp.ctx.input();
@@ -77,7 +72,5 @@ impl CameraController {
                 self.camera.set_view(new_position, target, up);
             }
         }
-        // self.camera_ctrl.handle_events(&mut self.camera, &mut events).unwrap();
-        viewport
     }
 }

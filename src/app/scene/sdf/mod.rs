@@ -39,7 +39,7 @@ pub struct SDFViewer {
 
 /// The default value for uncomputed SDF values while loading. Should be small to avoid graphical
 /// artifacts, but will slow down rendering if too small. It is also useful for progressive loading.
-const AIR_DIST: f32 = 0.001234;
+const AIR_DIST: f32 = 1e-1 + 0.001234;
 
 impl SDFViewer {
     /// Creates a new SDF viewer for the given bounding box (tries to keep aspect ratio).
@@ -74,20 +74,16 @@ impl SDFViewer {
 
     /// Creates a new SDF viewer with the given number of voxels in each axis.
     pub fn new_voxels(ctx: &three_d::Context, voxels: Vector3<usize>, bb: &[Vector3<f32>; 2], loading_passes: usize) -> Self {
-        let texture = CpuTexture3D {
-            data: TextureData::RgbaF32(vec![[AIR_DIST; 4]; voxels.x * voxels.y * voxels.z]),
-            width: voxels.x as u32,
-            height: voxels.y as u32,
-            depth: voxels.z as u32,
-            min_filter: Interpolation::Nearest, // Nearest for broken blocky mode
-            mag_filter: Interpolation::Nearest,
-            mip_map_filter: None,
-            wrap_s: Wrapping::MirroredRepeat, // <- Should be safe, even out of bounds
-            wrap_t: Wrapping::MirroredRepeat,
-            wrap_r: Wrapping::MirroredRepeat,
-        };
+        let texture = Self::texture_from_data(voxels, vec![[AIR_DIST; 4]; voxels.x * voxels.y * voxels.z]);
         let texture1 = texture.clone();
         let mesh = Mesh::new(ctx, &cube_with_bounds(bb));
+        // TODO: Support custom mesh transformations. Alternatively, you can transform the SDF easily.
+        // mesh.set_transformation(
+        //     three_d::Mat4::from_angle_y(three_d::degrees(45.0)) *
+        //         three_d::Mat4::from_angle_x(three_d::degrees(30.0)) *
+        //         three_d::Mat4::from_angle_z(three_d::degrees(15.0)) *
+        //         three_d::Mat4::from_translation(three_d::vec3(0.25, 0.15, 0.1))
+        // );
         let material = SDFViewerMaterial::new(
             Texture3D::new(ctx, &texture),
             Texture3D::new(ctx, &texture1),
@@ -102,6 +98,21 @@ impl SDFViewer {
             changed_box: None,
             changed_box_while_loading: false,
             ctx: ctx.clone(),
+        }
+    }
+
+    fn texture_from_data(size: Vector3<usize>, data: Vec<[f32; 4]>) -> CpuTexture3D {
+        CpuTexture3D {
+            data: TextureData::RgbaF32(data),
+            width: size.x as u32,
+            height: size.y as u32,
+            depth: size.z as u32,
+            min_filter: Interpolation::Nearest, // Nearest for "broken" blocky mode
+            mag_filter: Interpolation::Nearest,
+            mip_map_filter: None,
+            wrap_s: Wrapping::MirroredRepeat, // <- MirroredRepeat should be safe, even out of bounds
+            wrap_t: Wrapping::MirroredRepeat,
+            wrap_r: Wrapping::MirroredRepeat,
         }
     }
 
@@ -148,15 +159,15 @@ impl SDFViewer {
         let sdf_bb = self.bounding_box;
         let sdf_bb_size = sdf_bb[1] - sdf_bb[0];
         let texture_size_minus_1 = Vector3::new(self.tex0.width as f32 - 1., self.tex0.height as f32 - 1., self.tex0.depth as f32 - 1.);
-        let start_time = instant::Instant::now();
-        let tex1_data_ref = match &mut self.tex1.data {
-            TextureData::RgbaF32(data) => data,
-            _ => panic!("developer error: expected RgbaF32 texture data"),
-        };
         let tex0_data_ref = match &mut self.tex0.data {
             TextureData::RgbaF32(data) => data,
             _ => panic!("developer error: expected RgbaF32 texture data"),
         };
+        let tex1_data_ref = match &mut self.tex1.data {
+            TextureData::RgbaF32(data) => data,
+            _ => panic!("developer error: expected RgbaF32 texture data"),
+        };
+        let start_time = instant::Instant::now();
 
         // Start sampling the SDF on the CPU to prepare the data for the GPU, as long as there is time.
         while first || start_time.elapsed() < max_delta_time {
@@ -180,14 +191,16 @@ impl SDFViewer {
                 if update_required { // Only update if not already computed
                     // Actually sample the SDF.
                     let mut sample = sdf.sample(pos, false);
-                    tex0_data_ref[flat_index][0] = sample.distance;
+                    // Apply a function to store the distance (-inf, inf) in the texture [0, 1].
+                    // KEEP IN SYNC WITH GPU CODE!
+                    tex0_data_ref[flat_index][0] = (1e-1 + sample.distance).max(0.0).min(1.0);
                     if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
                         // Avoid invisible objects if left as default with dark environment
                         sample.color = Vector3::new(0.5, 0.5, 0.5);
                     }
-                    tex0_data_ref[flat_index][1] = sample.color.x.powf(2.2); // RGB -> sRGB?
-                    tex0_data_ref[flat_index][2] = sample.color.y.powf(2.2);
-                    tex0_data_ref[flat_index][3] = sample.color.z.powf(2.2);
+                    tex0_data_ref[flat_index][1] = sample.color.x;
+                    tex0_data_ref[flat_index][2] = sample.color.y;
+                    tex0_data_ref[flat_index][3] = sample.color.z;
                     tex1_data_ref[flat_index][0] = sample.metallic;
                     tex1_data_ref[flat_index][1] = sample.roughness;
                     // NOTE: Default occlusion is 1, to use the ambient light by default

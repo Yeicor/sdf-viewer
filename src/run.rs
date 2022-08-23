@@ -54,11 +54,15 @@ pub async fn native_main() {
         });
     }
     // Run app
-    #[cfg(feature = "app")]
-        let native_options = eframe::NativeOptions::default();
     #[allow(unused_variables)]
     if let Some(app_creator) = setup_app().await {
         #[cfg(feature = "app")]
-        eframe::run_native("SDF Viewer", native_options, app_creator);
+        {
+            let native_options = eframe::NativeOptions {
+                depth_buffer: 16, // Needed for 3D rendering
+                ..eframe::NativeOptions::default()
+            };
+            eframe::run_native("SDF Viewer", native_options, app_creator);
+        }
     }
 }

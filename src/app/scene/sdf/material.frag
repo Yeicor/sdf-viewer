@@ -1,6 +1,7 @@
 uniform vec3 cameraPosition;
-uniform mat4 modelMatrix;// Geometry matrix.
-//uniform mat4 BVP;
+uniform mat4 viewProjection;
+uniform mat4 modelMatrix;
+uniform mat4 BVP;
 uniform vec4 surfaceColorTint;
 
 uniform sampler3D sdfTex0;// Distance (R), Color (GBA)
@@ -9,23 +10,12 @@ uniform vec3 sdfTexSize;
 uniform vec3 sdfBoundsMin;
 uniform vec3 sdfBoundsMax;
 uniform float sdfLODDistBetweenSamples;
-uniform float sdfThreshold;
 
-in vec3 pos;// Geometry hit position. The original mesh (before transformation) must be a cube from (0,0,0) to (1,1,1).
+in vec3 pos;// Geometry hit position. The original mesh (before transformation) must be a cube from sdfBoundsMin to sdfBoundsMax.
 
 layout (location = 0) out vec4 outColor;
 
-float sdfOutOfBoundsDist(vec3 p) {
-    const float eps = 0.00001;
-    float res = max(
-    max(sdfBoundsMin.x - p.x, p.x - sdfBoundsMax.x),
-    max(max(sdfBoundsMin.y - p.y, p.y - sdfBoundsMax.y),
-    max(sdfBoundsMin.z - p.z, p.z - sdfBoundsMax.z))
-    );
-    if (res >= 0.0) res += eps;// Is outside bounds -> avoid defining a surface at the bounds
-    return res;
-}
-
+// Sample the texture at the given index and position.
 vec4 sdfTexSample(int sdfTexIndex, vec3 pos) {
     if (sdfTexIndex == 0) return texture(sdfTex0, pos);
     if (sdfTexIndex == 1) return texture(sdfTex1, pos);
@@ -50,8 +40,6 @@ vec4 sdfSampleRawNearest(int sdfTexIndex, vec3 p) {
 // so it performs a (buggy) blocky (but holeless) render. The correct way would be to perform manual interpolation of
 // non-contiguous sdfTex values, but that is too GPU-intensive and slows down the loading process.
 vec4 sdfSampleRawInterp(int sdfTexIndex, vec3 p) {
-    //    float oobDist = sdfOutOfBoundsDist(p);
-    //    if (oobDist >= 0) return vec4(oobDist, 0.0, 0.0, 0.0);// Out of bounds -> return distance to bounds
     if (sdfLODDistBetweenSamples == 1.0) { // Automatic interpolation by the GPU!
         vec3 p01 = (p - sdfBoundsMin) / (sdfBoundsMax - sdfBoundsMin);
         return sdfTexSample(sdfTexIndex, p01);
@@ -64,24 +52,25 @@ vec4 sdfSampleRawInterp(int sdfTexIndex, vec3 p) {
     }
 }
 
-/// Extract distance from raw SDF sample
+// Extract distance from raw SDF sample
 float sdfSampleTex0Dist(vec4 raw) {
-    return raw.r - sdfThreshold;
+    // Apply a function to restore the distance (-inf, inf) from the texture [0, 1].
+    // KEEP IN SYNC WITH CPU CODE!
+    return raw.r - 1e-1;
 }
 
-/// Extract RGB color from raw SDF sample.
+// Extract RGB color from raw SDF sample.
 vec3 sdfSampleTex0Color(vec4 raw) {
     return raw.gba;
 }
 
-/// Extract material properties from raw SDF sample.
+// Extract material properties from raw SDF sample.
 vec3 sdfSampleTex1MetallicRoughnessOcclussion(vec4 raw) {
     return raw.rgb;
 }
 
 /// Approximate the SDF's normal at the given position. From https://iquilezles.org/articles/normalsSDF/.
 vec3 sdfNormal(vec3 p) {
-    // FIXME: Normals at inside-volume bounds (worth the slower performance?)
     float h = 1./length(sdfTexSize / sdfLODDistBetweenSamples);
     const vec2 k = vec2(1, -1);
     return normalize(k.xyy*sdfSampleTex0Dist(sdfSampleRawInterp(0, p + k.xyy*h)) +
@@ -90,67 +79,96 @@ vec3 sdfNormal(vec3 p) {
     k.xxx*sdfSampleTex0Dist(sdfSampleRawInterp(0, p + k.xxx*h)));
 }
 
-void main() {
-    const int steps = 400;
-    vec3 sdfBoundsSize = sdfBoundsMax - sdfBoundsMin;
-    mat4 invModelMatrix = inverse(modelMatrix);
+// How far away (underestimate) from the bounding box the position is.
+float sdfOutOfBoundsDist(vec3 p) {
+    float oobX = max(sdfBoundsMin.x - p.x, p.x - sdfBoundsMax.x);
+    float oobY = max(sdfBoundsMin.y - p.y, p.y - sdfBoundsMax.y);
+    float oobZ = max(sdfBoundsMin.z - p.z, p.z - sdfBoundsMax.z);
+    return max(oobX, max(oobY, oobZ));
+}
 
-    // The ray origin in world? space.
-    vec3 rayPos = (invModelMatrix*vec4(cameraPosition, 1.0)).xyz;
-    // The ray direction in world space is given by the camera implementation.
-    vec3 rayDir = normalize(pos - cameraPosition);
-    // Start the ray from the camera position by default (optimization: start from bounds if outside).
-    const float minDistFromCamera = 0.2;
-    rayPos += minDistFromCamera * rayDir;
+// Launch a ray against the SDF and return the hit position and raw tex0 sample.
+// The fourth value of the hit position is the distance to the surface, -1 for out of steps and -2 for out of bounds.
+vec4[2] sdfRaycast(vec3 rayPos, vec3 rayDir, int maxSteps) {
+    vec4[2] hitPosAndSample = vec4[2](vec4(0.0), vec4(0.0));
+    float distanceFromOrigin = 0.0;
 
-    // The ray is casted until it hits the surface or the maximum number of steps is reached.
-    for (int i = 0; i < steps; i++) {
+    // The ray is casted until it hits the surface or a limit is reached.
+    for (int i = 0; i < maxSteps; i++) {
         // Stop condition: out of steps
-        if (i == steps-1) {
-            outColor = vec4(0.0, 0.0, 0.0, 0.0);// transparent
+        if (i >= maxSteps-1) {
+            hitPosAndSample[0] = vec4(rayPos, -1.0);
             break;
         }
+
         // Stop condition: out of bounds
-        if (sdfOutOfBoundsDist(rayPos) >= 0.0) {
-            if (i == 0) {
-                // Use the contact point on the box as the starting point (in world space)
-                const float minDistFromBounds = 0.00001;
-                rayPos = (invModelMatrix*vec4(pos, 1.0)).xyz;
-                rayPos += minDistFromBounds * rayDir;
-                continue;// This fixes the bug where if the surface touches the bounds it overlays everything else (why?!).
-            } else {
-                // Debug the number of steps and bounds: will break rendering order
-                //                outColor = vec4(float(i)/float(steps), 0.0, 0.0, 0.25);
-                // Output an transparent color and infinite depth
-                outColor = vec4(0.0, 0.0, 0.0, 0.0);
-                gl_FragDepth = 1.0;
-                break;
-            }
+        if (sdfOutOfBoundsDist(rayPos) > 0.0) {
+            hitPosAndSample[0] = vec4(rayPos, -2.0);
+            break;
         }
+
         // The SDF is evaluated at the current position in the ray.
         vec4 sampleTex0Raw = sdfSampleRawInterp(0, rayPos);
         float sampleDist = sdfSampleTex0Dist(sampleTex0Raw);
-        // FIXME: Some samples pass through the surface near interpolated corners, leading to single-pixel holes!
 
-        if (sampleDist <= 0.0) { // We hit the surface
-            // Read material properties from the texture color
-            vec3 normal = sdfNormal(rayPos);
-            vec4 sampleTex1Raw = sdfSampleRawInterp(1, rayPos);
-            vec3 sampleColor = sdfSampleTex0Color(sampleTex0Raw);
-            sampleColor *= surfaceColorTint.rgb;// Usually white, does nothing to the surface's color
-            vec3 sampleProps = sdfSampleTex1MetallicRoughnessOcclussion(sampleTex1Raw);
-
-            // Compute the color using the lighting model.
-            outColor.rgb = calculate_lighting(cameraPosition, sampleColor, rayPos, normal, sampleProps.x, sampleProps.y, sampleProps.z);
-            outColor.rgb = reinhard_tone_mapping(outColor.rgb);
-            outColor.rgb = srgb_from_rgb(outColor.rgb);
-            outColor.a = surfaceColorTint.a;
-
-            // Compute the depth to fix rendering order of multiple objects.
-            //vec4 rayPosProj = BVP * vec4(pos, 1.0); // TODO: Figure out how to set this...
-            //gl_FragDepth = rayPosProj.z / rayPosProj.w;
+        // Stop condition: actually hit the surface.
+        // NOTE: floating point precision mitigation: use a small epsilon to avoid hitting the surface exactly.
+        if (sampleDist < 1e-5) {
+            hitPosAndSample[0] = vec4(rayPos, distanceFromOrigin);
+            hitPosAndSample[1] = sampleTex0Raw;
             break;
         }
+
+        // Move the ray forward by the minimum distance to the surface.
+        distanceFromOrigin += sampleDist;
         rayPos += rayDir * sampleDist;
     }
+    return hitPosAndSample;
+}
+
+void main() {
+    // Find the starting point for the search
+    // Default to starting from the hit position...
+    vec3 rayOrigin = pos;
+    vec3 rayDir = normalize(rayOrigin - cameraPosition);
+    // ...but if the hit position + small step is out of bounds
+    if (sdfOutOfBoundsDist(rayOrigin + rayDir * 0.2) > 0.0) {
+        // we are inside the volume and should start from the camera's position (+ small step).
+        rayOrigin = cameraPosition + rayDir * 0.2;
+    }
+
+    // Cast the ray against the SDF and return the hit position and sample.
+    vec4[2] hitPosAndSample = sdfRaycast(rayOrigin, rayDir, 256 /* Should be more than enough */);
+
+    // Check for no hit (out of bounds or out of steps)
+    if (hitPosAndSample[0].w < 0.0) {
+        outColor = vec4(0.0, 0.0, 0.0, 0.0);// transparent
+        gl_FragDepth = 1.0;
+        return;
+    }
+
+    // Get the hit position and sample data.
+    vec3 hitPos = hitPosAndSample[0].xyz;
+    vec4 sampleTex0Raw = hitPosAndSample[1];
+    vec4 sampleTex1Raw = sdfSampleRawInterp(1, hitPos);
+    vec3 normal = sdfNormal(hitPos);
+
+    // Read material properties from the texture color
+    vec3 sampleColor = sdfSampleTex0Color(sampleTex0Raw);
+    sampleColor *= surfaceColorTint.rgb;// Usually white, does nothing to the surface's color
+    vec3 sampleProps = sdfSampleTex1MetallicRoughnessOcclussion(sampleTex1Raw);
+
+    // Compute the color using the lighting model.
+    outColor.rgb = calculate_lighting(cameraPosition, sampleColor, hitPos, normal, sampleProps.x, sampleProps.y, sampleProps.z);
+    outColor.rgb = reinhard_tone_mapping(outColor.rgb);
+    outColor.rgb = srgb_from_rgb(outColor.rgb);
+    outColor.a = surfaceColorTint.a;
+
+    // FIXME: Circle artifacts when computing normals while looking straight at an object
+//    outColor.rgb *= 0.001;
+//    outColor.rgb += abs(normal);
+
+    // Compute the depth to fix rendering order of multiple objects.
+    vec4 hitPosProj = BVP * vec4(hitPos, 1.0);// TODO: Figure out how to set this...
+    gl_FragDepth = hitPosProj.z / hitPosProj.w;
 }

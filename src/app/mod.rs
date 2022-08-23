@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use eframe::egui;
+use eframe::{egui};
 use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
@@ -16,13 +16,14 @@ use cli::settings::SettingsWindow;
 use scene::SDFViewerAppScene;
 
 use crate::app::cli::CliApp;
-use crate::cli::env_get;
+use crate::app::frameinput::FrameInput;
 use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::SDFSurface;
 use crate::sdf::wasm::load::spawn_async;
 
 pub mod cli;
 pub mod scene;
+mod frameinput;
 
 /// The main application state and logic.
 /// As the application is mostly single-threaded, use RefCell for performance when interior mutability is required.
@@ -59,13 +60,13 @@ pub struct SDFViewerApp {
 impl SDFViewerApp {
     #[profiling::function]
     pub fn new(cc: &eframe::CreationContext<'_>, cli_args: CliApp) -> Self {
-        // Default to dark mode if no theme is provided by the OS (or environment variables)
-        if (cc.integration_info.prefer_dark_mode == Some(false) ||
-            env_get("light").is_some()) && env_get("dark").is_none() { // TODO: Save & restore theme settings
-            cc.egui_ctx.set_visuals(egui::Visuals::light());
-        } else {
-            cc.egui_ctx.set_visuals(egui::Visuals::dark());
-        }
+        // // Default to dark mode if no theme is provided by the OS (or environment variables)
+        // if (cc.integration_info.system_theme == Some(Theme::Light) ||
+        //     env_get("light").is_some()) && env_get("dark").is_none() { // TODO: Save & restore theme settings
+        //     cc.egui_ctx.set_visuals(egui::Visuals::light());
+        // } else {
+        //     cc.egui_ctx.set_visuals(egui::Visuals::dark());
+        // }
 
         info!("Initialization complete! Starting main loop...");
         let mut slf = Self {
@@ -86,7 +87,7 @@ impl SDFViewerApp {
         // In order to configure the 3D scene after initialization, we need to create a new scene now.
         // Warning: future rendering must be done from this thread, or nothing will render.
         SDFViewerAppScene::from_glow_context_thread_local(
-            &cc.gl, |_scene| {}, Rc::clone(&slf.sdf));
+            Arc::clone(cc.gl.as_ref().unwrap()), |_scene| {}, Rc::clone(&slf.sdf));
 
         // Now that we initialized the scene, apply all the initial CLI arguments and save the settings.
         slf.app_settings.current().apply(&mut slf);
@@ -165,16 +166,15 @@ impl SDFViewerApp {
         // Synchronize the scene information (from the previous frame, no way to know the future)
         self.progress = Self::scene_mut(|scene| scene.load_progress()).unwrap_or(None);
         // Queue the rendering of the scene
-        let ui_ctx = ui.ctx().clone();
         ui.painter().add(egui::PaintCallback {
             rect,
-            callback: Arc::new(move |info, _painter| {
-                // OpenGL API at _painter.downcast_mut::<egui_glow::Painter>().unwrap().gl()
+            callback: Arc::new(egui_glow::CallbackFn::new(move |info, painter| {
                 let response = response.clone();
                 Self::scene_mut(|scene| {
-                    scene.render(&ui_ctx, info, &response);
+                    let frame_input = FrameInput::new(&scene.ctx, &info, painter);
+                    scene.render(frame_input, &response);
                 });
-            }),
+            })),
         });
     }
 

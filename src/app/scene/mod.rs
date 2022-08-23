@@ -1,8 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 
-use eframe::egui::{PaintCallbackInfo, Response};
+use eframe::egui::Response;
 use eframe::glow;
 use instant::Instant;
 use three_d::*;
@@ -10,6 +11,7 @@ use tracing::info;
 
 use camera::CameraController;
 
+use crate::app::frameinput::FrameInput;
 use crate::app::scene::sdf::SDFViewer;
 use crate::sdf::SDFSurface;
 
@@ -53,7 +55,7 @@ impl SDFViewerAppScene {
     /// This initializes (the first time) a new [`SDFViewerAppScene`] from the given [`glow::Context`],
     /// and runs the given function with a mutable reference to the scene.
     pub fn from_glow_context_thread_local<R>(
-        gl: &Rc<glow::Context>,
+        gl: Arc<glow::Context>,
         f: impl FnOnce(&mut SDFViewerAppScene) -> R,
         sdf: Rc<Box<dyn SDFSurface>>,
     ) -> R {
@@ -61,8 +63,6 @@ impl SDFViewerAppScene {
             let mut scene = scene.borrow_mut();
             let scene =
                 scene.get_or_insert_with(|| {
-                    // HACK: need to convert the GL context from Rc to Arc (UNSAFE: likely double-free on app close)
-                    let gl = unsafe { std::mem::transmute(gl.clone()) }; // FIXME: this unsafe block
                     // Retrieve Three-D context from the egui context (thanks to the shared glow dependency).
                     let three_d_ctx = Context::from_gl_context(gl).unwrap();
                     // Create the Three-D scene (only the first time).
@@ -98,10 +98,9 @@ impl SDFViewerAppScene {
         let mut lights: Vec<Box<dyn Light>> = vec![];
 
         // Create the SDF loader and viewer
-        // TODO: SDF infrastructure (webserver and file drag&drop)
-        // let sdf = Box::new(SDFDemoCubeBrick::default());
         let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(64), 2);
         // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
+        // objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
 
         // Load the skybox (embedded in the binary)
         if cfg!(feature = "skybox") { // TODO: Speed-up skybox load times
@@ -128,11 +127,13 @@ impl SDFViewerAppScene {
             lights.push(Box::new(AmbientLight::new(&ctx, 0.1, Color::WHITE)));
         }
 
-        // Load the scene TODO: custom user-defined objects (gltf) with transforms
+        // TODO: Custom user-defined objects (gltf) with transforms
+        // TODO: Default grid object for scale
+        // Load an example/test cube on the scene
         // let mut tmp_mesh = Mesh::new(&ctx, &CpuMesh::cube());
         // tmp_mesh.set_transformation(Mat4::from_translation(vec3(1.0, 0.0, 0.0)));
         // let mut tmp_material = CpuMaterial::default();
-        // tmp_material.albedo = Color::new(25, 125, 225, 128);
+        // tmp_material.albedo = Color::new(25, 125, 225, 200);
         // let mut tmp_material = PhysicalMaterial::new_transparent(&ctx, &tmp_material);
         // tmp_material.render_states.cull = Cull::Back;
         // tmp_material.render_states.blend = Blend::TRANSPARENCY;
@@ -161,16 +162,14 @@ impl SDFViewerAppScene {
         self.sdf_viewer = SDFViewer::from_bb(&self.ctx, &bb, Some(max_voxels_side), loading_passes);
     }
 
-    pub fn render(&mut self, ctx: &eframe::egui::Context, info: &PaintCallbackInfo, egui_resp: &Response) {
+    pub fn render(&mut self, frame_input: FrameInput<'_>, egui_resp: &Response) -> Option<glow::Framebuffer> {
         // Update camera viewport and scissor box
-        let viewport = self.camera.update(info, egui_resp);
-        let scissor_box = ScissorBox::from(viewport);
+        self.camera.update(&frame_input, egui_resp);
 
         // Load more of the SDF to the GPU in real time (if needed)
         let load_start_cpu = Instant::now();
         let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30));
         if cpu_updates > 0 {
-            ctx.request_repaint(); // Make sure we keep loading the SDF by repainting
             // Update the GPU texture sparingly (to mitigate stuttering on high-detail rendering loads)
             if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {
                 let load_start_gpu = Instant::now();
@@ -183,23 +182,31 @@ impl SDFViewerAppScene {
                 info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + skipped (GPU)",
                     cpu_updates, Instant::now() - load_start_cpu);
             }
+            egui_resp.ctx.request_repaint(); // Make sure we keep loading the SDF by repainting
         } else if self.sdf_viewer_last_commit.is_some() {
+            let now = Instant::now();
             self.sdf_viewer.commit();
+            info!("Loaded last SDF chunk in {:?} (GPU)", now - load_start_cpu);
             self.sdf_viewer_last_commit = None;
-            ctx.request_repaint(); // Make sure we keep loading the SDF by repainting
+            egui_resp.ctx.request_repaint(); // Make sure we keep loading the SDF by repainting
         }
 
-        // Instead of the normal path of RenderTarget::render(), we use the direct rendering methods
-        // as egui uses a custom RenderTarget?
-        // Note: there is no need to clear the scene (already done by egui with the correct color).
-        // However, we need to clear the depth buffer as egui does not do this by default.
-        unsafe { self.ctx.clear(context::DEPTH_BUFFER_BIT); } // OpenGL calls are always unsafe
-        self.ctx.set_scissor(scissor_box);
-        let lights = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
-        for obj in &self.objects {
-            obj.render(&self.camera.camera, lights.as_slice());
-        }
-        self.sdf_viewer.volume.render(&self.camera.camera, lights.as_slice());
+        // Get the screen render target to be able to render something on the screen
+        let target = frame_input.screen;
+
+        // Clear the depth of the "screen" render target
+        target.clear_partially(frame_input.scissor_box, ClearState::depth(1.0));
+
+        // Render each of the objects to the "screen"
+        let objects_vec = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
+        let objects_slice = objects_vec.as_slice();
+        let lights_vec = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
+        let lights_slice = lights_vec.as_slice();
+        self.sdf_viewer.volume.render(&self.camera.camera, lights_slice); // FIXME: Merge this render with the next call
+        target.render_partially(frame_input.scissor_box, &self.camera.camera, objects_slice, lights_slice);
+
+        // Take back the screen fbo, we may continue to use it.
+        target.into_framebuffer()
     }
 
     /// Reports the progress of the SDF loading
