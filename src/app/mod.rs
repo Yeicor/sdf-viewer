@@ -384,6 +384,7 @@ impl SDFViewerApp {
                         &output_file_clone, in_memory_model.as_bytes()).as_str()) {
                         error!("Failed to export model using JS code: {:?}", err);
                     }
+                    in_memory_model = "Done!".to_string().into_bytes();
                 }
             }
             // PLY is valid ASCII text! Future model formats may not keep this property (use file outputs for them)
