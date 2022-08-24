@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use eframe::{egui};
+use eframe::{egui, Theme};
 use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
@@ -17,6 +17,7 @@ use scene::SDFViewerAppScene;
 
 use crate::app::cli::CliApp;
 use crate::app::frameinput::FrameInput;
+use crate::cli::env_get;
 use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::SDFSurface;
 use crate::sdf::wasm::load::spawn_async;
@@ -60,13 +61,13 @@ pub struct SDFViewerApp {
 impl SDFViewerApp {
     #[profiling::function]
     pub fn new(cc: &eframe::CreationContext<'_>, cli_args: CliApp) -> Self {
-        // // Default to dark mode if no theme is provided by the OS (or environment variables)
-        // if (cc.integration_info.system_theme == Some(Theme::Light) ||
-        //     env_get("light").is_some()) && env_get("dark").is_none() { // TODO: Save & restore theme settings
-        //     cc.egui_ctx.set_visuals(egui::Visuals::light());
-        // } else {
-        //     cc.egui_ctx.set_visuals(egui::Visuals::dark());
-        // }
+        // Default to dark mode if no theme is provided by the OS (or environment variables)
+        if (cc.integration_info.system_theme == Some(Theme::Light) ||
+            env_get("light").is_some()) && env_get("dark").is_none() { // TODO: Save & restore theme settings
+            cc.egui_ctx.set_visuals(egui::Visuals::light());
+        } else {
+            cc.egui_ctx.set_visuals(egui::Visuals::dark());
+        }
 
         info!("Initialization complete! Starting main loop...");
         let mut slf = Self {
