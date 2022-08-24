@@ -1,4 +1,16 @@
-# SDF Viewer ([demo](#demo-try-it), [workflow](#workflow))
+# SDF Viewer
+
+##### Table of Contents
+
+1. [Introduction](#introduction)
+2. [Features / future plans](#features--future-plans)
+3. [Demo](#demo)
+4. [Workflow](#workflow)
+5. [Integrations](#integrations)
+6. [Implementation details](#implementation-details)
+7. [More demos](#more-demos)
+
+## Introduction
 
 *A fast and cross-platform Signed Distance Function (SDF) viewer, easily integrated with your SDF library.*
 
@@ -42,12 +54,14 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
   [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
   and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
 
-## Demo ([try it!](https://yeicor.github.io/sdf-viewer/?envdark))
+## Demo
 
-This example loads and renders an SDF with custom materials at the maximum framerate of **60 FPS on an integrated
-graphics card** (i7-9750H). The initial load of the SDF is also interactive at 30 FPS (configurable): it quickly loads a
-low-resolution version of the object and iteratively increases the level of detail until the SDF is fully loaded.
-Parameters are configured from the UI, also rendering the changes in real time.
+👉 [Click to run the latest web demo](https://yeicor.github.io/sdf-viewer/?envdark) 👈
+
+This (outdated) example loads and renders an SDF with custom materials at the maximum framerate of **60 FPS on an
+integrated graphics card** (i7-9750H). The initial load of the SDF is also interactive at 30 FPS (configurable): it
+quickly loads a low-resolution version of the object and iteratively increases the level of detail until the SDF is
+fully loaded. Parameters are configured from the UI, also rendering the changes in real time.
 
 ![demo.gif](.github/docs/demo.gif)
 
@@ -74,16 +88,14 @@ These are the steps to follow to start using SDF Viewer.
 Any change to the sources of the SDF would require you to repeat steps 3 and 4 to display the updated version.
 This is a bit cumbersome, so the `server` subcommand was created to automate these steps. You give it a set of
 files or folders to watch, a compile command and the generated wasm file path and it will automatically perform these
-steps
-for you. It will also serve the wasm file at an URL that you can give the app and, in addition, it will notify the app
-of
-any update, automatically providing the new wasm file.
+steps for you. It will also serve the wasm file at an URL that you can give the app and, in addition, it will notify the
+app of any update, automatically providing the new wasm file.
 
 The `server` subcommand simplifies the workflow to:
 
-1. Start the `server` subcommand with the correct arguments (see `server --help`).
-2. Start the `app` subcommand pointing to the server's URL (see `app --help`).
-3. Profit! Whenever you modify and save your source code, the new SDF will automatically be displayed by the app.
+1. Start the `server` subcommand with the correct arguments (see `server --help` or UI menu bar).
+2. Start the `app` subcommand pointing to the server's URL (see `app --help` or UI menu bar).
+3. Profit! When you modify and save your source code, the new SDF will automatically be displayed by the app.
 
 *Note that all subcommands are also available in the menu bar of the application window. You can read the docs and
 execute them from the app itself!*
@@ -94,10 +106,14 @@ Once you are ready to export your SDF, you can use the `mesh` subcommand (or UI 
 triangle mesh. You'll have to select and configure a meshing algorithm.
 The output is in the [`PLY`](http://paulbourke.net/dataformats/ply/) format, as it is simple (text-based), and can
 contain material information embedded in the same file. You can easily view it and convert it to other formats with
-tools like [meshlab](https://www.meshlab.net/).
+tools like [meshlab](https://www.meshlab.net/). You can also use [Blender](https://www.blender.org/) to perform a
+[Smart UV Project](https://docs.blender.org/manual/en/latest/modeling/meshes/editing/uv.html#smart-uv-project),
+[bake](https://docs.blender.org/manual/en/latest/render/cycles/baking.html) the vertex colors to a texture and
+then [simplify](https://docs.blender.org/manual/en/latest/modeling/modifiers/generate/decimate.html?highlight=decimate)
+the mesh without losing the colors.
 
-Note that this is a lossy operation (the triangles of the mesh only approximate the underlying SDF), and you should keep
-the source code or the wasm file in order to export higher quality meshes in the future.
+Note that exporting a triangle mesh is a lossy operation (the triangles of the mesh only approximate the underlying
+SDF), and you should keep the source code or the wasm file in order to export higher quality meshes in the future.
 
 ## Integrations
 
