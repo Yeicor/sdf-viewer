@@ -11,8 +11,6 @@ use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::demo::cube::SDFDemoCube;
 use crate::sdf::demo::sphere::SDFDemoSphere;
 
-#[cfg(feature = "sdfdemoffi")]
-pub mod ffi;
 pub mod cube;
 pub mod sphere;
 

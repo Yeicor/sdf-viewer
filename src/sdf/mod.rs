@@ -6,6 +6,9 @@ use cgmath::Vector3;
 #[cfg(feature = "sdfdemo")]
 pub mod demo;
 
+#[cfg(feature = "sdfffi")]
+pub mod ffi;
+
 #[cfg(feature = "wasminterpreters")] // Main WebAssembly SDF implementations
 pub mod wasm;
 

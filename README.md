@@ -34,7 +34,7 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
 - [x] Cross-platform: desktop (Linux, Windows, MacOS) and web.
 - [x] Cross-language: easy to integrate with most languages and frameworks.
     - [x] Works by building your code for wasm and running it at near-native speeds.
-    - [x] [Rust demo](src/sdf/demo/ffi.rs), observable and customizable
+    - [x] [Rust demo](src/sdf/demo/mod.rs), observable and customizable
       through [this link](https://yeicor.github.io/sdf-viewer/?cliurl=demo_sdf.wasm&envdark).
     - [x] Development server to ease integration and allow remote rendering.
     - [x] Testing / feature showcase integration and list of [available integrations](#integrations).
@@ -119,7 +119,7 @@ SDF), and you should keep the source code or the wasm file in order to export hi
 
 | Repo                                                      | Language | Library                                                                                                               | Features                          | Notes                                                                                                     |
 |:----------------------------------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------|-----------------------------------|-----------------------------------------------------------------------------------------------------------|
-| [sdf-viewer](https://github.com/Yeicor/sdf-viewer/)       | Rust     | [Pure Rust](src/sdf/mod.rs)                                                                                           | Core<br/>Hierarchy<br/>Parameters | Demo / feature showcase<br/>Used for testing, not extensible                                              |
+| [sdf-viewer](https://github.com/Yeicor/sdf-viewer/)       | Rust     | [Pure Rust](src/sdf/mod.rs)                                                                                           | Core<br/>Hierarchy<br/>Parameters | Used for the demo / feature showcase<br/>Also available as a library, see `sdf-viewer-rs-py`              |
 | [sdf-viewer-go](https://github.com/Yeicor/sdf-viewer-go/) | Go       | [Pure Go](https://github.com/Yeicor/sdf-viewer-go/tree/main/sdf-viewer-go)<br/>[SDFX](https://github.com/deadsy/sdfx) | Core<br/>Hierarchy<br/>Parameters | May be used as a guide for implementing your own<br/>integration due to the simplicity of the Go language |
 
 **Feel free to create integrations for other languages and frameworks and add them to this list!**

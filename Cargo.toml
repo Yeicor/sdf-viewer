@@ -45,8 +45,12 @@ sdf = ["auto_impl", "cgmath", "clap"]
 # Declares the demo SDF.
 sdfdemo = ["sdf"]
 
-# Publishes the demo SDF through FFI to be able to export it as a WASM file to be interpreted by the app.
-sdfdemoffi = ["sdfdemo"]
+# Creates a FFI to be able to export an SDF written in rust as a WASM file to be interpreted by the app.
+# This is the only feature required for the library mode.
+sdfffi = ["sdf"]
+
+# Publishes the demo SDF through FFI
+sdfdemoffi = ["sdfdemo", "sdfffi"]
 
 # The wasm interpreters are neede for the app and the meshers, so a new feature is needed for convenience.
 wasminterpreters = ["wasmer", "wasmer-wasi"]
