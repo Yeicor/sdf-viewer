@@ -13,6 +13,8 @@ use crate::sdf::demo::sphere::SDFDemoSphere;
 
 pub mod cube;
 pub mod sphere;
+#[cfg(feature = "sdfdemoffi")]
+pub mod ffi;
 
 /// An embedded demo `Sdf` implementation to showcase/test most features. Subtracts a cube and a sphere.
 #[derive(clap::Parser, Debug, Clone, PartialEq, Eq)]

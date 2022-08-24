@@ -1,5 +1,7 @@
 //! This provides a external API for the SDF library. It matches the WebAssembly specification
 //! defined at [crate::sdf::wasm].
+//!
+//! See [crate::sdf::demo::ffi::init] for a usage example.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -36,14 +38,6 @@ fn sdf_registry<R>(f: impl FnOnce(&HashMap<u32, Box<dyn SDFSurface>>) -> R) -> R
     REGISTRY.with(|registry| {
         f(&*registry.borrow())
     })
-}
-
-/// Start entrypoint for building the demo SDF wasm.
-/// This contains all the boilerplate that users of the library would need to include in their code.
-#[cfg(feature = "sdfdemoffi")]
-#[no_mangle]
-pub extern "C" fn init() {
-    set_root_sdf(Box::new(SDFDemo::default()));
 }
 
 #[no_mangle]
