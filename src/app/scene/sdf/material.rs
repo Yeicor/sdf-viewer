@@ -1,5 +1,5 @@
 use cgmath::{vec3, Vector3};
-use three_d::{Blend, Camera, Color, Cull, GeometryFunction, Light, LightingModel, lights_shader_source, Material, MaterialType, NormalDistributionFunction, RenderStates, Texture3D};
+use three_d::{Blend, Camera, Color, Cull, Light, LightingModel, lights_shader_source, Material, MaterialType, RenderStates, Texture3D};
 use three_d::core::Program;
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
@@ -28,9 +28,7 @@ impl SDFViewerMaterial {
             voxels_bounds,
             lod_dist_between_samples: 1f32,
             color: Color::WHITE,
-            lighting_model: LightingModel::Cook(
-                NormalDistributionFunction::TrowbridgeReitzGGX,
-                GeometryFunction::SmithSchlickGGX),
+            lighting_model: LightingModel::Phong,
         }
     }
 }

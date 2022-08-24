@@ -155,6 +155,7 @@ void main() {
 
     // Read material properties from the texture color
     vec3 sampleColor = sdfSampleTex0Color(sampleTex0Raw);
+    sampleColor = pow(sampleColor, vec3(2.2)); // gamma correction
     sampleColor *= surfaceColorTint.rgb;// Usually white, does nothing to the surface's color
     vec3 sampleProps = sdfSampleTex1MetallicRoughnessOcclussion(sampleTex1Raw);
 

@@ -201,6 +201,12 @@ impl SDFViewer {
                     tex0_data_ref[flat_index][1] = sample.color.x;
                     tex0_data_ref[flat_index][2] = sample.color.y;
                     tex0_data_ref[flat_index][3] = sample.color.z;
+                    #[cfg(target_arch = "wasm32")]
+                    { // Gamma correction for the same colors on web and desktop
+                        tex0_data_ref[flat_index][1] = tex0_data_ref[flat_index][1].powf(2.2);
+                        tex0_data_ref[flat_index][2] = tex0_data_ref[flat_index][2].powf(2.2);
+                        tex0_data_ref[flat_index][3] = tex0_data_ref[flat_index][3].powf(2.2);
+                    }
                     tex1_data_ref[flat_index][0] = sample.metallic;
                     tex1_data_ref[flat_index][1] = sample.roughness;
                     // NOTE: Default occlusion is 1, to use the ambient light by default

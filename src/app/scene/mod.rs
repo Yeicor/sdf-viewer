@@ -142,7 +142,7 @@ impl SDFViewerAppScene {
 
         // Create more lights
         lights.push(Box::new(DirectionalLight::new(
-            &ctx, 1.0, Color::WHITE, &vec3(-1.0, -1.0, -1.0))));
+            &ctx, 0.9, Color::WHITE, &vec3(-1.0, -1.0, -1.0))));
 
         Self {
             ctx,
