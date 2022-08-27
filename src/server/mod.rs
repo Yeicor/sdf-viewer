@@ -30,7 +30,7 @@ pub struct CliServer {
     /// Wait for this amount of nanoseconds after each modification detected to merge modifications
     /// (for example, when saving multiple files at the same time).
     /// This is useful to avoid too many notifications, but adds a delay in the detection of changes.
-    #[clap(short = 't', long, parse(try_from_str = parse_duration_ns), default_value = "123456789")]
+    #[clap(short = 't', long, parse(try_from_str = parse_duration_ns), default_value = "12345678")]
     pub watch_merge_ns: Duration,
     /// An optional command to run when a file changes. Useful to automate builds watching source
     /// code changes instead of directly watching the build results.
@@ -280,11 +280,13 @@ impl CliServer {
                 }
 
                 let mut cur_event = 1u64;
-                for _x in rx {
-                    // TODO: Event kind filtering?
-                    let notified = modified_sender_clone.send(cur_event)? - 1 /* initial receiver always available */;
-                    tracing::info!(cur_event=cur_event, "Notifying of file update to {} receivers", notified);
-                    cur_event += 1;
+                for x in rx {
+                    // Event kind filtering
+                    if !matches!(x, notify::DebouncedEvent::NoticeWrite(..) | notify::DebouncedEvent::NoticeRemove(..)) {
+                        let notified = modified_sender_clone.send(cur_event)? - 1 /* initial receiver always available */;
+                        tracing::info!(cur_event=cur_event, "Notifying of file update ({:?}) to {} receivers", x, notified);
+                        cur_event += 1;
+                    }
                 }
 
                 Err(anyhow::anyhow!("File watcher closed the events channel unexpectedly"))
