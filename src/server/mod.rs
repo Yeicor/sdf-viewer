@@ -1,12 +1,14 @@
 use std::ffi::OsString;
 use std::net::IpAddr;
+use std::path::Path;
 use std::thread;
 use std::time::Duration;
 use std::time::SystemTime;
 
 use httpdate::fmt_http_date;
 use lru::LruCache;
-use notify::{RecursiveMode, Watcher, watcher};
+use notify_debouncer_mini::{DebounceEventResult, new_debouncer};
+use notify_debouncer_mini::notify::RecursiveMode;
 use salvo::http::{HeaderMap, HeaderValue};
 use salvo::http::header::HeaderName;
 use salvo::http::response::Body;
@@ -269,23 +271,34 @@ impl CliServer {
             let run_thread = move || -> anyhow::Result<()> {
                 let (tx, rx) = std::sync::mpsc::channel();
 
-                // Create a watcher object, delivering debounced events.
-                // The notification back-end is selected based on the platform.
-                let mut watcher = watcher(tx, self.watch_merge_ns)?;
+                // Select recommended watcher for debouncer.
+                // Using a callback here, could also be a channel.
+                let mut debouncer = new_debouncer(self.watch_merge_ns, None, move |res: DebounceEventResult| {
+                    match res {
+                        Ok(events) => {
+                            events.iter().for_each(|e| println!("Event {:?} for {:?}", e.kind, e.path));
+                            if events.len() > 0 {
+                                tx.send(events).unwrap();
+                            }
+                        }
+                        Err(errors) => errors.iter().for_each(|e| tracing::error!("Error {:?}",e)),
+                    }
+                })?;
 
                 // Watch all files in the watch_paths (recursively if they are directories).
                 for path in &watch_paths {
                     tracing::info!(path=path, "Recursively watching path for changes");
-                    watcher.watch(path, RecursiveMode::Recursive)?;
+                    debouncer.watcher().watch(Path::new(path), RecursiveMode::Recursive)?;
                 }
 
                 let mut cur_event = 1u64;
                 for x in rx {
-                    // Event kind filtering
-                    if !matches!(x, notify::DebouncedEvent::NoticeWrite(..) | notify::DebouncedEvent::NoticeRemove(..)) {
+                    for _ev in &x {
+                        // TODO: Event kind filtering
                         let notified = modified_sender_clone.send(cur_event)? - 1 /* initial receiver always available */;
                         tracing::info!(cur_event=cur_event, "Notifying of file update ({:?}) to {} receivers", x, notified);
                         cur_event += 1;
+                        break;
                     }
                 }
 

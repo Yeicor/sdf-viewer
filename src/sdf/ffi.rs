@@ -11,7 +11,6 @@ use std::ops::Range;
 use cgmath::{Vector3, Zero};
 
 use crate::sdf::{SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
-use crate::sdf::demo::SDFDemo;
 
 thread_local! {
     pub static REGISTRY: RefCell<HashMap<u32, Box<dyn SDFSurface>>> = RefCell::new(HashMap::new());
