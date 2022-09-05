@@ -277,7 +277,7 @@ impl CliServer {
                     match res {
                         Ok(events) => {
                             events.iter().for_each(|e| println!("Event {:?} for {:?}", e.kind, e.path));
-                            if events.len() > 0 {
+                            if !events.is_empty() {
                                 tx.send(events).unwrap();
                             }
                         }
@@ -293,13 +293,10 @@ impl CliServer {
 
                 let mut cur_event = 1u64;
                 for x in rx {
-                    for _ev in &x {
-                        // TODO: Event kind filtering
-                        let notified = modified_sender_clone.send(cur_event)? - 1 /* initial receiver always available */;
-                        tracing::info!(cur_event=cur_event, "Notifying of file update ({:?}) to {} receivers", x, notified);
-                        cur_event += 1;
-                        break;
-                    }
+                    // TODO: Event kind filtering
+                    let notified = modified_sender_clone.send(cur_event)? - 1 /* initial receiver always available */;
+                    tracing::info!(cur_event=cur_event, "Notifying of file update ({:?}) to {} receivers", x, notified);
+                    cur_event += 1;
                 }
 
                 Err(anyhow::anyhow!("File watcher closed the events channel unexpectedly"))
