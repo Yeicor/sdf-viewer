@@ -1,5 +1,6 @@
 use std::ffi::OsString;
 use std::net::IpAddr;
+use std::num::NonZeroUsize;
 use std::path::Path;
 use std::thread;
 use std::time::Duration;
@@ -145,9 +146,7 @@ impl CliServer {
                     // collisions if the same IP is used on multiple machines (NAT).
                     salvo::addr::SocketAddr::IPv4(addr) => Some(addr.ip().to_string()),
                     salvo::addr::SocketAddr::IPv6(addr) => Some(addr.ip().to_string()),
-                    #[cfg(unix)]
-                    salvo::addr::SocketAddr::Unix(addr) => addr.as_pathname()
-                        .map(|p| p.to_string_lossy().to_string()),
+                    _ => None,
                 }).unwrap_or_else(|| "unknown".to_string());
                 let mut build_event = 0;
 
@@ -159,7 +158,7 @@ impl CliServer {
                         // Check for updates from the file watcher thread for this specific client
                         tracing::info!(requested_file=file_path, remote_id=remote_id, "Locking the event receiver"); // TODO: Reuse builds if possible
                         let mut remote_events_table = self.remote_events.lock().await; // Will be dropped after build finishes.
-                        remote_events_table.get_or_insert(remote_id.clone(), || self.sender.subscribe()).unwrap();
+                        remote_events_table.get_or_insert(remote_id.clone(), || self.sender.subscribe());
                         let events = remote_events_table.get_mut(&remote_id).unwrap(); // Safe because we just inserted it.
 
                         // Wait for the first event.
@@ -314,7 +313,7 @@ impl CliServer {
         let router = Router::new().filter(AnyFilter {}).get(FileServerHandler {
             cfg: self.clone(),
             sender: modified_sender,
-            remote_events: Mutex::new(LruCache::new(64)), // Up to N clients (without races that may skip events)
+            remote_events: Mutex::new(LruCache::new(NonZeroUsize::new(64).unwrap())), // Up to N clients (without races that may skip events)
             last_build_event: Mutex::new(0),
         });
 
