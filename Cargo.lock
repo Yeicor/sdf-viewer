@@ -183,17 +183,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-recursion"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cda8f4bcc10624c4e85bc66b3f452cca98cfa5ca002dc83a16aad2367641bea"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3095,22 +3084,21 @@ dependencies = [
 
 [[package]]
 name = "salvo"
-version = "0.32.0"
+version = "0.33.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d39c5c0e1a55a55b4e6d3e35c1aad519d3264e55b4cb9f4c8285dae4937812f4"
+checksum = "5353b72ea3a609fcade13f879ce8e2fc9153b589508d5b6a5c76658521df2cbc"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo_core"
-version = "0.32.0"
+version = "0.33.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13546d55c87edf37dae6333bf972454b9880e6e3e9af64f23c8be12b080c8f80"
+checksum = "4111508f21ad27ff20a7b0b478a73e2c7a9e3e3ff4e4ab34b7d989f4fe3bd32d"
 dependencies = [
  "Inflector",
  "async-compression",
- "async-recursion",
  "async-trait",
  "base64 0.13.0",
  "bytes",
@@ -3146,9 +3134,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.32.0"
+version = "0.33.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3f4b763b81a131c5783410db99cd389d01a8a7fe44493ed814f68b526943874"
+checksum = "57da3c63247211e4972bd2820da3769ac47955ad5b1f1c53234df55f573c782a"
 dependencies = [
  "Inflector",
  "darling 0.14.1",
