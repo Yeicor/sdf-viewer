@@ -7,10 +7,6 @@ name = "Inflector"
 version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe438c63458706e03479442743baae6c88256498e6431708f6dfc520a26515d3"
-dependencies = [
- "lazy_static",
- "regex",
-]
 
 [[package]]
 name = "ab_glyph"
@@ -777,6 +773,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cruet"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82005af9ad8d0c05bd5e11077ddfcc854cff40815af002ed97ce75cb8ad37270"
+dependencies = [
+ "once_cell",
+ "regex",
+]
+
+[[package]]
 name = "crypto-common"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1380,6 +1386,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbf4d2a7a308fd4578637c0b17c7e1c7ba127b8f6ba00b29f717e9655d85eb68"
 
 [[package]]
+name = "futures-macro"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42cd15d1c7456c04dbdf7e88bcd69760d74f3a798d6444e16974b505b0e62f17"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "futures-sink"
 version = "0.3.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1399,6 +1416,7 @@ checksum = "44fb6cb1be61cc1d2e43b262516aafcf63b241cffdb1d3fa115f91d9c7b09c90"
 dependencies = [
  "futures-core",
  "futures-io",
+ "futures-macro",
  "futures-task",
  "memchr",
  "pin-project-lite",
@@ -3044,25 +3062,25 @@ dependencies = [
 
 [[package]]
 name = "salvo"
-version = "0.35.2"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13a02e2c237fad8003c720e6e604f6b146e9bec9b18efbbb1edf4d1f207e706e"
+checksum = "5e61107bc3487e06ea1c9fc138f258855b1479d873385de8f63e80dab0789896"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo_core"
-version = "0.35.2"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7db8d1828b91380b4ac2988dffd4c9af3898ce107d798cb007e2e9f5eb6e3383"
+checksum = "00800611c338a8d3cee77863d888399b0dc85d94134dcb8ca2c53a74b9ec97b2"
 dependencies = [
- "Inflector",
  "async-compression",
  "async-trait",
  "base64 0.13.0",
  "bytes",
  "cookie",
+ "cruet",
  "encoding_rs",
  "enumflags2",
  "fastrand",
@@ -3094,11 +3112,11 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.35.2"
+version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ffdbfd14e4a55145ab99686d7364d9c4f4f1503cd1545abce94dc0dd08377d7"
+checksum = "a063a4fba31f548289b1ecc4ba5f021e97d20f076922776ac847b4d5cc4763b3"
 dependencies = [
- "Inflector",
+ "cruet",
  "darling 0.14.1",
  "proc-macro-crate",
  "proc-macro2",
