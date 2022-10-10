@@ -3062,18 +3062,18 @@ dependencies = [
 
 [[package]]
 name = "salvo"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e61107bc3487e06ea1c9fc138f258855b1479d873385de8f63e80dab0789896"
+checksum = "3facc8c33d398fc4fdccc616899726452faab2c5408756faa5921cb8c1c70f7a"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo_core"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00800611c338a8d3cee77863d888399b0dc85d94134dcb8ca2c53a74b9ec97b2"
+checksum = "0ca81d8bfa1b258c44ce9bd2295e43531e5f2cb0691203a88b613dd0d81b55c8"
 dependencies = [
  "async-compression",
  "async-trait",
@@ -3112,9 +3112,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.36.0"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a063a4fba31f548289b1ecc4ba5f021e97d20f076922776ac847b4d5cc4763b3"
+checksum = "468a19a4b79ff4c00b95f3f4ead534e8fbf0d9992feee89a3ee47a97813f3be7"
 dependencies = [
  "cruet",
  "darling 0.14.1",
