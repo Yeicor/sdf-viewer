@@ -82,7 +82,7 @@ wasmer = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async", def
 wasmer-wasi = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async", default-features = false, optional = true, features = ["mem-fs", "logging"] } # WASI runtime for wasmer
 
 # === CONFIGURATION & CLI ===
-clap = { version = "3.2", features = ["derive"], optional = true } # CLI parser
+clap = { version = "3.2", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
 klask = { git = "https://github.com/Yeicor/klask", branch = "all-my-requests", optional = true }  # CLI to GUI converter
 shadow-rs = { version = "0.16", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 

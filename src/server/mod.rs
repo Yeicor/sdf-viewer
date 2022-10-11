@@ -12,7 +12,7 @@ use notify_debouncer_mini::{DebounceEventResult, new_debouncer};
 use notify_debouncer_mini::notify::RecursiveMode;
 use salvo::http::{HeaderMap, HeaderValue};
 use salvo::http::header::HeaderName;
-use salvo::http::response::Body;
+use salvo::http::response::ResBody;
 use salvo::prelude::*;
 use salvo::routing::{Filter, PathState};
 use tokio::sync::broadcast::{channel, Receiver, Sender};
@@ -223,7 +223,7 @@ impl CliServer {
                                 metadata.modified().unwrap_or_else(|_| SystemTime::now())))
                                 .unwrap_or_else(|_| HeaderValue::from_str("error").unwrap()),
                         );
-                        res.set_body(Body::from(salvo::hyper::Body::from(file_bytes)));
+                        res.set_body(ResBody::from(salvo::hyper::Body::from(file_bytes)));
                     }
                     Err(err) => {
                         tracing::error!("Failed to read file {}: {}", file_path, err);
