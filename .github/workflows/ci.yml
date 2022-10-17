@@ -22,7 +22,7 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-      - uses: Swatinem/rust-cache@v2.0.0
+      - uses: Swatinem/rust-cache@v2.0.1
       - name: Install dependencies for three-d on Ubuntu
         run: sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev
 
