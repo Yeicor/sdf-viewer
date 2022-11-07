@@ -103,6 +103,7 @@ impl SDFViewer {
 
     fn texture_from_data(size: Vector3<usize>, data: Vec<[f32; 4]>) -> CpuTexture3D {
         CpuTexture3D {
+            name: "SDFViewerTexture".to_string(),
             data: TextureData::RgbaF32(data),
             width: size.x as u32,
             height: size.y as u32,
