@@ -58,7 +58,7 @@ wasminterpreters = ["wasmer", "wasmer-wasi"]
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { version = "0.13", default-features = false, features = [], optional = true }
+three-d = { version = "0.14", default-features = false, features = [], optional = true }
 eframe = { version = "0.19", features = ["persistence"], optional = true }
 egui_glow = { version = "0.19", optional = true }
 image = { version = "0.24", optional = true }  # Required for image loading
