@@ -26,7 +26,7 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-      - uses: Swatinem/rust-cache@v2.0.1
+      - uses: Swatinem/rust-cache@v2.1.0
       - name: Auto-update Cargo.toml and move the release tag
         id: auto-update
         run: |
@@ -97,7 +97,7 @@ jobs:
         with:
           profile: minimal
           toolchain: stable
-      - uses: Swatinem/rust-cache@v2.0.1
+      - uses: Swatinem/rust-cache@v2.1.0
         with:
           key: ${{ matrix.os }}-${{ matrix.target }}
       - uses: nttld/setup-ndk@v1
