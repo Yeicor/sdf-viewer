@@ -5,7 +5,6 @@ use eframe::{egui, Theme};
 use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
-use eframe::egui::util::hash;
 use image::EncodableLayout;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::Receiver;
@@ -230,7 +229,7 @@ impl SDFViewerApp {
 
     fn ui_menu_bar(&mut self, ctx: &Context) {
         // Top panel for the menu bar
-        egui::TopBottomPanel::new(TopBottomSide::Top, hash("top"))
+        egui::TopBottomPanel::new(TopBottomSide::Top, egui::Id::new("top"))
             .show(ctx, |ui| {
                 ScrollArea::new([true, true]).show(ui, |ui| {
                     egui::menu::bar(ui, |ui| {
@@ -276,12 +275,12 @@ impl SDFViewerApp {
 
     fn ui_left_panel(&mut self, ctx: &Context) {
         // Main side panel for configuration.
-        egui::SidePanel::new(Side::Left, hash("left"))
+        egui::SidePanel::new(Side::Left, egui::Id::new("left"))
             .show(ctx, |ui| {
                 // Configuration panel for the parameters of the selected SDF (this must be placed first to reserve space, resizable)
                 // FIXME: SDF Hierarchy rendered over this panel...
                 if let Some(ref selected_sdf) = self.selected_params_sdf {
-                    egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("parameters"))
+                    egui::TopBottomPanel::new(TopBottomSide::Bottom, egui::Id::new("parameters"))
                         .resizable(true)
                         .default_height(200.0)
                         .frame(Frame::default().outer_margin(0.0).inner_margin(0.0))
@@ -320,7 +319,7 @@ impl SDFViewerApp {
 
     fn ui_bottom_panel(&mut self, ctx: &Context) {
         // Bottom panel, containing the progress bar if applicable.
-        egui::TopBottomPanel::new(TopBottomSide::Bottom, hash("bottom"))
+        egui::TopBottomPanel::new(TopBottomSide::Bottom, egui::Id::new("bottom"))
             .frame(Frame::default().inner_margin(0.0))
             .min_height(0.0) // Hide when unused
             .show(ctx, |ui| {

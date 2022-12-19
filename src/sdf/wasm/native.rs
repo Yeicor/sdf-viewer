@@ -214,7 +214,7 @@ impl SDFSurface for WasmerSDF {
             Val::F32(p.x),
             Val::F32(p.y),
             Val::F32(p.z),
-            Val::I32(if distance_only { 1 } else { 0 }),
+            Val::I32(i32::from(distance_only)),
         ]).unwrap_or_else(|err| {
             tracing::error!("Failed to get sample of wasm SDF with ID {}: {}", self.sdf_id, err);
             Box::new([])
@@ -419,7 +419,7 @@ impl SDFSurface for WasmerSDF {
                 SDFParamValue::String(_value) => 3,
             }),
             Val::I32(match param_value {
-                SDFParamValue::Boolean(value) => if *value { 1 } else { 0 },
+                SDFParamValue::Boolean(value) => i32::from(*value),
                 SDFParamValue::Int(value) => *value,
                 SDFParamValue::Float(value) => unsafe { *(value as *const f32 as *const i32) }, // f32 bits to i32
                 SDFParamValue::String(value) => {

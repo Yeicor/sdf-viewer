@@ -99,7 +99,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         use clap::Parser;
-        Self::parse_from(&[""])
+        Self::parse_from([""])
     }
 }
 

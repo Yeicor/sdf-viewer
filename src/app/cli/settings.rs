@@ -1,7 +1,7 @@
 use eframe::egui::{Context, TextEdit, Ui, Widget, WidgetText};
 use eframe::egui;
 use klask::app_state::AppState;
-use klask::LocalizationSettings;
+use klask::settings::Localization;
 use once_cell::sync::OnceCell;
 
 pub enum SettingsWindow<P> {
@@ -47,8 +47,8 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
         ui.add_enabled_ui(enabled, |ui| {
             let settings_button = egui::menu::menu_button(ui, window_name, |_ui| {});
             if settings_button.response.clicked() {
-                static LOC_SETTINGS: OnceCell<LocalizationSettings> = OnceCell::new();
-                let loc_settings = LOC_SETTINGS.get_or_init(LocalizationSettings::default);
+                static LOC_SETTINGS: OnceCell<Localization> = OnceCell::new();
+                let loc_settings = LOC_SETTINGS.get_or_init(Localization::default);
                 *self = Self::Configuring {
                     previous: values.clone(),
                     // TODO(klask): load initial values from the previous settings
