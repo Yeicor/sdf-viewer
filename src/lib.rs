@@ -28,7 +28,7 @@ pub async fn run_app(canvas_id: String) -> Result<(), wasm_bindgen::prelude::JsV
         let web_options = eframe::WebOptions {
             ..eframe::WebOptions::default()
         };
-        eframe::start_web(&canvas_id, web_options, app_creator)?;
+        eframe::start_web(&canvas_id, web_options, app_creator).await?;
     }
     Ok(())
 }
