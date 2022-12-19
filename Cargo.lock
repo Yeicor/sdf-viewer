@@ -1148,26 +1148,6 @@ dependencies = [
 
 [[package]]
 name = "eframe"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0d49426c3e72a6728b0c790d22db8bf7bbcff10d83b8b6f3a01295be982302e"
-dependencies = [
- "bytemuck",
- "egui 0.19.0",
- "egui-winit 0.19.0",
- "getrandom 0.2.7",
- "glutin 0.29.1",
- "js-sys",
- "percent-encoding",
- "tracing",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "winit",
-]
-
-[[package]]
-name = "eframe"
 version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ea929ec5819fef373728bb0e55003ce921975039cfec3ca8305bb024e5b7b32"
