@@ -6,9 +6,10 @@ use tokio::sync::mpsc;
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::metadata::short_version_info_is_ours;
-use crate::sdf::demo::SDFDemo;
+
 use crate::sdf::SDFSurface;
 use crate::sdf::wasm::native;
+use crate::sdf::demo::SDFDemo;
 
 /// See [`load_sdf_wasm`] for more information.
 pub async fn load_sdf_wasm_send_sync(wasm_bytes: &[u8]) -> anyhow::Result<Box<dyn SDFSurface + Send + Sync>> {
@@ -131,7 +132,7 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
                             tracing::error!("Failed to load SDF from URL ({:?}) or file ({:?})", err, err2);
                             sender_single_update.try_send(unsafe {
                                 // FIXME: Extremely unsafe code (forcing SDFDemo Send+Sync), but only used for this error path
-                                std::mem::transmute(Box::new(SDFDemo::default()) as Box<dyn SDFSurface>)
+                                std::mem::transmute(Box::<SDFDemo>::default() as Box<dyn SDFSurface>)
                             }).map_err(|_| anyhow!("can't send SDF update"))
                         }
                     }

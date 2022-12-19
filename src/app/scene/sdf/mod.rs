@@ -194,7 +194,7 @@ impl SDFViewer {
                     let mut sample = sdf.sample(pos, false);
                     // Apply a function to store the distance (-inf, inf) in the texture [0, 1].
                     // KEEP IN SYNC WITH GPU CODE!
-                    tex0_data_ref[flat_index][0] = (1e-1 + sample.distance).max(0.0).min(1.0);
+                    tex0_data_ref[flat_index][0] = (1e-1 + sample.distance).clamp(0.0, 1.0);
                     if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
                         // Avoid invisible objects if left as default with dark environment
                         sample.color = Vector3::new(0.5, 0.5, 0.5);

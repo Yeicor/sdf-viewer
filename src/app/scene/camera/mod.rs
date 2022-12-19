@@ -45,7 +45,7 @@ impl CameraController {
                     let target = *self.camera.target();
                     let zoom_dist = self.camera.position().distance(target);
                     let delta = dragged_delta * self.sensitivity * 0.05 * zoom_dist;
-                    self.camera.rotate_around(&target, delta.x as f32, delta.y as f32);
+                    self.camera.rotate_around(&target, delta.x, delta.y);
                 } else {
                     self.is_rotating = Some(false);
                     // Move the camera target
@@ -66,7 +66,7 @@ impl CameraController {
                 let pos = self.camera.position();
                 let distance = pos.distance(target);
                 let delta = scroll_y.signum() * self.sensitivity * 0.1 * distance;
-                let new_distance = (distance - delta).max(0.01).min(1000.0);
+                let new_distance = (distance - delta).clamp(0.01, 1000.0);
                 let new_position = target - self.camera.view_direction() * new_distance;
                 let up = *self.camera.up();
                 self.camera.set_view(new_position, target, up);

@@ -71,7 +71,7 @@ impl SDFViewerApp {
         info!("Initialization complete! Starting main loop...");
         let mut slf = Self {
             progress: None,
-            sdf: Rc::new(Box::new(SDFDemoCube::default())),
+            sdf: Rc::new(Box::<SDFDemoCube>::default()),
             sdf_loading: None,
             sdf_loading_mgr: None,
             selected_params_sdf: None,
