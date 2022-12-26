@@ -323,6 +323,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
+name = "base64"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ea22880d78093b0cbe17c89f64a7d457941e65759157ec6cb31a31d652b05e5"
+
+[[package]]
 name = "bit_field"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3322,22 +3328,22 @@ dependencies = [
 
 [[package]]
 name = "salvo"
-version = "0.37.7"
+version = "0.37.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24bcfe3ad932be5844b5c7cb4a8a6c390b120759c31e6ea065caf763119dcf1b"
+checksum = "e3decbfebb29fec38a57ceb97a4a48b396c04df97eab82622cb24d4171df072e"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo_core"
-version = "0.37.7"
+version = "0.37.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb1b199dd08eebadbe518beffa26b63e02b93bdf8b09bf9ecd8740b65def38c8"
+checksum = "34ff3ad2d3dfbdb6710b82a35aac600297f6c207edfa7cd4928262ebfc54c1fb"
 dependencies = [
  "async-compression",
  "async-trait",
- "base64 0.13.1",
+ "base64 0.20.0",
  "bytes",
  "cookie",
  "cruet",
@@ -3372,9 +3378,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.37.7"
+version = "0.37.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c47a031f77aadfc539253d32a79cf140b87e472abd8a8a625d3505fc3ac7b849"
+checksum = "058b859771c61c648fda5448d9cc58ecf2f176a60b4df6ccfec6d195e4d4327e"
 dependencies = [
  "cruet",
  "darling 0.14.2",
