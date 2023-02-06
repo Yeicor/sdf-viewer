@@ -93,7 +93,7 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
                 cmd_name.insert(0, env!("CARGO_PKG_NAME").to_string());
                 let cmd_args = editing.as_mut().unwrap()
                     .get_cmd_args(cmd_name)
-                    .unwrap_or_else(|err| vec![format!("Invalid configuration: {}", err)]);
+                    .unwrap_or_else(|err| vec![format!("Invalid configuration: {err}")]);
                 ui.horizontal_wrapped(|ui| {
                     ui.label("CLI: ");
                     let mut cmd_args_str = cmd_args.join(" "); // TODO: Proper escaping
@@ -105,7 +105,7 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
                     ui.horizontal_wrapped(|ui| {
                         ui.label("WEB: ");
                         let cmd_args_str = cmd_args.iter().skip(2)
-                            .map(|arg| format!("cli{}", arg))
+                            .map(|arg| format!("cli{arg}"))
                             .collect::<Vec<_>>()
                             .join("&"); // TODO: Proper escaping
                         let mut text_buf = "?".to_string() + &cmd_args_str;

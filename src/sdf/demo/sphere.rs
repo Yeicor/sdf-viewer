@@ -102,7 +102,7 @@ impl SDFSurface for SDFDemoSphere {
                 return Ok(());
             }
         }
-        Err(format!("Unknown parameter {} with value {:?}", param_id, param_value))
+        Err(format!("Unknown parameter {param_id} with value {param_value:?}"))
     }
 
     //noinspection DuplicatedCode

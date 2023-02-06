@@ -156,7 +156,7 @@ impl SDFViewer {
 
         // Declare some variables to control the iterations and cache some values.
         let mut first = true;
-        let start_iter = self.loading_mgr.iterations();
+        let start_iter = self.loading_mgr.total_iterations();
         let sdf_bb = self.bounding_box;
         let sdf_bb_size = sdf_bb[1] - sdf_bb[0];
         let texture_size_minus_1 = Vector3::new(self.tex0.width as f32 - 1., self.tex0.height as f32 - 1., self.tex0.depth as f32 - 1.);
@@ -219,7 +219,7 @@ impl SDFViewer {
                 break; // No more work to do!
             }
         }
-        self.loading_mgr.iterations() - start_iter
+        self.loading_mgr.total_iterations() - start_iter
     }
 
     /// Commits all previous `update`s to the GPU, updating the GPU-side texture data.

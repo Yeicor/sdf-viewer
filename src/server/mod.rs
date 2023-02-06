@@ -241,7 +241,7 @@ impl CliServer {
                     el.strip_prefix('\\').unwrap_or(el)))
                     .stdout(std::process::Stdio::inherit())
                     .stderr(std::process::Stdio::inherit());
-                tracing::info!(requested_file=file_path, remote_id=remote_id, cmd=format!("{:?}", cmd), "Starting build");
+                tracing::info!(requested_file=file_path, remote_id=remote_id, cmd=format!("{cmd:?}"), "Starting build");
                 let ret = cmd.spawn().expect("Bad build command!").wait().await;
                 match ret {
                     Ok(status) => {

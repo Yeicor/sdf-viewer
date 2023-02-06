@@ -153,7 +153,7 @@ impl WasmerSDF {
             let mem_view = self.memory.view::<u8>();
             for (i, v) in res.iter_mut().enumerate() {
                 *v = mem_view.get(mem_pointer as usize + i).map(|b| b.get()).unwrap_or_else(|| {
-                    debug_assert!(false, "Out of bounds memory access at index {}, length {}", mem_pointer, length);
+                    debug_assert!(false, "Out of bounds memory access at index {mem_pointer}, length {length}");
                     tracing::error!("Out of bounds memory access at index {}, length {}", mem_pointer, length);
                     0
                 })
@@ -360,7 +360,7 @@ impl SDFSurface for WasmerSDF {
                         SDFParamKind::String { choices }
                     }
                     _ => {
-                        debug_assert!(false, "Unknown SDF param kind enum type {}", sdf_param_kind_enum_type);
+                        debug_assert!(false, "Unknown SDF param kind enum type {sdf_param_kind_enum_type}");
                         tracing::error!("Unknown SDF param kind enum type {}", sdf_param_kind_enum_type); // TODO: less logging in case of multiple errors
                         return None;
                     }
@@ -369,7 +369,7 @@ impl SDFSurface for WasmerSDF {
                 /* SDFParamValueC */
                 let sdf_param_value_enum_type = /* enum index = u32 */
                     u32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
-                debug_assert_eq!(sdf_param_kind_enum_type, sdf_param_value_enum_type, "SDF param kind enum type {} != SDF param value enum type {}", sdf_param_kind_enum_type, sdf_param_value_enum_type);
+                debug_assert_eq!(sdf_param_kind_enum_type, sdf_param_value_enum_type, "SDF param kind enum type {sdf_param_kind_enum_type} != SDF param value enum type {sdf_param_value_enum_type}");
                 cur_offset += size_of::<u32>();
                 let sdf_param_value = match sdf_param_value_enum_type {
                     0 => SDFParamValue::Boolean(sdf_param_mem[cur_offset] != 0) /* bool = u8 */,
@@ -381,7 +381,7 @@ impl SDFSurface for WasmerSDF {
                         SDFParamValue::String(String::from_utf8_lossy(value_mem_bytes.as_slice()).to_string())
                     }
                     _ => {
-                        debug_assert!(false, "Unknown SDF param value enum type {}", sdf_param_value_enum_type);
+                        debug_assert!(false, "Unknown SDF param value enum type {sdf_param_value_enum_type}");
                         tracing::error!("Unknown SDF param value enum type {}", sdf_param_value_enum_type); // TODO: less logging in case of multiple errors
                         return None;
                     }
@@ -455,7 +455,7 @@ impl SDFSurface for WasmerSDF {
                 Err(String::from_utf8_lossy(&error_string_bytes[..]).to_string())
             }
             _ => {
-                debug_assert!(false, "Unknown SDF set parameter result kind enum type {}", enum_result_kind);
+                debug_assert!(false, "Unknown SDF set parameter result kind enum type {enum_result_kind}");
                 tracing::error!("Unknown SDF set parameter result kind enum type {}", enum_result_kind); // TODO: less logging in case of multiple errors
                 Err(String::from("Unknown SDF set parameter result kind enum type"))
             }
@@ -501,7 +501,7 @@ impl SDFSurface for WasmerSDF {
                 Some([Vector3::new(x, y, z), Vector3::new(x2, y2, z2)])
             }
             _ => {
-                debug_assert!(false, "Unknown SDF changed result kind enum type {}", enum_result_kind);
+                debug_assert!(false, "Unknown SDF changed result kind enum type {enum_result_kind}");
                 tracing::error!("Unknown SDF changed result kind enum type {}", enum_result_kind); // TODO: less logging in case of multiple errors
                 None
             }

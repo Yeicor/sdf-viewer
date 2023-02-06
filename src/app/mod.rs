@@ -359,14 +359,14 @@ impl SDFViewerApp {
             let output_file_clone = mesher.output_file.to_str().unwrap_or("").to_string();
             if output_file_clone.is_empty() || output_file_clone.eq("-") {
                 if let Err(err) = mesher.run_custom_out(&mut in_memory_model).await {
-                    let msg = format!("Failed to export model: {}", err);
+                    let msg = format!("Failed to export model: {err}");
                     error!("{}", msg);
                     in_memory_model = msg.into_bytes();
                 }
             } else {
                 #[cfg(not(target_arch = "wasm32"))]
                 if let Err(err) = mesher.run_cli().await {
-                    let msg = format!("Failed to export model: {}", err);
+                    let msg = format!("Failed to export model: {err}");
                     error!("{}", msg);
                     in_memory_model = msg.into_bytes();
                 } else {

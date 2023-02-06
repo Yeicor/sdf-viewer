@@ -213,7 +213,7 @@ impl SDFViewerAppScene {
     pub fn load_progress(&self) -> Option<(f32, String)> {
         let remaining = self.sdf_viewer.loading_mgr.len();
         if self.sdf_viewer_last_commit.is_some() {
-            let done_iterations = self.sdf_viewer.loading_mgr.iterations();
+            let done_iterations = self.sdf_viewer.loading_mgr.total_iterations();
             let total_iterations = done_iterations + remaining;
             let progress = done_iterations as f32 / ((total_iterations) as f32);
             Some((progress, format!("Loading SDF {:.2}% ({} levels of detail left, evaluations: {} / {})",

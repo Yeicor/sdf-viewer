@@ -86,7 +86,7 @@ impl ExactSizeIterator for LoadingManager {
 
 impl LoadingManager {
     /// Returns the number of iterations performed so far.
-    pub fn iterations(&self) -> usize {
+    pub fn total_iterations(&self) -> usize {
         self.total_iterations
     }
 
@@ -134,7 +134,7 @@ mod tests {
         for (voxel_index, voxel_hit) in voxel_hits.into_iter().enumerate() {
             if voxel_hit < 1 {
                 let v = Vector3::new(voxel_index % limits.x, voxel_index / limits.x % limits.y, voxel_index / limits.x / limits.y);
-                panic!("developer error: voxel was not hit: {:?}", v);
+                panic!("developer error: voxel was not hit: {v:?}");
             }
         }
     }
