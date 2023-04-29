@@ -1,5 +1,5 @@
 use cgmath::{vec3, Vector3};
-use three_d::{Blend, Camera, Color, Cull, Light, LightingModel, lights_shader_source, Material, MaterialType, RenderStates, Texture3D};
+use three_d::{Blend, Camera, Color, Cull, FragmentAttributes, FragmentShader, Light, LightingModel, lights_shader_source, Material, MaterialType, RenderStates, Texture3D};
 use three_d::core::Program;
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
@@ -34,10 +34,19 @@ impl SDFViewerMaterial {
 }
 
 impl Material for SDFViewerMaterial {
-    fn fragment_shader_source(&self, _use_vertex_colors: bool, lights: &[&dyn Light]) -> String {
+    fn fragment_shader(&self, lights: &[&dyn Light]) -> FragmentShader {
         let mut output = lights_shader_source(lights, self.lighting_model);
         output.push_str(include_str!("material.frag"));
-        output
+        FragmentShader {
+            source: output,
+            attributes: FragmentAttributes {
+                position: true,
+                normal: false,
+                tangents: false,
+                uv: false,
+                color: false,
+            },
+        }
     }
 
     fn use_uniforms(

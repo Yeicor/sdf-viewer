@@ -62,7 +62,7 @@ pub async fn native_main() {
                 depth_buffer: 16, // Needed for 3D rendering
                 ..eframe::NativeOptions::default()
             };
-            eframe::run_native("SDF Viewer", native_options, app_creator);
+            eframe::run_native("SDF Viewer", native_options, app_creator).unwrap();
         }
     }
 }

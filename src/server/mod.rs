@@ -10,6 +10,7 @@ use httpdate::fmt_http_date;
 use lru::LruCache;
 use notify_debouncer_mini::{DebounceEventResult, new_debouncer};
 use notify_debouncer_mini::notify::RecursiveMode;
+use salvo::conn::Acceptor;
 use salvo::http::{HeaderMap, HeaderValue};
 use salvo::http::header::HeaderName;
 use salvo::http::response::ResBody;
@@ -140,14 +141,14 @@ impl CliServer {
                 }
 
                 // Identify caller to provide it's own updates
-                let remote_id = req.remote_addr().and_then(|x| match x {
+                let remote_id = match req.remote_addr() {
                     // The same remote will open connections on different ports, so we need to
                     // use only the remote IP to identify the connection. However, this may cause
                     // collisions if the same IP is used on multiple machines (NAT).
-                    salvo::addr::SocketAddr::IPv4(addr) => Some(addr.ip().to_string()),
-                    salvo::addr::SocketAddr::IPv6(addr) => Some(addr.ip().to_string()),
+                    salvo::core::conn::addr::SocketAddr::IPv4(addr) => Some(addr.ip().to_string()),
+                    salvo::core::conn::addr::SocketAddr::IPv6(addr) => Some(addr.ip().to_string()),
                     _ => None,
-                }).unwrap_or_else(|| "unknown".to_string());
+                }.unwrap_or_else(|| "unknown".to_string());
                 let mut build_event = 0;
 
                 // Watch (& compile) file if requested
@@ -223,7 +224,7 @@ impl CliServer {
                                 metadata.modified().unwrap_or_else(|_| SystemTime::now())))
                                 .unwrap_or_else(|_| HeaderValue::from_str("error").unwrap()),
                         );
-                        res.set_body(ResBody::from(salvo::hyper::Body::from(file_bytes)));
+                        res.set_body(ResBody::from(file_bytes));
                     }
                     Err(err) => {
                         tracing::error!("Failed to read file {}: {}", file_path, err);
@@ -319,8 +320,8 @@ impl CliServer {
 
         // Await forever serving requests
         // TODO: Graceful shutdown
-        let listener = TcpListener::bind((self.host, self.port));
-        tracing::info!(addr=listener.local_addr().to_string(), paths=format!("{:?}", self.serve_paths), "Listening for requests");
+        let listener = TcpListener::new((self.host, self.port)).bind().await;
+        tracing::info!(addr=listener.holdings()[0].to_string(), paths=format!("{:?}", self.serve_paths), "Listening for requests");
         Server::new(listener).serve(router).await;
     }
 }

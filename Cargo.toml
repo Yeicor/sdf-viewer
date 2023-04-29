@@ -71,7 +71,7 @@ profiling = { version = "1.0", features = ["profile-with-tracing"], optional = t
 ehttp = { version = "0.2", optional = true } # Very simple HTTP client that supports web
 
 # === SERVER ===
-salvo = { version = "0.37", optional = true } # Simple HTTP server
+salvo = { version = "0.39", optional = true } # Simple HTTP server
 notify-debouncer-mini = { version = "*", default-features = false, optional = true } # Watch for file changes
 httpdate = { version = "1.0", optional = true } # Formatting of dates
 lru = { version = "0.10", optional = true } # For caching resources
@@ -82,7 +82,7 @@ wasmer = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async", def
 wasmer-wasi = { git = "https://github.com/Yeicor/wasmer", branch = "2.3.0-async", default-features = false, optional = true, features = ["mem-fs", "logging"] } # WASI runtime for wasmer
 
 # === CONFIGURATION & CLI ===
-clap = { version = "3.2", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
+clap = { version = "3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
 klask = { git = "https://github.com/Yeicor/klask", optional = true }  # CLI to GUI converter
 shadow-rs = { version = "0.21", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 
@@ -107,7 +107,7 @@ tracing-subscriber = { version = "0.3", optional = true } # For logging
 [target.'cfg(target_arch = "wasm32")'.dependencies] # Web dependencies
 wasm-bindgen = { version = "0.2", optional = true } # Core bindings
 wasm-bindgen-futures = { version = "0.4", optional = true } # Core bindings
-tokio = { version = "1.26", features = ["sync"], optional = true } # Minimal async utilities like mutexes
+tokio = { version = "1.27", features = ["sync"], optional = true } # Minimal async utilities like mutexes
 web-sys = { version = "0.3", optional = true } # Core bindings
 js-sys = { version = "0.3", optional = true } # Core bindings
 tracing-wasm = { version = "0.2", optional = true } # For logging

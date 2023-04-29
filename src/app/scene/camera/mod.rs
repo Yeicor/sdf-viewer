@@ -25,10 +25,11 @@ impl CameraController {
         self.camera.set_viewport(frame_input.viewport);
         // Handle inputs
         if egui_resp.hovered() { // If interacting with the widget
-            let state = egui_resp.ctx.input();
+            let (multi_touch, scroll_delta, modifiers) = egui_resp.ctx.input(|ctx|
+                (ctx.multi_touch(), ctx.scroll_delta, ctx.modifiers));
             let dragged_delta = egui_resp.drag_delta();
-            let number_touches = state.multi_touch().map(|touches| touches.num_touches).unwrap_or(0);
-            let scroll_y = state.multi_touch().and_then(|touches| {
+            let number_touches = multi_touch.map(|touches| touches.num_touches).unwrap_or(0);
+            let scroll_y = multi_touch.and_then(|touches| {
                 if number_touches == 2 {
                     const TOUCH_SENSITIVITY: f32 = 0.01; // Otherwise, it is always zooming
                     let zoom_delta = touches.zoom_delta - 1.;
@@ -36,9 +37,9 @@ impl CameraController {
                         Some(zoom_delta) // positive is zoom in, negative is zoom out
                     } else { None }
                 } else { None }
-            }).unwrap_or(state.scroll_delta.y);
+            }).unwrap_or(scroll_delta.y);
             if egui_resp.dragged_by(PointerButton::Secondary) || number_touches >= 2 && scroll_y == 0. {
-                let should_rotate = self.is_rotating.unwrap_or(!state.modifiers.shift && number_touches < 3);
+                let should_rotate = self.is_rotating.unwrap_or(!modifiers.shift && number_touches < 3);
                 if should_rotate {
                     self.is_rotating = Some(true);
                     // Rotate the camera in an orbit around the target
