@@ -79,7 +79,7 @@ impl Cli {
             #[cfg(not(target_arch = "wasm32"))]
             {
                 ENV.set(std::env::vars().collect::<HashMap<_, _>>()).unwrap();
-                std::env::args().into_iter().collect::<Vec<_>>()
+                std::env::args().collect::<Vec<_>>()
             }
         };
         let slf: clap::Result<Self> = Self::try_parse_from(args.iter());
