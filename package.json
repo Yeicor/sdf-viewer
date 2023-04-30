@@ -4,7 +4,7 @@
     "Yeicor <yeicor1212@gmail.com>"
   ],
   "description": "SDF Viewer",
-  "version": "1.2.19",
+  "version": "1.2.21",
   "license": "MIT or Apache-2.0",
   "repository": {
     "type": "git",
@@ -14,10 +14,12 @@
     "sdf_viewer_lib_bg.wasm",
     "sdf_viewer_lib.js",
     "sdf_viewer_lib.d.ts",
-    "LICENSE-MIT",
-    "LICENSE-APACHE"
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
   ],
   "module": "sdf_viewer_lib.js",
   "types": "sdf_viewer_lib.d.ts",
-  "sideEffects": false
+  "sideEffects": [
+    "./snippets/*"
+  ]
 }
