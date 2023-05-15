@@ -135,7 +135,7 @@ impl CliServer {
                 // Validate file path
                 if !self.cfg.serve_paths.iter().any(|p| p == file_path) {
                     tracing::error!("Received request to file that is not public {}", file_path);
-                    res.set_status_error(StatusError::not_found());
+                    StatusError::not_found().render(res);
                     res.set_headers(headers);
                     return;
                 }
@@ -224,11 +224,11 @@ impl CliServer {
                                 metadata.modified().unwrap_or_else(|_| SystemTime::now())))
                                 .unwrap_or_else(|_| HeaderValue::from_str("error").unwrap()),
                         );
-                        res.set_body(ResBody::from(file_bytes));
+                        res.body(ResBody::from(file_bytes));
                     }
                     Err(err) => {
                         tracing::error!("Failed to read file {}: {}", file_path, err);
-                        res.set_status_error(StatusError::not_found());
+                        StatusError::not_found().render(res);
                     }
                 };
                 res.set_headers(headers);
@@ -248,13 +248,13 @@ impl CliServer {
                     Ok(status) => {
                         if !status.success() {
                             tracing::error!(requested_file=file_path, remote_id=remote_id, build_event=build_event, "Build command failed");
-                            res.set_status_error(StatusError::internal_server_error());
+                            StatusError::internal_server_error().render(res);
                             return;
                         }
                     }
                     Err(e) => {
                         tracing::error!(requested_file=file_path, remote_id=remote_id, build_event=build_event, "Build command failed: {}", e);
-                        res.set_status_error(StatusError::internal_server_error());
+                        StatusError::internal_server_error().render(res);
                         return;
                     }
                 }
