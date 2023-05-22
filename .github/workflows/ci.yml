@@ -17,20 +17,16 @@ jobs:
     steps:
       - name: Download repository
         uses: actions/checkout@v3
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
+      - name: Update cargo
+        run: |
+          rustup update
       - uses: Swatinem/rust-cache@v2.4.0
       - name: Install dependencies for three-d on Ubuntu
         run: sudo apt update && sudo apt upgrade -y && sudo apt install -y pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev libatk1.0-dev libgtk-3-dev
 
-      - uses: actions-rs/cargo@v1
-        name: Test
-        with:
-          command: test
-          args: --features "app server sdfdemo meshers" --lib # Test different feature combinations?
+      - name: Test
+        run: |
+          cargo test --features "app server sdfdemo meshers" --lib # Test different feature combinations?
 
       - run: rustup component add clippy # rustfmt
       - name: Install clippy extras
