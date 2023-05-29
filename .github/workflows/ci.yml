@@ -1,7 +1,11 @@
 # Continuous Integration only tests on linux desktop
 name: Continuous Integration
 
-on: [ push, pull_request ]
+on:
+  push:
+    branches: "master"
+  pull_request: 
+    branches: "master"
 
 env:
   CARGO_TERM_COLOR: always
