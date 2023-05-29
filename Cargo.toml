@@ -24,7 +24,7 @@ native_no_wasmer = ["poll-promise/tokio"] # Android (Termux) server-only builds 
 # === FUNCTIONALITY-BASED FEATURES ===
 # The whole app that renders SDFs.
 app = ["standalone", "sdf", "sdfdemo", "wasminterpreters", # <-- other features
-    "three-d", "eframe", "egui_glow", "image", "ehttp", "anyhow", "klask"]
+    "three-d", "eframe", "image", "ehttp", "anyhow", "klask"]
 
 # The simple server to watch and serve files to the app.
 server = ["standalone", # <-- other features
@@ -59,8 +59,7 @@ wasminterpreters = ["wasmer", "wasmer-wasi"]
 [dependencies]
 # === RENDERING ===
 three-d = { version = "0.15", default-features = false, features = [], optional = true }
-eframe = { version = "0.21", features = ["persistence", "glow"], optional = true }
-egui_glow = { version = "0.22", optional = true }
+eframe = { version = "0.22", features = ["persistence", "glow"], optional = true }
 image = { version = "0.24", optional = true }  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===

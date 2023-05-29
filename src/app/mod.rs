@@ -168,7 +168,7 @@ impl SDFViewerApp {
         // Queue the rendering of the scene
         ui.painter().add(egui::PaintCallback {
             rect,
-            callback: Arc::new(egui_glow::CallbackFn::new(move |info, painter| {
+            callback: Arc::new(eframe::egui_glow::CallbackFn::new(move |info, painter| {
                 let response = response.clone();
                 Self::scene_mut(|scene| {
                     let frame_input = FrameInput::new(&scene.ctx, &info, painter);

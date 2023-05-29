@@ -12,7 +12,7 @@ impl FrameInput<'_> {
     pub fn new(
         context: &three_d::Context,
         info: &egui::PaintCallbackInfo,
-        painter: &egui_glow::Painter,
+        painter: &eframe::egui_glow::Painter,
     ) -> Self {
         use three_d::*;
 
