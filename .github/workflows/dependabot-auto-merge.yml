@@ -23,7 +23,7 @@ jobs:
       # Here the PR gets approved.
       - uses: actions/checkout@v3
       - name: "Approve a PR"
-        run: "gh pr review --approve '$PR_URL'"
+        run: "gh pr review --approve $PR_URL"
         env:
           PR_URL: "${{ github.event.pull_request.html_url }}"
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
@@ -31,7 +31,7 @@ jobs:
       # updates if all checks pass
       - name: "Enable auto-merge for Dependabot PRs"
         #if: "${{ steps.dependabot-metadata.outputs.update-type != 'version-update:semver-major' }}"
-        run: "gh pr merge --auto --squash '$PR_URL'"
+        run: "gh pr merge --auto --squash $PR_URL"
         env:
           PR_URL: "${{ github.event.pull_request.html_url }}"
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
