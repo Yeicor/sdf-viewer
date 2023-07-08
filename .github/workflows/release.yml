@@ -24,7 +24,7 @@ jobs:
       - name: Update cargo
         run: |
           rustup update
-      - uses: Swatinem/rust-cache@v2.5.0
+      - uses: Swatinem/rust-cache@v2.5.1
       - name: Auto-update Cargo.toml and move the release tag
         id: auto-update
         run: |
@@ -93,7 +93,7 @@ jobs:
       - name: Update cargo
         run: |
           rustup update
-      - uses: Swatinem/rust-cache@v2.5.0
+      - uses: Swatinem/rust-cache@v2.5.1
         with:
           key: ${{ matrix.os }}-${{ matrix.target }}
       - uses: nttld/setup-ndk@v1
