@@ -1661,17 +1661,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "futures-macro"
-version = "0.3.28"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89ca545a94061b6365f2c7355b4b32bd20df3ff95f02da9329b34ccc3bd6ee72"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.18",
-]
-
-[[package]]
 name = "futures-sink"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1691,7 +1680,6 @@ checksum = "26b01e40b772d54cf6c6d721c1d1abd0647a0106a12ecaa1c186273392a69533"
 dependencies = [
  "futures-core",
  "futures-io",
- "futures-macro",
  "futures-sink",
  "futures-task",
  "memchr",
@@ -2138,9 +2126,9 @@ dependencies = [
 
 [[package]]
 name = "http-body-util"
-version = "0.1.0-rc.2"
+version = "0.1.0-rc.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92445bc9cc14bfa0a3ce56817dc3b5bcc227a168781a356b702410789cec0d10"
+checksum = "08ef12f041acdd397010e5fb6433270c147d3b8b2d0a840cd7fff8e531dca5c8"
 dependencies = [
  "bytes",
  "futures-util",
@@ -2163,13 +2151,12 @@ checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
 
 [[package]]
 name = "hyper"
-version = "1.0.0-rc.3"
+version = "1.0.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b75264b2003a3913f118d35c586e535293b3e22e41f074930762929d071e092"
+checksum = "d280a71f348bcc670fc55b02b63c53a04ac0bf2daff2980795aeaf53edae10e6"
 dependencies = [
  "bytes",
  "futures-channel",
- "futures-core",
  "futures-util",
  "h2",
  "http",
@@ -3624,37 +3611,30 @@ checksum = "f91339c0467de62360649f8d3e185ca8de4224ff281f66000de5eb2a77a79041"
 
 [[package]]
 name = "salvo"
-version = "0.46.0"
+version = "0.48.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f0eeb598d75ee3c8020c3c3b1b35161c50b2a94a950e57415e28a932740ee47"
+checksum = "fb6ce7f24cf14e8820e2bae49edf7612f38981f8b29447120e3c45417d4cac42"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo-utils"
-version = "0.0.3"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f350ad191e14881904af65bbe14ee2a84fee1c74e4616334b412c6a68151e6d7"
+checksum = "35cb87a925e7696818a5a716dc6b17ff4ffa8cb769be907b623bc8637d661234"
 dependencies = [
- "futures-channel",
- "futures-util",
- "http",
  "hyper",
- "once_cell",
  "pin-project-lite",
- "socket2",
  "tokio",
- "tower",
- "tower-service",
  "tracing",
 ]
 
 [[package]]
 name = "salvo_core"
-version = "0.46.0"
+version = "0.48.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4292dfecdf2c559eb70cbe0dcb1b5ec100e0069b7eddbb6a1031d32fb4f14d0c"
+checksum = "aa2dd01f0ca824c9a0dc2a1b07f07cfb68c00e8f6bf4e0db158e9777e1c6c906"
 dependencies = [
  "async-trait",
  "base64 0.21.2",
@@ -3684,6 +3664,7 @@ dependencies = [
  "salvo-utils",
  "salvo_macros",
  "serde",
+ "serde-xml-rs",
  "serde_json",
  "serde_urlencoded",
  "tempfile",
@@ -3698,9 +3679,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.46.0"
+version = "0.48.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8bc86f37b088c154c6645087118dd6646836a1874411527815e5980aec0e7db"
+checksum = "51d203d65bfe5197f1b147f15c06ee303c44690ccada088bc1157b28df778eee"
 dependencies = [
  "cruet",
  "proc-macro-crate",
@@ -3829,6 +3810,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2113ab51b87a539ae008b5c6c02dc020ffa39afd2d83cffcb3f4eb2722cebec2"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-xml-rs"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb3aa78ecda1ebc9ec9847d5d3aba7d618823446a049ba2491940506da6e2782"
+dependencies = [
+ "log",
+ "serde",
+ "thiserror",
+ "xml-rs",
 ]
 
 [[package]]
@@ -4510,34 +4503,6 @@ dependencies = [
  "toml_datetime",
  "winnow",
 ]
-
-[[package]]
-name = "tower"
-version = "0.4.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
-dependencies = [
- "futures-core",
- "futures-util",
- "pin-project",
- "pin-project-lite",
- "tokio",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
-name = "tower-layer"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c20c8dbed6283a09604c3e69b4b7eeb54e298b8a600d4d5ecb5ad39de609f1d0"
-
-[[package]]
-name = "tower-service"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
