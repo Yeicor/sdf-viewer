@@ -2310,7 +2310,7 @@ checksum = "06d198e9919d9822d5f7083ba8530e04de87841eaf21ead9af8f2304efd57c89"
 [[package]]
 name = "isosurface"
 version = "0.1.0-alpha.0"
-source = "git+https://github.com/swiftcoder/isosurface#b4b95b3e084462c3c84eedeb22c988ddcb313158"
+source = "git+https://github.com/swiftcoder/isosurface#185a0ebba1d7c08d1d1cbdf30fa77b9012d6f12e"
 
 [[package]]
 name = "itoa"
