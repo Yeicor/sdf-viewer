@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 
 set -ex
@@ -5,10 +6,12 @@ set -ex
 # This script takes the generated .wasm and preparse it for the release.
 wasm_file="$1"
 dirname="$(dirname "$wasm_file")"
+mkdir -p "$dirname"
 cd "$dirname"
 wasm_file="$(basename "$wasm_file")"
 
 cat >index.html <<EOF
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
@@ -29,11 +32,11 @@ cat >index.html <<EOF
     SDFViewer.default().then( // Async initialization
         () => SDFViewer.run_app("sdf-viewer")); // Run the actual App
 
-	// Start a toggleable web console for mobile devices only (to help with debugging)
+	  // Start a toggleable web console for mobile devices only (to help with debugging)
     if (/Mobi|Android/i.test(navigator.userAgent)) {
     	var src = '//cdn.jsdelivr.net/npm/eruda';
-		document.write('<scr' + 'ipt src="' + src + '"></scr' + 'ipt>');
-		document.write('<scr' + 'ipt>eruda.init();</scr' + 'ipt>');
+      document.write('<scr' + 'ipt src="' + src + '"></scr' + 'ipt>');
+      document.write('<scr' + 'ipt>eruda.init();</scr' + 'ipt>');
     }
 </script>
 </body>

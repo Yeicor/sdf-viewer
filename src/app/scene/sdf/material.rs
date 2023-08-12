@@ -1,5 +1,5 @@
 use cgmath::{vec3, Vector3};
-use three_d::{Blend, Camera, Color, Cull, FragmentAttributes, FragmentShader, Light, LightingModel, lights_shader_source, Material, MaterialType, RenderStates, Texture3D};
+use three_d::{Blend, Camera, Cull, FragmentAttributes, Light, LightingModel, lights_shader_source, Material, MaterialType, RenderStates, Srgba, Texture3D};
 use three_d::core::Program;
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
@@ -15,7 +15,7 @@ pub struct SDFViewerMaterial {
     /// A value of n means that n samples should be skipped in each dimension in between each read.
     pub lod_dist_between_samples: f32,
     /// Base surface color (tint). Assumed to be in linear color space.
-    pub color: Color,
+    pub color: Srgba,
     /// The lighting model used to render the voxel data.
     pub lighting_model: LightingModel,
 }
@@ -27,25 +27,40 @@ impl SDFViewerMaterial {
             tex1,
             voxels_bounds,
             lod_dist_between_samples: 1f32,
-            color: Color::WHITE,
+            color: Srgba::WHITE,
             lighting_model: LightingModel::Phong,
         }
     }
 }
 
 impl Material for SDFViewerMaterial {
-    fn fragment_shader(&self, lights: &[&dyn Light]) -> FragmentShader {
+
+    fn fragment_shader_source(&self, lights: &[&dyn Light]) -> String {
         let mut output = lights_shader_source(lights, self.lighting_model);
         output.push_str(include_str!("material.frag"));
-        FragmentShader {
-            source: output,
-            attributes: FragmentAttributes {
-                position: true,
-                normal: false,
-                tangents: false,
-                uv: false,
-                color: false,
-            },
+        // HACK: Different gamma-corrections for different platforms.
+        #[cfg(target_arch = "wasm32")]
+        {
+            output = output.replace("// Gamma correction (web-only): ", "");
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            output = output.replace("// Gamma correction (non-web): ", "");
+        }
+        output
+    }
+
+    fn id(&self) -> u16 {
+        0
+    }
+
+    fn fragment_attributes(&self) -> FragmentAttributes {
+        FragmentAttributes {
+            position: true,
+            normal: false,
+            tangents: false,
+            uv: false,
+            color: false,
         }
     }
 
@@ -61,7 +76,7 @@ impl Material for SDFViewerMaterial {
 
         program.use_uniform("cameraPosition", camera.position());
         program.use_uniform("BVP", bvp_matrix(camera));
-        program.use_uniform("surfaceColorTint", self.color);
+        program.use_uniform("surfaceColorTint", self.color.to_linear_srgb());
 
         program.use_texture_3d("sdfTex0", &self.tex0);
         program.use_texture_3d("sdfTex1", &self.tex1);

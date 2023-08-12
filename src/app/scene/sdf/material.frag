@@ -65,7 +65,7 @@ vec3 sdfSampleTex0Color(vec4 raw) {
 }
 
 // Extract material properties from raw SDF sample.
-vec3 sdfSampleTex1MetallicRoughnessOcclussion(vec4 raw) {
+vec3 sdfSampleTex1MetallicRoughnessOcclusion(vec4 raw) {
     return raw.rgb;
 }
 
@@ -155,14 +155,13 @@ void main() {
 
     // Read material properties from the texture color
     vec3 sampleColor = sdfSampleTex0Color(sampleTex0Raw);
-    sampleColor = pow(sampleColor, vec3(2.2)); // gamma correction
     sampleColor *= surfaceColorTint.rgb;// Usually white, does nothing to the surface's color
-    vec3 sampleProps = sdfSampleTex1MetallicRoughnessOcclussion(sampleTex1Raw);
+    vec3 sampleProps = sdfSampleTex1MetallicRoughnessOcclusion(sampleTex1Raw);
 
     // Compute the color using the lighting model.
     outColor.rgb = calculate_lighting(cameraPosition, sampleColor, hitPos, normal, sampleProps.x, sampleProps.y, sampleProps.z);
-    outColor.rgb = reinhard_tone_mapping(outColor.rgb);
-    outColor.rgb = srgb_from_rgb(outColor.rgb);
+    // Gamma correction (web-only): outColor.rgb = pow(outColor.rgb, vec3(1.0/2.2));
+    // Gamma correction (non-web): outColor.rgb = pow(outColor.rgb, vec3(1.0/1.5));
     outColor.a = surfaceColorTint.a;
 
     // FIXME: Circle artifacts when computing normals while looking straight at an object

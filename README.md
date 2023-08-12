@@ -58,10 +58,10 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
 
 👉 [Click to run the latest web demo](https://yeicor.github.io/sdf-viewer/?envdark) 👈
 
-This (outdated) example loads and renders an SDF with custom materials at the maximum framerate of **60 FPS on an
-integrated graphics card** (i7-9750H). The initial load of the SDF is also interactive at 30 FPS (configurable): it
-quickly loads a low-resolution version of the object and iteratively increases the level of detail until the SDF is
-fully loaded. Parameters are configured from the UI, also rendering the changes in real time.
+This example loads and renders an SDF with custom materials at the maximum framerate of **60 FPS on an integrated
+graphics card** (i7-9750H). The initial load of the SDF is also interactive at 30 FPS (configurable): it quickly loads a
+low-resolution version of the object and iteratively increases the level of detail until the SDF is fully loaded.
+Parameters are configured from the UI, also rendering the changes in real time.
 
 ![demo.gif](.github/docs/demo.gif)
 
@@ -83,6 +83,7 @@ These are the steps to follow to start using SDF Viewer.
 4. Display the WebAssembly file that defines the SDF with the app.
     1. If running the native app, use the CLI to set the path to the file or URL (`sdf-viewer app url <wasm-file>`).
     2. If running on a web browser, start a server to provide the file and add `?cliurl=<link-to-wasm-file>` to the URL.
+        1. Chrome forbids synchronous compilation for wasm files larger than 4KB, so use a different browser for now...
     3. In both cases, you can also use the Settings window inside the app to set the URL.
 
 Any change to the sources of the SDF would require you to repeat steps 3 and 4 to display the updated version.

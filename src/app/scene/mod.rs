@@ -120,11 +120,11 @@ impl SDFViewerAppScene {
             let skybox = Skybox::new_from_equirectangular(
                 &ctx, &skybox_texture);
             let ambient_light = AmbientLight::new_with_environment(
-                &ctx, 0.1, Color::WHITE, skybox.texture());
+                &ctx, 0.1, Srgba::WHITE, skybox.texture());
             objects.push(Box::new(skybox));
             lights.push(Box::new(ambient_light));
         } else {
-            lights.push(Box::new(AmbientLight::new(&ctx, 0.1, Color::WHITE)));
+            lights.push(Box::new(AmbientLight::new(&ctx, 0.1, Srgba::WHITE)));
         }
 
         // TODO: Custom user-defined objects (gltf) with transforms
@@ -142,7 +142,7 @@ impl SDFViewerAppScene {
 
         // Create more lights
         lights.push(Box::new(DirectionalLight::new(
-            &ctx, 0.9, Color::WHITE, &vec3(-1.0, -1.0, -1.0))));
+            &ctx, 0.9, Srgba::WHITE, &vec3(-1.0, -1.0, -1.0))));
 
         Self {
             ctx,

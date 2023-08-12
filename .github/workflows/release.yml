@@ -71,7 +71,7 @@ jobs:
             target: wasm32-unknown-unknown
             ext: tar.gz  # After post-processing
             pre: rustup target add wasm32-unknown-unknown && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-            build: wasm-pack build --target web --out-dir ./target/pkg -- --no-default-features --features "app meshers web"
+            build: wasm-pack build --target web --out-dir ./target/pkg -- --no-default-features --features default-wasm
             post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm"
           # TODO: Android
           # - os: ubuntu-latest
