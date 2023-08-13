@@ -73,12 +73,18 @@ jobs:
             pre: rustup target add wasm32-unknown-unknown && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
             build: wasm-pack build --target web --out-dir ./target/pkg -- --no-default-features --features default-wasm
             post: ".github/scripts/release-wasm-post.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm"
-          # TODO: Android
-          # - os: ubuntu-latest
-          #   target: android  # Multiple architectures are supported
-          #   pre: rustup target add aarch64-linux-android && cargo install cargo-apk
-          #   build: cargo apk build --release --lib
-          #   ext: apk
+          # Android
+          - os: ubuntu-latest
+            target: android  # Multiple architectures are supported
+            pre: |
+              apt update
+              apt install sdkmanager openjdk-8-jre-headless
+              sdkmanager --install "platforms;android-33" "ndk-bundle;r25c" "build-tools;33.0.2"
+              export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk-bundle
+              rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+              cargo install cargo-apk
+            build: cargo apk build --lib --no-default-features --features default-android  # --release requires keystore
+            ext: apk
           # TODO: iOS
           # - os: macos-latest
           #   target: ???

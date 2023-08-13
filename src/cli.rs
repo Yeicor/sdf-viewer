@@ -41,52 +41,60 @@ pub fn env_get(key: impl AsRef<str>) -> Option<String> {
 impl Cli {
     /// Parses from the command line arguments on native and from GET parameters on web.
     pub fn parse_args() -> Self {
-        let args = {
-            #[cfg(target_arch = "wasm32")]
-            {
-                // Web can only run the app, but it can still configure arguments and environment
-                // variables through the GET parameters in the URL.
-                let mut args = vec![env!("CARGO_PKG_NAME").to_string(), "app".to_string()];
-                let location_string: String = web_sys::window().unwrap().location().href().unwrap().to_string().into();
-                let query_string = location_string.split("?").nth(1).unwrap_or("");
-                let query_pairs = query_string.split("&").map(|pair| {
-                    pair.find("=").map_or_else(|| (pair, ""), |index|
-                        (&pair[..index], &pair[index + 1..]))
-                }).collect::<Vec<_>>();
-                let mut env_vars = HashMap::new();
-                args.extend(query_pairs.into_iter().filter_map(|(key, value)| {
-                    if let Some(env_key) = key.strip_prefix("env") {
-                        // Add the crate name as prefix automatically
-                        let mut env_key = env_key.to_string();
-                        env_key.insert_str(0, &*format!("{}_", env!("CARGO_PKG_NAME")));
-                        env_vars.insert(env_key, value.to_string());
-                        None
-                    } else if let Some(cli_key) = key.strip_prefix("cli") {
-                        Some([cli_key.to_string(), value.to_string()]) // Filtered later if value is empty
-                    } else {
-                        None
-                    }
-                }).flatten().filter(|el| !el.is_empty()));
-                ENV.set(env_vars).unwrap();
-                if args.len() == 2 {
-                    // No arguments, show the demo mode.
-                    tracing::warn!("No arguments (GET params prefixed with \"cli\", try <url>?cli-h), setting defaults");
-                    tracing::info!("You can also set the environment variables with the prefix \"env\"");
-                    args.push("demo".to_string());
-                }
-                args
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                ENV.set(std::env::vars().collect::<HashMap<_, _>>()).unwrap();
-                std::env::args().collect::<Vec<_>>()
-            }
-        };
+        let args = Self::get_args();
         let slf: clap::Result<Self> = Self::try_parse_from(args.iter());
         slf.unwrap_or_else(|e| {
             // Use tracing to avoid default crash on web
             error!("Error parsing arguments: {}", e);
             std::process::exit(0);
         })
+    }
+
+    /// Returns the arguments from the command line (platform-specific)
+    pub fn get_args() -> Vec<String> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            // Web can only run the app, but it can still configure arguments and environment
+            // variables through the GET parameters in the URL.
+            let mut args = vec![env!("CARGO_PKG_NAME").to_string(), "app".to_string()];
+            let location_string: String = web_sys::window().unwrap().location().href().unwrap().to_string().into();
+            let query_string = location_string.split("?").nth(1).unwrap_or("");
+            let query_pairs = query_string.split("&").map(|pair| {
+                pair.find("=").map_or_else(|| (pair, ""), |index|
+                    (&pair[..index], &pair[index + 1..]))
+            }).collect::<Vec<_>>();
+            let mut env_vars = HashMap::new();
+            args.extend(query_pairs.into_iter().filter_map(|(key, value)| {
+                if let Some(env_key) = key.strip_prefix("env") {
+                    // Add the crate name as prefix automatically
+                    let mut env_key = env_key.to_string();
+                    env_key.insert_str(0, &*format!("{}_", env!("CARGO_PKG_NAME")));
+                    env_vars.insert(env_key, value.to_string());
+                    None
+                } else if let Some(cli_key) = key.strip_prefix("cli") {
+                    Some([cli_key.to_string(), value.to_string()]) // Filtered later if value is empty
+                } else {
+                    None
+                }
+            }).flatten().filter(|el| !el.is_empty()));
+            let _ign = ENV.try_insert(env_vars);
+            if args.len() == 2 {
+                // No arguments, show the demo mode.
+                tracing::warn!("No arguments (GET params prefixed with \"cli\", try <url>?cli-h), setting defaults");
+                tracing::info!("You can also set the environment variables with the prefix \"env\"");
+                args.push("demo".to_string());
+            }
+            args
+        }
+        #[cfg(target_os = "android")]
+        {
+            let _ign = ENV.try_insert(HashMap::new());
+            vec![env!("CARGO_PKG_NAME").to_string(), "app".to_string(), "demo".to_string()]
+        }
+        #[cfg(not(any(target_arch = "wasm32", target_os = "android")))]
+        {
+            let _ign = ENV.try_insert(std::env::vars().collect::<HashMap<_, _>>());
+            std::env::args().collect::<Vec<_>>()
+        }
     }
 }

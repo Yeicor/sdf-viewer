@@ -231,6 +231,10 @@ impl SDFViewerApp {
         // Top panel for the menu bar
         egui::TopBottomPanel::new(TopBottomSide::Top, egui::Id::new("top"))
             .show(ctx, |ui| {
+                #[cfg(target_os = "android")]
+                {
+                    ui.add_space(48f32); // HACK: Add some space to avoid the status bar
+                }
                 ScrollArea::new([true, true]).show(ui, |ui| {
                     egui::menu::bar(ui, |ui| {
                         self.app_settings.show_window_button(ui, "⚙ Settings");

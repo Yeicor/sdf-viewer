@@ -26,7 +26,7 @@ cat >index.html <<EOF
 <body>
 <canvas id="sdf-viewer" style="position: absolute;top:0;bottom: 0;left: 0;right: 0;margin:auto;"></canvas>
 <script type="module">
-    import * as SDFViewer from './sdf_viewer_lib.js';
+    import * as SDFViewer from './sdf_viewer.js';
 
     SDFViewer.default().then( // Async initialization
         () => SDFViewer.run_app("sdf-viewer")); // Run the actual App
@@ -45,7 +45,7 @@ EOF
 # Also compile the SDF demo to an example small WASM file and include it in the distribution.
 wasm_demo_file="demo_sdf.wasm"
 cargo build --lib --no-default-features --features sdfdemoffi --release --target wasm32-unknown-unknown
-cp "../wasm32-unknown-unknown/release/sdf_viewer_lib.wasm" "$wasm_demo_file"
+cp "../wasm32-unknown-unknown/release/sdf_viewer.wasm" "$wasm_demo_file"
 
 [ -f .gitignore ] && rm .gitignore # This may conflict with some deployments and it is already ignored in the main repo.
 

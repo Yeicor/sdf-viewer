@@ -1,30 +1,31 @@
 [package]
 name = "sdf-viewer"
 version = "1.3.0"
-authors = ["Yeicor <yeicor1212@gmail.com>"]
+authors = ["Yeicor"]
 description = "SDF Viewer"
 repository = "https://github.com/Yeicor/sdf-viewer"
 license = "MIT or Apache-2.0"
 edition = "2021"
 
 [lib]
-name = "sdf_viewer_lib" # Required to avoid name collision with binary
-crate-type = ["cdylib", "rlib"] # Required for web (and Android...). Also publishes the sdf module.
+crate-type = ["cdylib", "rlib"] # Required for web and Android.
 
 [features]
 # By default build the app and the server (if not on wasm).
-default = ["app", "server", "meshers", "native"]
+default = ["app", "server", "meshers", "native", "file_dialog"]
+default-android = ["app", "server", "meshers", "native", "eframe/android-native-activity"]
 default-wasm = ["app", "meshers", "web"]
 
 # === ARCH-BASED FEATURES (only to select dependencies' features) ===
 web = ["wasmer/js-default"] #, "wasmer-wasi/js", "poll-promise/web"
 native = ["wasmer/sys-default", "native_no_wasmer"] # "wasmer-wasi/sys"
 native_no_wasmer = ["poll-promise/tokio"] # Android (Termux) server-only builds can't compile wasmer (and don't need it).
+file_dialog = ["klask/rfd"] # Desktop-only file dialog
 
 # === FUNCTIONALITY-BASED FEATURES ===
 # The whole app that renders SDFs.
 app = ["standalone", "sdf", "sdfdemo", "wasminterpreters", # <-- other features
-    "three-d", "eframe", "image", "ehttp", "anyhow", "klask"]
+    "three-d", "eframe", "winit", "image", "ehttp", "anyhow", "klask"]
 
 # The simple server to watch and serve files to the app.
 server = ["standalone", # <-- other features
@@ -37,7 +38,8 @@ meshers = ["standalone", "sdf", "wasminterpreters", # <-- other features
 # An executable that runs a program instead of providing an API, i.e., an app and/or a server
 standalone = [
     "instant", "wasm-bindgen", "wasm-bindgen-futures", "web-sys", "js-sys", "tracing-wasm", "tracing-subscriber",
-    "once_cell", "console_error_panic_hook", "tracing", "profiling", "shadow-rs", "tokio", "poll-promise", "clap"]
+    "once_cell", "console_error_panic_hook", "tracing", "profiling", "shadow-rs", "tokio", "poll-promise",
+    "futures-util", "clap"]
 
 # The main SDF trait. Useful for using as a library (remember to disable default features).
 sdf = ["auto_impl", "cgmath", "clap"]
@@ -60,6 +62,7 @@ wasminterpreters = ["wasmer"]
 # === RENDERING ===
 three-d = { version = "0.16", default-features = false, features = [], optional = true }
 eframe = { version = "0.22", features = ["persistence", "glow"], optional = true }
+winit = { version = "*", optional = true } # Same as eframe
 image = { version = "0.24", optional = true }  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
@@ -80,7 +83,7 @@ wasmer = { version = "3.1.1", default-features = false, optional = true } # Very
 
 # === CONFIGURATION & CLI ===
 clap = { version = "3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
-klask = { git = "https://github.com/Yeicor/klask", optional = true }  # CLI to GUI converter
+klask = { git = "https://github.com/Yeicor/klask", default-features = false, optional = true }  # CLI to GUI converter
 shadow-rs = { version = "0.23", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 
 # === MESHERS ===
@@ -93,6 +96,7 @@ instant = { version = "0.1", default-features = false, features = ["wasm-bindgen
 cgmath = { version = "0.18", optional = true } # Math library (shared with three-d)
 anyhow = { version = "1.0", optional = true, default-features = false, features = ["std"] } # Error handling
 poll-promise = { git = "https://github.com/EmbarkStudios/poll-promise/", rev = "49daf6c1b91be2dbfe59d41ae5547909268c6d46", optional = true } # Polls a future until it resolves
+futures-util = { version = "0.3", optional = true } # Async utilities
 once_cell = { version = "1.18", optional = true } # Static globals with lazy initialization
 
 # === NATIVE (desktop & mobile) ===
@@ -126,3 +130,25 @@ strip = true
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781 (enable this if it works for you, but it fails on CI)
+
+# ========== ANDROID CONFIGURATION ==========
+[target.'cfg(target_os = "android")'.dependencies]
+log = "0.4"
+android_logger = "0.13"
+android-activity = "0.4"
+
+[package.metadata.android]
+package = "com.github.yeicor.sdfviewer"
+#build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
+
+[package.metadata.android.application]
+label = "SDF Viewer"
+
+[package.metadata.android.sdk]
+min_sdk_version = 23
+target_sdk_version = 33
+max_sdk_version = 33
+
+[[package.metadata.android.uses_permission]]
+name = "android.permission.INTERNET"
+

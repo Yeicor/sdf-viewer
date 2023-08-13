@@ -32,3 +32,45 @@ pub async fn run_app(canvas_id: String) -> Result<(), wasm_bindgen::prelude::JsV
     }
     Ok(())
 }
+
+// === Entry point for android ===
+#[cfg(target_os = "android")]
+#[cfg(any(feature = "app", feature = "server"))]
+#[no_mangle]
+fn android_main(app: android_activity::AndroidApp) {
+    android_logger::init_once(android_logger::Config::default());
+    log::info!("Starting android_main");
+    println!("Starting android_main");
+
+    use winit::platform::android::EventLoopBuilderExtAndroid;
+    let _ign = run::native_main(true, Box::new(|b| {
+        b.with_android_app(app);
+    }));
+
+    println!("Exiting android_main")
+
+    // use android_activity::{InputStatus, MainEvent, PollEvent};
+    // loop {
+    //     app.poll_events(Some(std::time::Duration::from_millis(500)) /* timeout */, |event| {
+    //         match event {
+    //             PollEvent::Wake => {
+    //                 log::info!("Early wake up");
+    //             }
+    //             PollEvent::Timeout => { log::info!("Hello, World!"); }
+    //             PollEvent::Main(main_event) => {
+    //                 log::info!("Main event: {:?}", main_event);
+    //                 match main_event {
+    //                     MainEvent::Destroy => { return; }
+    //                     _ => {}
+    //                 }
+    //             }
+    //             _ => {}
+    //         }
+    //
+    //         app.input_events(|event| {
+    //             log::info!("Input Event: {event:?}");
+    //             InputStatus::Unhandled
+    //         });
+    //     });
+    // }
+}
