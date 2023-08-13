@@ -31,7 +31,7 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
 
 ## Features / future plans
 
-- [x] Cross-platform: desktop (Linux, Windows, MacOS) and web.
+- [x] Cross-platform: desktop (Linux, Windows, MacOS<sup>1</sup>), web and mobile (Android, iOS<sup>1</sup>).
 - [x] Cross-language: easy to integrate with most languages and frameworks.
     - [x] Works by building your code for wasm and running it at near-native speeds.
     - [x] [Rust demo](src/sdf/demo/mod.rs), observable and customizable
@@ -53,6 +53,8 @@ out [shadertoy](https://www.shadertoy.com/results?query=tag%3Ddistancefields).
 - [ ] [TODO](https://github.com/Yeicor/sdf-viewer/search?q=TODO)s,
   [FIXME](https://github.com/Yeicor/sdf-viewer/search?q=FIXME)s
   and [HACK](https://github.com/Yeicor/sdf-viewer/search?q=HACK)s (any help is appreciated 😉).
+
+<sup>1</sup> Unverified, but should work.
 
 ## Demo
 
@@ -88,8 +90,8 @@ These are the steps to follow to start using SDF Viewer.
 
 Any change to the sources of the SDF would require you to repeat steps 3 and 4 to display the updated version.
 This is a bit cumbersome, so the `server` subcommand was created to automate these steps. You give it a set of
-files or folders to watch, a compile command and the generated wasm file path and it will automatically perform these
-steps for you. It will also serve the wasm file at an URL that you can give the app and, in addition, it will notify the
+files or folders to watch, a compile command and the generated wasm file path, and it will automatically perform these
+steps for you. It will also serve the wasm file at a URL that you can give the app and, in addition, it will notify the
 app of any update, automatically providing the new wasm file.
 
 The `server` subcommand simplifies the workflow to:

@@ -13,7 +13,7 @@
 <body>
 <canvas id="sdf-viewer" style="position: absolute;top:0;bottom: 0;left: 0;right: 0;margin:auto;"></canvas>
 <script type="module">
-    import * as SDFViewer from './sdf_viewer_lib.js';
+    import * as SDFViewer from './sdf_viewer.js';
 
     SDFViewer.default().then( // Async initialization
         () => SDFViewer.run_app("sdf-viewer")); // Run the actual App

@@ -3,8 +3,8 @@
 export const memory: WebAssembly.Memory;
 export function run_app(a: number, b: number): number;
 export function evaluateSVD(a: number, b: number, c: number, d: number): void;
-export function __wbg_wasmerruntimeerror_free(a: number): void;
-export function wasmerruntimeerror___wbgd_downcast_token(): number;
+export function __wbg_trap_free(a: number): void;
+export function trap___wbgd_downcast_token(): number;
 export function __wbindgen_export_0(a: number, b: number): number;
 export function __wbindgen_export_1(a: number, b: number, c: number, d: number): number;
 export const __wbindgen_export_2: WebAssembly.Table;

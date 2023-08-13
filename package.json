@@ -1,22 +1,22 @@
 {
   "name": "sdf-viewer",
   "collaborators": [
-    "Yeicor <yeicor1212@gmail.com>"
+    "Yeicor"
   ],
   "description": "SDF Viewer",
-  "version": "1.3.0",
+  "version": "1.4.0-rc.5",
   "license": "MIT or Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/Yeicor/sdf-viewer"
   },
   "files": [
-    "sdf_viewer_lib_bg.wasm",
-    "sdf_viewer_lib.js",
-    "sdf_viewer_lib.d.ts"
+    "sdf_viewer_bg.wasm",
+    "sdf_viewer.js",
+    "sdf_viewer.d.ts"
   ],
-  "module": "sdf_viewer_lib.js",
-  "types": "sdf_viewer_lib.d.ts",
+  "module": "sdf_viewer.js",
+  "types": "sdf_viewer.d.ts",
   "sideEffects": [
     "./snippets/*"
   ]
