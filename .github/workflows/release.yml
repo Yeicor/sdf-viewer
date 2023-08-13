@@ -79,7 +79,7 @@ jobs:
             pre: |
               sudo apt update
               sudo apt install sdkmanager openjdk-8-jre-headless
-              sdkmanager --install "platforms;android-33" "ndk-bundle;r25c" "build-tools;33.0.2"
+              sudo sdkmanager --install "platforms;android-33" "ndk-bundle;r25c" "build-tools;33.0.2"
               export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk-bundle
               rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
               cargo install cargo-apk
