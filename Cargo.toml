@@ -139,7 +139,7 @@ android-activity = "0.4"
 
 [package.metadata.android]
 package = "com.github.yeicor.sdfviewer"
-#build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
+build_targets = [ "armv7-linux-androideabi", "aarch64-linux-android", "i686-linux-android", "x86_64-linux-android" ]
 
 [package.metadata.android.application]
 label = "SDF Viewer"
