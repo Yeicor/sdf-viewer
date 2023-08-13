@@ -56,7 +56,7 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             ext: ""
-            pre: sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev libatk1.0-dev libgtk-3-dev
+            pre: sudo apt update && sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev libatk1.0-dev libgtk-3-dev
           # TODO: Mac OS x86_64
           # - os: macos-latest
           #   target: x86_64-apple-darwin
@@ -77,8 +77,8 @@ jobs:
           - os: ubuntu-latest
             target: android  # Multiple architectures are supported
             pre: |
-              apt update
-              apt install sdkmanager openjdk-8-jre-headless
+              sudo apt update
+              sudo apt install sdkmanager openjdk-8-jre-headless
               sdkmanager --install "platforms;android-33" "ndk-bundle;r25c" "build-tools;33.0.2"
               export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk-bundle
               rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
