@@ -569,7 +569,7 @@ function __wbg_get_imports() {
         const ret = typeof(v) === 'boolean' ? (v ? 1 : 0) : 2;
         return ret;
     };
-    imports.wbg.__wbg_instanceof_Global_68951a6a6244ac6e = function(arg0) {
+    imports.wbg.__wbg_instanceof_Global_840f84c825cd06a3 = function(arg0) {
         let result;
         try {
             result = getObject(arg0) instanceof WebAssembly.Global;
