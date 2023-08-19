@@ -2,6 +2,7 @@ use wasmer::{AsStoreMut, Function, imports};
 
 macro_rules! wasi_func_stub {
     ($name:ident, $($arg:ident: $arg_type:ty),* > $ret_type:ty) => {
+        #[allow(clippy::too_many_arguments)]
         fn $name($($arg: $arg_type),*) -> $ret_type {
             tracing::warn!("WASI function {} (args: {:?}) not implemented, returning 0", stringify!($name), vec![$($arg as i64),*] as Vec<i64>);
             0

@@ -83,7 +83,7 @@ pub fn native_main(sync: bool, event_loop_builder: eframe::EventLoopBuilderHook)
     tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::default())
         .expect("Failed to set global default subscriber");
     // If no arguments are provided, run a GUI interface for configuring the CLI arguments ;)
-    if Cli::get_args().iter().nth(1).is_none() {
+    if Cli::get_args().get(1).is_none() {
         #[cfg(feature = "klask")]
         klask::run_derived::<Cli, _>(klask::Settings::default(), |_app| {
             // Ignore me: this block will be skipped the second time (as arguments will be set)
