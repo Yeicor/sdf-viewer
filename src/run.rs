@@ -12,9 +12,9 @@ type AppCreator = Option<eframe::AppCreator>;
 #[cfg(not(feature = "app"))]
 type AppCreator = Option<()>;
 
-#[cfg(feature = "app")]
+#[cfg(all(feature = "app", not(target_arch = "wasm32")))]
 type EventLoopBuilderHook = Option<eframe::EventLoopBuilderHook>;
-#[cfg(not(feature = "app"))]
+#[cfg(not(all(feature = "app", not(target_arch = "wasm32"))))]
 type EventLoopBuilderHook = Option<()>;
 
 /// All entry-points redirect here after platform-specific initialization and
@@ -51,6 +51,7 @@ pub async fn setup_app() -> AppCreator {
 /// All entry-points redirect here after platform-specific initialization and
 /// before platform-specific window start (which may be cancelled if None is returned).
 #[allow(dead_code)] // Not important for this method
+#[cfg(not(any(target_arch = "wasm32")))]
 pub fn setup_app_sync() -> AppCreator {
     // Test logging and provide useful information
     log_version_info();
