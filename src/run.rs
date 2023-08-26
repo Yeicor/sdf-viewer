@@ -12,6 +12,11 @@ type AppCreator = Option<eframe::AppCreator>;
 #[cfg(not(feature = "app"))]
 type AppCreator = Option<()>;
 
+#[cfg(feature = "app")]
+type EventLoopBuilderHook = Option<eframe::EventLoopBuilderHook>;
+#[cfg(not(feature = "app"))]
+type EventLoopBuilderHook = Option<()>;
+
 /// All entry-points redirect here after platform-specific initialization and
 /// before platform-specific window start (which may be cancelled if None is returned).
 pub async fn setup_app() -> AppCreator {
@@ -63,14 +68,26 @@ pub fn setup_app_sync() -> AppCreator {
             }))
         }
         #[cfg(feature = "server")]
-        Commands::Server(_srv) => {
-            tracing::error!("Server is not supported in sync mode");
-            None
+        Commands::Server(srv) => {
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(async {
+                    srv.run().await;
+                    None
+                })
         },
         #[cfg(feature = "meshers")]
-        Commands::Mesh(_mesher) => {
-            tracing::error!("Meshing is not supported in sync mode");
-            None
+        Commands::Mesh(mesher) => {
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(async {
+                    mesher.run_cli().await.unwrap();
+                    None
+                })
         }
     }
 }
@@ -78,7 +95,7 @@ pub fn setup_app_sync() -> AppCreator {
 // === Native entry-points redirect here ===
 #[cfg(not(any(target_arch = "wasm32")))]
 #[allow(dead_code)] // False positive
-pub fn native_main(sync: bool, event_loop_builder: eframe::EventLoopBuilderHook) -> Pin<Box<dyn Future<Output=()>>> {
+pub fn native_main(sync: bool, event_loop_builder: EventLoopBuilderHook) -> Pin<Box<dyn Future<Output=()>>> {
     // Setup logging
     tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::default())
         .expect("Failed to set global default subscriber");
@@ -90,29 +107,29 @@ pub fn native_main(sync: bool, event_loop_builder: eframe::EventLoopBuilderHook)
         });
     }
     // Run app
-    let app_creator_handler = |app_creator: eframe::AppCreator| {
+    let app_creator_handler = |app_creator: AppCreator| {
         #[cfg(feature = "app")]
         {
             let native_options = eframe::NativeOptions {
                 depth_buffer: 16, // Needed for 3D rendering
-                event_loop_builder: Some(event_loop_builder),
+                event_loop_builder,
                 ..eframe::NativeOptions::default()
             };
             println!("Starting native app");
-            eframe::run_native("SDF Viewer", native_options, app_creator).unwrap();
+            eframe::run_native("SDF Viewer", native_options, app_creator.unwrap()).unwrap();
             println!("Native app exited");
         }
     };
     if sync {
         if let Some(app_creator) = setup_app_sync() {
-            app_creator_handler(app_creator);
+            app_creator_handler(Some(app_creator));
         }
         Box::pin(future::ready(()))
     } else {
         use futures_util::FutureExt;
-        Box::pin(setup_app().map(|t| {
+        Box::pin(setup_app().map(move |t| {
             if let Some(app_creator) = t {
-                app_creator_handler(app_creator);
+                app_creator_handler(Some(app_creator));
             }
         }))
     }

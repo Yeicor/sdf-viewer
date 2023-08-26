@@ -18,5 +18,5 @@ mod cli;
 #[cfg(not(any(target_arch = "wasm32")))]
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
-    run::native_main(false, Box::new(|_b| ())).await;
+    run::native_main(false, None).await;
 }

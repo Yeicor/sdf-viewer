@@ -273,7 +273,7 @@ impl CliServer {
 
                 // Select recommended watcher for debouncer.
                 // Using a callback here, could also be a channel.
-                let mut debouncer = new_debouncer(self.watch_merge_ns, None, move |res: DebounceEventResult| {
+                let mut debouncer = new_debouncer(self.watch_merge_ns, move |res: DebounceEventResult| {
                     match res {
                         Ok(events) => {
                             events.iter().for_each(|e| println!("Event {:?} for {:?}", e.kind, e.path));
@@ -281,7 +281,7 @@ impl CliServer {
                                 tx.send(events).unwrap();
                             }
                         }
-                        Err(errors) => errors.iter().for_each(|e| tracing::error!("Error {:?}",e)),
+                        Err(e) => tracing::error!("Error {:?}", e),
                     }
                 })?;
 

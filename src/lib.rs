@@ -43,34 +43,9 @@ fn android_main(app: android_activity::AndroidApp) {
     println!("Starting android_main");
 
     use winit::platform::android::EventLoopBuilderExtAndroid;
-    let _ign = run::native_main(true, Box::new(|b| {
+    let _ign = run::native_main(true, Some(Box::new(|b| {
         b.with_android_app(app);
-    }));
+    })));
 
     println!("Exiting android_main")
-
-    // use android_activity::{InputStatus, MainEvent, PollEvent};
-    // loop {
-    //     app.poll_events(Some(std::time::Duration::from_millis(500)) /* timeout */, |event| {
-    //         match event {
-    //             PollEvent::Wake => {
-    //                 log::info!("Early wake up");
-    //             }
-    //             PollEvent::Timeout => { log::info!("Hello, World!"); }
-    //             PollEvent::Main(main_event) => {
-    //                 log::info!("Main event: {:?}", main_event);
-    //                 match main_event {
-    //                     MainEvent::Destroy => { return; }
-    //                     _ => {}
-    //                 }
-    //             }
-    //             _ => {}
-    //         }
-    //
-    //         app.input_events(|event| {
-    //             log::info!("Input Event: {event:?}");
-    //             InputStatus::Unhandled
-    //         });
-    //     });
-    // }
 }
