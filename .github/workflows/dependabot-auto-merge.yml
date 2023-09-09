@@ -21,7 +21,7 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       # Here the PR gets approved.
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: "Approve a PR"
         run: "gh pr review --approve $PR_URL"
         env:
