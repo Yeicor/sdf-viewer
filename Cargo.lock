@@ -3822,30 +3822,37 @@ checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
 
 [[package]]
 name = "salvo"
-version = "0.55.3"
+version = "0.55.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ba6d4022400da04e6380d9eaa19278b4ecd3f6981a973edd2ea3301fd32684b"
+checksum = "5053ca741d780a11b8b6e7f00636800f565fe07bf240f3c83152ecf16b0c0630"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo-utils"
-version = "0.0.5"
+version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35cb87a925e7696818a5a716dc6b17ff4ffa8cb769be907b623bc8637d661234"
+checksum = "39b83ebce32e15342c188b1a687556fbc830111e393181e1693ce80ffdd2eda0"
 dependencies = [
+ "futures-channel",
+ "futures-util",
+ "http",
  "hyper",
+ "once_cell",
  "pin-project-lite",
+ "socket2 0.5.3",
  "tokio",
+ "tower",
+ "tower-service",
  "tracing",
 ]
 
 [[package]]
 name = "salvo_core"
-version = "0.55.3"
+version = "0.55.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c67ad5f6a12f74efdf65d1261578265ffe686397e4e53e9d4c0e5d8f6c36c26"
+checksum = "dd45f3de956d7e523432c99b2602563ad3c3fcf75f1f998098d8ad225d2747bf"
 dependencies = [
  "async-trait",
  "base64 0.21.2",
@@ -3891,9 +3898,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.55.3"
+version = "0.55.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4af7b67315d4c025572ed002716a3ba7a9b2ad9deb930d0a0cc52c3f86f7845a"
+checksum = "37cf9542ef61ab8f5daf4f626c0e6a2f9f745463cca28a250978799aeb8bfdc8"
 dependencies = [
  "cruet",
  "proc-macro-crate",
@@ -4639,12 +4646,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "tower"
+version = "0.4.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
+dependencies = [
+ "futures-core",
+ "futures-util",
+ "pin-project",
+ "pin-project-lite",
+ "tokio",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "tower-layer"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c20c8dbed6283a09604c3e69b4b7eeb54e298b8a600d4d5ecb5ad39de609f1d0"
+
+[[package]]
+name = "tower-service"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
+
+[[package]]
 name = "tracing"
 version = "0.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
 dependencies = [
  "cfg-if",
+ "log",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
