@@ -3406,9 +3406,9 @@ dependencies = [
 
 [[package]]
 name = "profiling"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45f10e75d83c7aec79a6aa46f897075890e156b105eebe51cfa0abce51af025f"
+checksum = "f89dff0959d98c9758c88826cc002e2c3d0b9dfac4139711d1f30de442f1139b"
 dependencies = [
  "profiling-procmacros",
  "tracing",
@@ -3416,9 +3416,9 @@ dependencies = [
 
 [[package]]
 name = "profiling-procmacros"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74c55e9e629af5298a40e0fa106435b2da30484c4ec76b41d19bc4d00dd8b903"
+checksum = "eb156a45b6b9fe8027497422179fb65afc84d36707a7ca98297bf06bccb8d43f"
 dependencies = [
  "quote",
  "syn 2.0.28",
