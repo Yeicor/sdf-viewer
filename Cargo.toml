@@ -79,7 +79,7 @@ httpdate = { version = "1.0", optional = true } # Formatting of dates
 lru = { version = "0.11", optional = true } # For caching resources
 
 # === WEBASSEMBLY COMPILERS/INTERPRETERS ===
-wasmer = { version = "4.2.0", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
+wasmer = { version = "4.2.1", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
 
 # === CONFIGURATION & CLI ===
 clap = { version = "3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
