@@ -4453,9 +4453,9 @@ dependencies = [
 
 [[package]]
 name = "three-d"
-version = "0.16.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42a67e2ff0b35f26a54e692d2704c8be11a9632af360ea974150e97e1540aaa5"
+checksum = "0009722bf3b5989f800349faffa1bb1ce0d7821d562f117b5d87f6eea3677c97"
 dependencies = [
  "cgmath",
  "glow",
