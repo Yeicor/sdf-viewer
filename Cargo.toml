@@ -135,7 +135,7 @@ wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781 (enable this
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.4"
 android_logger = "0.13"
-android-activity = "0.4"
+android-activity = "0.5"
 
 [package.metadata.android]
 package = "com.github.yeicor.sdfviewer"
