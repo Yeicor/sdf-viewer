@@ -4227,7 +4227,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasmer",
  "web-sys",
- "winit 0.29.2",
+ "winit 0.29.3",
 ]
 
 [[package]]
@@ -6045,9 +6045,9 @@ dependencies = [
 
 [[package]]
 name = "winit"
-version = "0.29.2"
+version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b829f75d02fe1e225b97c91a04c326900147a50234d1141a1cbe215ce8798c11"
+checksum = "161598019a9da35ab6c34dc46cd13546cba9dbf9816475d4dd9a639455016563"
 dependencies = [
  "ahash 0.8.3",
  "android-activity 0.5.0",
