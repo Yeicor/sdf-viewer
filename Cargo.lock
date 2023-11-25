@@ -1326,9 +1326,9 @@ dependencies = [
 
 [[package]]
 name = "cursor-icon"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "740bb192a8e2d1350119916954f4409ee7f62f149b536911eeb78ba5a20526bf"
+checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 
 [[package]]
 name = "darling"
@@ -4227,7 +4227,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasmer",
  "web-sys",
- "winit 0.29.3",
+ "winit 0.29.4",
 ]
 
 [[package]]
@@ -6045,9 +6045,9 @@ dependencies = [
 
 [[package]]
 name = "winit"
-version = "0.29.3"
+version = "0.29.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "161598019a9da35ab6c34dc46cd13546cba9dbf9816475d4dd9a639455016563"
+checksum = "d25d662bb83b511acd839534bb2d88521b0bbc81440969cb077d23c4db9e62c7"
 dependencies = [
  "ahash 0.8.3",
  "android-activity 0.5.0",
