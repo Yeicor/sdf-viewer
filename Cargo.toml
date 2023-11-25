@@ -61,7 +61,7 @@ wasminterpreters = ["wasmer"]
 [dependencies]
 # === RENDERING ===
 three-d = { version = "0.16", default-features = false, features = [], optional = true }
-eframe = { version = "0.23", features = ["persistence", "glow"], optional = true }
+eframe = { version = "0.24", features = ["persistence", "glow"], optional = true }
 winit = { version = "*", optional = true } # Same as eframe
 image = { version = "0.24", optional = true }  # Required for image loading
 
