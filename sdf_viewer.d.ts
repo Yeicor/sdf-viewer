@@ -5,16 +5,6 @@
 * @returns {Promise<void>}
 */
 export function run_app(canvas_id: string): Promise<void>;
-/**
-* A struct representing a Trap
-*/
-export class Trap {
-  free(): void;
-/**
-* @returns {Symbol}
-*/
-  static __wbgd_downcast_token(): Symbol;
-}
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -23,13 +13,13 @@ export interface InitOutput {
   readonly run_app: (a: number, b: number) => number;
   readonly evaluateSVD: (a: number, b: number, c: number, d: number) => void;
   readonly __wbg_trap_free: (a: number) => void;
-  readonly trap___wbgd_downcast_token: () => number;
+  readonly trap___wbg_wasmer_trap: () => void;
   readonly __wbindgen_export_0: (a: number, b: number) => number;
   readonly __wbindgen_export_1: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_export_3: (a: number, b: number, c: number) => void;
   readonly __wbindgen_export_4: (a: number, b: number) => void;
-  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_export_5: (a: number, b: number, c: number) => void;
   readonly __wbindgen_export_6: (a: number, b: number, c: number) => void;
   readonly __wbindgen_export_7: (a: number, b: number, c: number) => void;
