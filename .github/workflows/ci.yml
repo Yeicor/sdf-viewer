@@ -24,7 +24,7 @@ jobs:
       - name: Update cargo
         run: |
           rustup update
-      - uses: Swatinem/rust-cache@v2.7.1
+      - uses: Swatinem/rust-cache@v2.7.2
       - name: Install dependencies for three-d on Ubuntu
         run: sudo apt update && sudo apt upgrade -y && sudo apt install -y pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev libatk1.0-dev libgtk-3-dev
 
