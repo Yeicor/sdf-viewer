@@ -1297,16 +1297,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cruet"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6132609543972496bc97b1e01f1ce6586768870aeb4cabeb3385f4e05b5caead"
-dependencies = [
- "once_cell",
- "regex",
-]
-
-[[package]]
 name = "crunchy"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4109,24 +4099,35 @@ checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
 
 [[package]]
 name = "salvo"
-version = "0.63.1"
+version = "0.64.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adc1aaf77a4c306270cb7b1a6e08a5b12ee14935ac5a5c6b0ce1958d66a72ad9"
+checksum = "40b5fa69a9e95ae71240e657bab8343001c06dd35db06995134bee0821a7e712"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
-name = "salvo_core"
-version = "0.63.1"
+name = "salvo-serde-util"
+version = "0.64.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c36a49a4227992bb0e27f3c9589e24b2bd8c68a29e2ed42e03f6de6da39faa0f"
+checksum = "1bad055775ee6ba02b2ea89db3ba986bea370833c4eca6e9007474b8cd41a36d"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.39",
+]
+
+[[package]]
+name = "salvo_core"
+version = "0.64.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87841f06a18094fda525cedfc26600e0bf94c079c3cdf14440809d3c6d30b88d"
 dependencies = [
  "async-trait",
  "base64",
  "bytes",
  "cookie",
- "cruet",
  "enumflags2",
  "form_urlencoded",
  "futures-channel",
@@ -4162,15 +4163,15 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.63.1"
+version = "0.64.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fa50756ef995d410bb1968b403a1eca169b54c3c0eb4be4bcb1da8c7591cb7d"
+checksum = "9d35ae735c9ccda1ac5522571d4f06e1cb3d653b41a08a569f73aa113f5d234b"
 dependencies = [
- "cruet",
  "proc-macro-crate 2.0.0",
  "proc-macro2",
  "quote",
  "regex",
+ "salvo-serde-util",
  "syn 2.0.39",
 ]
 
