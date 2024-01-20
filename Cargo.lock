@@ -3027,9 +3027,9 @@ dependencies = [
 
 [[package]]
 name = "multimap"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1a5d38b9b352dbd913288736af36af41c48d61b1a8cd34bcecd727561b7d511"
+checksum = "defc4c55412d89136f966bbb339008b474350e5e6e78d2714439c386b3137a03"
 dependencies = [
  "serde",
 ]
@@ -4099,18 +4099,18 @@ checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
 
 [[package]]
 name = "salvo"
-version = "0.64.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40b5fa69a9e95ae71240e657bab8343001c06dd35db06995134bee0821a7e712"
+checksum = "3e628fbdbfffc56d4bc2f9de0ce62402eb541eac9035a2b46d6c563986323863"
 dependencies = [
  "salvo_core",
 ]
 
 [[package]]
 name = "salvo-serde-util"
-version = "0.64.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bad055775ee6ba02b2ea89db3ba986bea370833c4eca6e9007474b8cd41a36d"
+checksum = "d0a45b0e5cb7233a7160a4e466590c115c2be9041e7309d122176c482c7afeaf"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -4120,9 +4120,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_core"
-version = "0.64.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87841f06a18094fda525cedfc26600e0bf94c079c3cdf14440809d3c6d30b88d"
+checksum = "7f8851ba26b791d99eecfd2697aac3e4b0d6aea95781d97e2c9d4cd66f06e986"
 dependencies = [
  "async-trait",
  "base64",
@@ -4163,9 +4163,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.64.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d35ae735c9ccda1ac5522571d4f06e1cb3d653b41a08a569f73aa113f5d234b"
+checksum = "26fb671a2b637aa58351c59ead1ae781a8664ea9d2d1ad6a7f4968658c646423"
 dependencies = [
  "proc-macro-crate 2.0.0",
  "proc-macro2",
