@@ -70,7 +70,7 @@ tracing = { version = "0.1", optional = true }
 profiling = { version = "1.0", features = ["profile-with-tracing"], optional = true } # Provides simpler macro for functions
 
 # === APP HTTP CLIENT ===
-ehttp = { version = "0.3", optional = true } # Very simple HTTP client that supports web
+ehttp = { version = "0.4", optional = true } # Very simple HTTP client that supports web
 
 # === SERVER ===
 salvo = { version = "0.64", optional = true } # Simple HTTP server
