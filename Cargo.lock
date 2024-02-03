@@ -207,9 +207,9 @@ dependencies = [
 
 [[package]]
 name = "android-activity"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39b801912a977c3fd52d80511fe1c0c8480c6f957f21ae2ce1b92ffe970cf4b9"
+checksum = "ee91c0c2905bae44f84bfa4e044536541df26b7703fd0888deeb9060fcc44289"
 dependencies = [
  "android-properties",
  "bitflags 2.4.1",
@@ -4213,7 +4213,7 @@ dependencies = [
 name = "sdf-viewer"
 version = "1.4.5"
 dependencies = [
- "android-activity 0.5.1",
+ "android-activity 0.5.2",
  "android_logger",
  "anyhow",
  "approx 0.5.1",
@@ -6087,7 +6087,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c824f11941eeae66ec71111cc2674373c772f482b58939bb4066b642aa2ffcf"
 dependencies = [
  "ahash 0.8.6",
- "android-activity 0.5.1",
+ "android-activity 0.5.2",
  "atomic-waker",
  "bitflags 2.4.1",
  "bytemuck",
