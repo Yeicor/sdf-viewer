@@ -309,7 +309,7 @@ impl SDFSurface for WasmerSDF {
                 let param_id = u32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
                 cur_offset += size_of::<u32>();
                 /* name pointer */
-                let name_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                let name_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].into();
                 let name_mem_bytes = self.read_pointer_length_memory(name_pointer_length, &_store.as_store_ref());
                 // println!("sdf_param_mem: {:?} (name: {:?})", sdf_param_mem, String::from_utf8_lossy(&name_mem_bytes));
                 cur_offset += 2 * size_of::<u32>();
@@ -334,7 +334,7 @@ impl SDFSurface for WasmerSDF {
                         step: f32::from_le_bytes(sdf_param_mem[cur_offset + 2 * size_of::<f32>()..cur_offset + 3 * size_of::<f32>()].try_into().unwrap()),
                     },
                     3 => {
-                        let choices_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                        let choices_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].into();
                         let choices_mem_bytes = self.read_pointer_length_memory(choices_pointer_length, &_store.as_store_ref());
                         let choices = choices_mem_bytes.chunks_exact(2 * size_of::<u32>())
                             .map(|choice_mem_bytes| {
@@ -361,7 +361,7 @@ impl SDFSurface for WasmerSDF {
                     1 => SDFParamValue::Int(i32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<i32>()].try_into().unwrap())),
                     2 => SDFParamValue::Float(f32::from_le_bytes(sdf_param_mem[cur_offset..cur_offset + size_of::<f32>()].try_into().unwrap())),
                     3 => {
-                        let value_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                        let value_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].into();
                         let value_mem_bytes = self.read_pointer_length_memory(value_pointer_length, &_store.as_store_ref());
                         SDFParamValue::String(String::from_utf8_lossy(value_mem_bytes.as_slice()).to_string())
                     }
@@ -373,7 +373,7 @@ impl SDFSurface for WasmerSDF {
                 };
                 cur_offset += 2 * size_of::<u32>(); // Maximum size of SDFParamValueC
                 /* description */
-                let desc_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].try_into().unwrap();
+                let desc_pointer_length = sdf_param_mem[cur_offset..cur_offset + 2 * size_of::<u32>()].into();
                 let desc_mem_bytes = self.read_pointer_length_memory(desc_pointer_length, &_store.as_store_ref());
 
                 Some(SDFParam {
