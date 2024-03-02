@@ -1476,7 +1476,7 @@ dependencies = [
  "egui",
  "egui-winit",
  "egui_glow",
- "glow",
+ "glow 0.12.3",
  "glutin",
  "glutin-winit",
  "image",
@@ -1535,7 +1535,7 @@ source = "git+https://github.com/emilk/egui?tag=0.23.0#5a0186fa2b2324ab437099e45
 dependencies = [
  "bytemuck",
  "egui",
- "glow",
+ "glow 0.12.3",
  "log",
  "memoffset 0.6.5",
  "wasm-bindgen",
@@ -2172,6 +2172,18 @@ name = "glow"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca0fe580e4b60a8ab24a868bc08e2f03cbcb20d3d676601fa909386713333728"
+dependencies = [
+ "js-sys",
+ "slotmap",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "glow"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd348e04c43b32574f2de31c8bb397d96c9fcfa1371bd4ca6d8bdc464ab121b1"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -4710,12 +4722,12 @@ dependencies = [
 
 [[package]]
 name = "three-d"
-version = "0.16.4"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aecff785797175a2e56dca49da9836948eee41fab48b7b01dfcb64cae256ecb"
+checksum = "9978647e84d37d5e06b3540583483fb8ced91e3c8ad0e2a6dae936cc4fe00807"
 dependencies = [
  "cgmath",
- "glow",
+ "glow 0.13.1",
  "instant",
  "thiserror",
  "three-d-asset",
@@ -4723,9 +4735,9 @@ dependencies = [
 
 [[package]]
 name = "three-d-asset"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9959d4427b63958661828008f7470d6a8d2c0945b3df0dc7377d6aca38fb694"
+checksum = "8207e9cdb58d83b02b320412d75ba6503d718f0cafa37de9cf0511839f3d86e1"
 dependencies = [
  "cgmath",
  "half",
