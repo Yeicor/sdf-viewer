@@ -61,7 +61,7 @@ wasminterpreters = ["wasmer"]
 [dependencies]
 # === RENDERING ===
 three-d = { version = "0.17", default-features = false, features = [], optional = true }
-eframe = { version = "=0.23", features = ["persistence", "glow"], optional = true }  # Waiting for three-d -> egui update
+eframe = { version = "*", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
 winit = { version = "*", optional = true } # Same as eframe
 image = { version = "0.24", optional = true }  # Required for image loading
 
@@ -113,9 +113,6 @@ web-sys = { version = "0.3", optional = true } # Core bindings
 js-sys = { version = "0.3", optional = true } # Core bindings
 tracing-wasm = { version = "0.2", optional = true } # For logging
 console_error_panic_hook = { version = "0.1", optional = true } # For logging
-
-[patch.crates-io] # FIXME: Waiting for three-d -> egui update (also update dependency above)
-eframe = { git = "https://github.com/emilk/egui", tag = "0.23.0" }
 
 # === TESTING ===
 [dev-dependencies]

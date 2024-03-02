@@ -46,19 +46,19 @@ impl FrameInput<'_> {
         // Set where to paint
         let viewport = info.viewport_in_pixels();
         let viewport = Viewport {
-            x: viewport.left_px.round() as _,
-            y: viewport.from_bottom_px.round() as _,
-            width: viewport.width_px.round() as _,
-            height: viewport.height_px.round() as _,
+            x: viewport.left_px,
+            y: viewport.from_bottom_px,
+            width: viewport.width_px as u32,
+            height: viewport.height_px as u32,
         };
 
         // Respect the egui clip region (e.g. if we are inside an `egui::ScrollArea`).
         let clip_rect = info.clip_rect_in_pixels();
         let scissor_box = ScissorBox {
-            x: clip_rect.left_px.round() as _,
-            y: clip_rect.from_bottom_px.round() as _,
-            width: clip_rect.width_px.round() as _,
-            height: clip_rect.height_px.round() as _,
+            x: clip_rect.left_px,
+            y: clip_rect.from_bottom_px,
+            width: clip_rect.width_px as u32,
+            height: clip_rect.height_px as u32,
         };
         Self {
             screen,

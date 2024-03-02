@@ -26,7 +26,7 @@ impl CameraController {
         // Handle inputs
         if egui_resp.hovered() { // If interacting with the widget
             let (multi_touch, scroll_delta, modifiers) = egui_resp.ctx.input(|ctx|
-                (ctx.multi_touch(), ctx.scroll_delta, ctx.modifiers));
+                (ctx.multi_touch(), ctx.smooth_scroll_delta, ctx.modifiers));
             let dragged_delta = egui_resp.drag_delta();
             let number_touches = multi_touch.map(|touches| touches.num_touches).unwrap_or(0);
             let scroll_y = multi_touch.and_then(|touches| {
@@ -66,7 +66,7 @@ impl CameraController {
                 let target = *self.camera.target();
                 let pos = self.camera.position();
                 let distance = pos.distance(target);
-                let delta = scroll_y.signum() * self.sensitivity * 0.1 * distance;
+                let delta = scroll_y * self.sensitivity * 0.005 * distance;
                 let new_distance = (distance - delta).clamp(0.01, 1000.0);
                 let new_position = target - self.camera.view_direction() * new_distance;
                 let up = *self.camera.up();
