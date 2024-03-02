@@ -4248,7 +4248,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasmer",
  "web-sys",
- "winit 0.29.10",
+ "winit 0.29.12",
 ]
 
 [[package]]
@@ -6082,9 +6082,9 @@ dependencies = [
 
 [[package]]
 name = "winit"
-version = "0.29.10"
+version = "0.29.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c824f11941eeae66ec71111cc2674373c772f482b58939bb4066b642aa2ffcf"
+checksum = "b042fd2f023ddd9713f02f8f89c62f5a32c18d104ac182b480a0e3e6cb8d37f7"
 dependencies = [
  "ahash 0.8.6",
  "android-activity 0.5.2",
@@ -6221,9 +6221,9 @@ dependencies = [
 
 [[package]]
 name = "xkbcommon-dl"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6924668544c48c0133152e7eec86d644a056ca3d09275eb8d5cdb9855f9d8699"
+checksum = "d039de8032a9a8856a6be89cea3e5d12fdd82306ab7c94d74e6deab2460651c5"
 dependencies = [
  "bitflags 2.4.1",
  "dlib",
