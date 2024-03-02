@@ -60,7 +60,7 @@ wasminterpreters = ["wasmer"]
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { version = "0.16", default-features = false, features = [], optional = true }
+three-d = { version = "0.17", default-features = false, features = [], optional = true }
 eframe = { version = "=0.23", features = ["persistence", "glow"], optional = true }  # Waiting for three-d -> egui update
 winit = { version = "*", optional = true } # Same as eframe
 image = { version = "0.24", optional = true }  # Required for image loading
