@@ -149,7 +149,7 @@ jobs:
           echo -e "\n::set-output name=EXE_NAME::${exe_name}"
           du -h "${exe_name}"
       - name: Publish the release build
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.prepare-release.outputs.EXE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
