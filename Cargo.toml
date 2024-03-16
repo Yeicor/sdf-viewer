@@ -63,7 +63,7 @@ wasminterpreters = ["wasmer"]
 three-d = { version = "0.17", default-features = false, features = [], optional = true }
 eframe = { version = "*", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
 winit = { version = "*", optional = true } # Same as eframe
-image = { version = "0.24", optional = true }  # Required for image loading
+image = { version = "0.25", optional = true }  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
 tracing = { version = "0.1", optional = true }
