@@ -5621,9 +5621,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer"
-version = "4.2.6"
+version = "4.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c15724dc25d1ee57962334aea8e41ade2675e5ea2ac6b8d42da6051b0face66"
+checksum = "4014573f108a246858299eb230031e268316fd57207bd2e8afc79b20fc7ce983"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -5651,9 +5651,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "4.2.6"
+version = "4.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55a7f3b3a96f8d844c25e2c032af9572306dd63fa93dc17bcca4c5458ac569bd"
+checksum = "3a77bfe259f08e8ec9e77f8f772ebfb4149f799d1f637231c5a5a6a90c447256"
 dependencies = [
  "backtrace",
  "bytes",
@@ -5678,9 +5678,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler-cranelift"
-version = "4.2.6"
+version = "4.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "102e2c5bacac69495c4025767e2fa26797ffb27f242dccb7cf57d9cefd944386"
+checksum = "9280c47ebc754f95357745a38a995dd766f149e16b26e1b7e35741eb23c03d12"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -5697,9 +5697,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-derive"
-version = "4.2.6"
+version = "4.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ea737fa08f95d6abc4459f42a70a9833e8974b814e74971d77ef473814f4d4c"
+checksum = "e9352877c4f07fc59146d21b56ae6dc469caf342587f49c81b4fbeafead31972"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -5709,9 +5709,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-types"
-version = "4.2.6"
+version = "4.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0689110e291b0f07fc665f2824e5ff81df120848e8a9acfbf1a9bf7990773f9"
+checksum = "749214b6170f2b2fbbfe5b7e7f8d381e64930ac4122f3abceb33cde0292d45d2"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -5725,9 +5725,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "4.2.6"
+version = "4.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cd41f822a1ac4242d478754e8ceba2806a00ea5072803622e1fe91e8e28b2a1"
+checksum = "300215479de0deeb453e95aeb1b9c8ffd9bc7d9bd27c5f9e8a184e54db4d31a9"
 dependencies = [
  "backtrace",
  "cc",
