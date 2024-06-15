@@ -271,55 +271,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anstream"
-version = "0.6.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "418c75fa768af9c03be99d17643f93f79bbba589895012a80e3452a19ddda15b"
-dependencies = [
- "anstyle",
- "anstyle-parse",
- "anstyle-query",
- "anstyle-wincon",
- "colorchoice",
- "is_terminal_polyfill",
- "utf8parse",
-]
-
-[[package]]
-name = "anstyle"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "038dfcf04a5feb68e9c60b21c9625a54c2c0616e79b72b0fd87075a056ae1d1b"
-
-[[package]]
-name = "anstyle-parse"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c03a11a9034d92058ceb6ee011ce58af4a9bf61491aa7e1e59ecd24bd40d22d4"
-dependencies = [
- "utf8parse",
-]
-
-[[package]]
-name = "anstyle-query"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a64c907d4e79225ac72e2a354c9ce84d50ebb4586dee56c82b3ee73004f537f5"
-dependencies = [
- "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "anstyle-wincon"
-version = "3.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61a38449feb7068f52bb06c12759005cf459ee52bb4adc1d5a7c4322d716fb19"
-dependencies = [
- "anstyle",
- "windows-sys 0.52.0",
-]
-
-[[package]]
 name = "anyhow"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1093,36 +1044,14 @@ checksum = "4ea181bf566f71cb9a5d17a59e1871af638180a18fb0035c92ae62b705207123"
 dependencies = [
  "atty",
  "bitflags 1.3.2",
- "clap_derive 3.2.25",
- "clap_lex 0.2.4",
+ "clap_derive",
+ "clap_lex",
  "indexmap 1.9.3",
  "once_cell",
  "strsim",
  "termcolor",
  "textwrap",
  "unicase",
-]
-
-[[package]]
-name = "clap"
-version = "4.4.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfaff671f6b22ca62406885ece523383b9b64022e341e53e009a62ebc47a45f2"
-dependencies = [
- "clap_builder",
- "clap_derive 4.4.7",
-]
-
-[[package]]
-name = "clap_builder"
-version = "4.4.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a216b506622bb1d316cd51328dce24e07bdff4a6128a47c7e7fad11878d5adbb"
-dependencies = [
- "anstream",
- "anstyle",
- "clap_lex 0.6.0",
- "strsim",
 ]
 
 [[package]]
@@ -1139,18 +1068,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clap_derive"
-version = "4.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf9804afaaf59a91e75b022a30fb7229a7901f60c755489cc61c9b423b836442"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.52",
-]
-
-[[package]]
 name = "clap_lex"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1158,12 +1075,6 @@ checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
 dependencies = [
  "os_str_bytes",
 ]
-
-[[package]]
-name = "clap_lex"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "702fc72eb24e5a1e48ce58027a675bc24edd52096d5397d4aea7c6dd9eca0bd1"
 
 [[package]]
 name = "clipboard-win"
@@ -1219,12 +1130,6 @@ name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
-
-[[package]]
-name = "colorchoice"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b6a852b24ab71dffc585bcb46eaf7959d175cb865a7152e35b348d1b2960422"
 
 [[package]]
 name = "com"
@@ -3134,12 +3039,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06d198e9919d9822d5f7083ba8530e04de87841eaf21ead9af8f2304efd57c89"
 
 [[package]]
-name = "is_terminal_polyfill"
-version = "1.70.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8478577c03552c21db0e2724ffb8986a5ce7af88107e6be5d2ee6e158c12800"
-
-[[package]]
 name = "isosurface"
 version = "0.1.0-alpha.0"
 source = "git+https://github.com/swiftcoder/isosurface#185a0ebba1d7c08d1d1cbdf30fa77b9012d6f12e"
@@ -3235,8 +3134,8 @@ source = "git+https://github.com/Yeicor/klask#fdd881aa6e516b473cbf8f9a6da9c9dd7b
 dependencies = [
  "Inflector",
  "cansi",
- "clap 3.2.25",
- "clap_derive 3.2.25",
+ "clap",
+ "clap_derive",
  "eframe",
  "linkify",
  "rfd",
@@ -5177,7 +5076,7 @@ dependencies = [
  "approx 0.5.1",
  "auto_impl",
  "cgmath",
- "clap 3.2.25",
+ "clap",
  "console_error_panic_hook",
  "eframe",
  "ehttp",
@@ -6285,12 +6184,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "utf8parse"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
-
-[[package]]
 name = "uuid"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6456,9 +6349,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer"
-version = "4.3.1"
+version = "4.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce4a267a570e121c9375136adefa2c48810273907de9c6817bc19db4d6144bc"
+checksum = "b1852ee143a2d8143265bfee017c43bf690702d6c2b45a763a2f13e669f5b7ec"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -6486,9 +6379,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "4.3.1"
+version = "4.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9c23098e86ef1038155684fe50f0c1079a0e2a2e70f115b789df17e6ba98d20"
+checksum = "6b4f157d715f3bb60c2c9d7b9e48299a30e9209f87f4484f79f9cd586b40b6ee"
 dependencies = [
  "backtrace",
  "bytes",
@@ -6514,9 +6407,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler-cranelift"
-version = "4.3.1"
+version = "4.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95287b79973ad5f485215733ef9f0d4bb951a6b7e655585d2bd3d4a4ba1253c9"
+checksum = "eb457e66b77ca2188fbbd6c2056ec6e8ccb4bddee73e60ba9d39733d7b2e8068"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -6555,9 +6448,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-derive"
-version = "4.3.1"
+version = "4.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e48f36aeeecb655f15fdd358bdf6e4cec27df181468fa4226084157e8462bd5e"
+checksum = "32cd5732ff64370e98986f9753cce13b91cc9d3c4b649e31b0d08d5db69164ea"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -6567,9 +6460,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-types"
-version = "4.3.1"
+version = "4.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83cb97b6b20084757a2a8d548dc0d4179c3fe9e2d711740423a1e6aa3f8b9091"
+checksum = "c890fd0dbda40df03977b899d1ad7113deba3c225f2cc7b88deb7633044d3e07"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -6588,9 +6481,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "4.3.1"
+version = "4.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc1e19d986844b17b927ec8b0c7f3da6a7a2c2cb3b0f8ca5d4cb1a1f71bfb124"
+checksum = "5e0dc60ab800cf0bd44e2d35d88422d256d2470b00c72778f91bfb826c42dbd0"
 dependencies = [
  "backtrace",
  "cc",
@@ -6804,15 +6697,14 @@ dependencies = [
 
 [[package]]
 name = "webc"
-version = "6.0.0-alpha9"
+version = "6.0.0-rc1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e1b4e8dd987046eede4348d660404ff990412631b7d493f9e547adcf2862cd5"
+checksum = "c1fc686c7b43c9bc630a499f6ae1f0a4c4bd656576a53ae8a147b0cc9bc983ad"
 dependencies = [
  "anyhow",
  "base64 0.21.7",
  "bytes",
  "cfg-if",
- "clap 4.4.11",
  "document-features",
  "flate2",
  "indexmap 1.9.3",
