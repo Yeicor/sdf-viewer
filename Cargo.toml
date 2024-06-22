@@ -134,7 +134,7 @@ wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781 (enable this
 # ========== ANDROID CONFIGURATION ==========
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.4"
-android_logger = "0.13"
+android_logger = "0.14"
 android-activity = "0.6"
 
 [package.metadata.android]
