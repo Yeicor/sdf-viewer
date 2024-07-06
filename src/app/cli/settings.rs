@@ -71,7 +71,7 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
         let mut change_state = egui::Window::new(window_name)
             .open(&mut open)
             .resizable(true)
-            .scroll2([true, true])
+            .scroll([true, true])
             .show(ctx, |ui| {
                 // # The main settings widget
                 <&mut AppState>::ui(editing.as_mut().unwrap(), ui);

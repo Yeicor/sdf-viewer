@@ -32,7 +32,7 @@ pub async fn setup_app() -> AppCreator {
         #[cfg(feature = "app")]
         Commands::App(app_args) => { // Start the GUI app
             Some(Box::new(move |cc| {
-                Box::new(crate::app::SDFViewerApp::new(cc, app_args))
+                Ok(Box::new(crate::app::SDFViewerApp::new(cc, app_args)))
             }))
         }
         #[cfg(feature = "server")]
@@ -65,7 +65,7 @@ pub fn setup_app_sync() -> AppCreator {
         #[cfg(feature = "app")]
         Commands::App(app_args) => { // Start the GUI app
             Some(Box::new(move |cc| {
-                Box::new(crate::app::SDFViewerApp::new(cc, app_args))
+                Ok(Box::new(crate::app::SDFViewerApp::new(cc, app_args)))
             }))
         }
         #[cfg(feature = "server")]
