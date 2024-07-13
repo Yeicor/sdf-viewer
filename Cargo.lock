@@ -6454,9 +6454,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3de82c1520fb75ade394d6c89cac2b05d1b7b4205a45099efcd078b0bc828375"
+checksum = "5624eec7fd62a39429a93ee92dac5b842eb2be120fed151e99b5e3bde654a7fc"
 dependencies = [
  "bytes",
  "cfg-if",
@@ -6484,9 +6484,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6c18588e4b92adb2ea88a2897c93615538c7e40cfec8dc6efc3fcee63299a81"
+checksum = "d46e18f3eb1bee4a68329f73e2c18bd5b62f3b2fd0aad0c36bd2a0a7c13bce93"
 dependencies = [
  "backtrace",
  "bytes",
@@ -6513,9 +6513,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-compiler-cranelift"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf497986b83f1ae8589a22f046b803d6d1d77bbeda93e75baa89ab6501838f7c"
+checksum = "bef822d3f8c3b5309d04fd0a307cc2a9c81a92920cc1d0694352fe7771950620"
 dependencies = [
  "cranelift-codegen",
  "cranelift-entity",
@@ -6554,9 +6554,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-derive"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45ab99baa393da623dbca6390c17bd9cd7666e8c48f6b42b4f8c635106a09ca8"
+checksum = "834529736972e6f1b05c8e4d561c6f415f1a3790336b96ac56b8edfc11e2a47f"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -6566,9 +6566,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-types"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0aebf59870ee6e2ef0264d87e6a83f767f5cfe83e21470c0cc32e06231335e23"
+checksum = "cc61db68defe085e43862eb24698832b277a533de6f1d42a47fbbb6ee26f95e9"
 dependencies = [
  "bytecheck",
  "enum-iterator",
@@ -6587,9 +6587,9 @@ dependencies = [
 
 [[package]]
 name = "wasmer-vm"
-version = "4.3.3"
+version = "4.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0df3b84ac2c450ad04931b558392cadd03d606d94ab15496e13ce56ee8320634"
+checksum = "0204b536b515aec0b85df8331b6de39ead5231d101b8c8f3a1c9cd0ed5c8e2ac"
 dependencies = [
  "backtrace",
  "cc",
