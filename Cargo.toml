@@ -101,7 +101,7 @@ once_cell = { version = "1.19", optional = true } # Static globals with lazy ini
 
 # === NATIVE (desktop & mobile) ===
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.38", features = ["macros", "rt-multi-thread", "sync"], optional = true } # Asynchronous runtime
+tokio = { version = "1.39", features = ["macros", "rt-multi-thread", "sync"], optional = true } # Asynchronous runtime
 tracing-subscriber = { version = "0.3", optional = true } # For logging
 
 # === WEB ===
