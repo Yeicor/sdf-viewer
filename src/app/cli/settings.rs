@@ -1,4 +1,4 @@
-use eframe::egui::{Context, TextEdit, Ui, Widget, WidgetText};
+use eframe::egui::{Context, Response, TextEdit, Ui, Widget, WidgetText};
 use eframe::egui;
 use klask::app_state::AppState;
 use klask::settings::Localization;
@@ -73,8 +73,13 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
             .resizable(true)
             .scroll([true, true])
             .show(ctx, |ui| {
+                let editing = match editing.as_mut() {
+                    Some(_editing) => _editing,
+                    None => return None,
+                };
+
                 // # The main settings widget
-                <&mut AppState>::ui(editing.as_mut().unwrap(), ui);
+                <&mut AppState>::ui(editing, ui);
 
                 // # The cancel and apply buttons
                 let action = ui.columns(2, |ui| {
@@ -83,7 +88,7 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
                         return Some(SettingsWindow::Configured { settings: P::clone(&**previous.as_ref().unwrap()) });
                     }
                     if ui[1].button("Apply").clicked() {
-                        let new_settings = Self::editing_to_instance(editing.as_ref().unwrap());
+                        let new_settings = Self::editing_to_instance(editing);
                         return Some(SettingsWindow::Configured { settings: new_settings });
                     }
                     None
@@ -91,7 +96,7 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
 
                 // The command line arguments that would generate this config (for copying)
                 cmd_name.insert(0, env!("CARGO_PKG_NAME").to_string());
-                let cmd_args = editing.as_mut().unwrap()
+                let cmd_args = editing
                     .get_cmd_args(cmd_name)
                     .unwrap_or_else(|err| vec![format!("Invalid configuration: {err}")]);
                 ui.horizontal_wrapped(|ui| {
@@ -119,7 +124,7 @@ impl<P: clap::Parser + Clone + Default + PartialEq> SettingsWindow<P> {
             }).and_then(|r| r.inner.flatten());
         cancelled |= prev_open && !open;
         if cancelled { // Closing the window is the same as cancelling
-            change_state = Some(SettingsWindow::Configured { settings: P::clone(previous.as_ref().unwrap()) });
+            change_state = Some(SettingsWindow::Configured { settings: P::clone(previous.as_ref()?) });
         }
 
         if let Some(new_state) = change_state {
