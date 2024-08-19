@@ -94,7 +94,7 @@ impl SDFViewerAppScene {
         );
 
         // 3D objects and lights
-        let mut objects: Vec<Box<dyn Object>> = vec![];
+        let objects: Vec<Box<dyn Object>> = vec![];
         let mut lights: Vec<Box<dyn Light>> = vec![];
 
         // Create the SDF loader and viewer
@@ -102,30 +102,7 @@ impl SDFViewerAppScene {
         // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
         // objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
 
-        // Load the skybox (embedded in the binary)
-        if cfg!(feature = "skybox") { // TODO: Speed-up skybox load times
-            let mut skybox_image = image::load_from_memory_with_format(
-                include_bytes!("../../../assets/skybox.jpg"),
-                image::ImageFormat::Jpeg,
-            ).unwrap();
-            skybox_image = skybox_image.adjust_contrast(-15.0); // %
-            skybox_image = skybox_image.brighten(-50); // u8
-            let skybox_texture = CpuTexture {
-                data: TextureData::RgbU8(skybox_image.as_rgb8().unwrap().as_raw()
-                    .chunks_exact(3).map(|e| [e[0], e[1], e[2]]).collect::<_>()),
-                width: skybox_image.width(),
-                height: skybox_image.height(),
-                ..CpuTexture::default()
-            };
-            let skybox = Skybox::new_from_equirectangular(
-                &ctx, &skybox_texture);
-            let ambient_light = AmbientLight::new_with_environment(
-                &ctx, 0.1, Srgba::WHITE, skybox.texture());
-            objects.push(Box::new(skybox));
-            lights.push(Box::new(ambient_light));
-        } else {
-            lights.push(Box::new(AmbientLight::new(&ctx, 0.1, Srgba::WHITE)));
-        }
+        lights.push(Box::new(AmbientLight::new(&ctx, 0.1, Srgba::WHITE)));
 
         // TODO: Custom user-defined objects (gltf) with transforms
         // TODO: Default grid object for scale

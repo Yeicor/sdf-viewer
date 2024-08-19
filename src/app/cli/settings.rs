@@ -1,4 +1,4 @@
-use eframe::egui::{Context, Response, TextEdit, Ui, Widget, WidgetText};
+use eframe::egui::{Context, TextEdit, Ui, Widget, WidgetText};
 use eframe::egui;
 use klask::app_state::AppState;
 use klask::settings::Localization;
