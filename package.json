@@ -1,10 +1,11 @@
 {
   "name": "sdf-viewer",
+  "type": "module",
   "collaborators": [
     "Yeicor"
   ],
   "description": "SDF Viewer",
-  "version": "1.4.6",
+  "version": "1.5.0",
   "license": "MIT or Apache-2.0",
   "repository": {
     "type": "git",
@@ -15,7 +16,7 @@
     "sdf_viewer.js",
     "sdf_viewer.d.ts"
   ],
-  "module": "sdf_viewer.js",
+  "main": "sdf_viewer.js",
   "types": "sdf_viewer.d.ts",
   "sideEffects": [
     "./snippets/*"
