@@ -16,12 +16,11 @@ impl FrameInput<'_> {
     ) -> Self {
         use three_d::*;
 
-        // Disable sRGB textures for three-d
-        #[cfg(not(target_arch = "wasm32"))]
+        // Enable sRGB textures for three-d
         #[allow(unsafe_code)]
         unsafe {
             use eframe::glow::HasContext as _;
-            context.disable(eframe::glow::FRAMEBUFFER_SRGB);
+            context.enable(eframe::glow::FRAMEBUFFER_SRGB);
         }
 
         // Constructs a screen render target to render the final image to

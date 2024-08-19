@@ -38,15 +38,6 @@ impl Material for SDFViewerMaterial {
     fn fragment_shader_source(&self, lights: &[&dyn Light]) -> String {
         let mut output = lights_shader_source(lights, self.lighting_model);
         output.push_str(include_str!("material.frag"));
-        // HACK: Different gamma-corrections for different platforms.
-        #[cfg(target_arch = "wasm32")]
-        {
-            output = output.replace("// Gamma correction (web-only): ", "");
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            output = output.replace("// Gamma correction (non-web): ", "");
-        }
         output
     }
 

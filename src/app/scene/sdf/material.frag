@@ -160,8 +160,6 @@ void main() {
 
     // Compute the color using the lighting model.
     outColor.rgb = calculate_lighting(cameraPosition, sampleColor, hitPos, normal, sampleProps.x, sampleProps.y, sampleProps.z);
-    // Gamma correction (web-only): outColor.rgb = pow(outColor.rgb, vec3(1.0/2.2));
-    // Gamma correction (non-web): outColor.rgb = pow(outColor.rgb, vec3(1.0/1.5));
     outColor.a = surfaceColorTint.a;
 
     // FIXME: Circle artifacts when computing normals while looking straight at an object
