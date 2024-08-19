@@ -24,7 +24,7 @@ compile_error!("On wasm32 targets, you need to enable the web feature (and disab
 
 /// Loads the given bytes as a WebAssembly module that is then queried to satisfy the SDF trait.
 pub async fn load_sdf_wasm(wasm_bytes: &[u8]) -> anyhow::Result<Box<dyn SDFSurface>> {
-    unsafe { std::mem::transmute(load_sdf_wasm_send_sync(wasm_bytes).await?) }
+    unsafe { std::mem::transmute::<anyhow::Result<Box<dyn SDFSurface + Send + Sync>>, anyhow::Result<Box<dyn SDFSurface>>>(load_sdf_wasm_send_sync(wasm_bytes).await) }
 }
 
 /// Loads the given bytes as a WebAssembly module that is then queried to satisfy the SDF trait.

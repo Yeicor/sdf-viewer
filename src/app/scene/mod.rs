@@ -26,7 +26,7 @@ thread_local! {
     /// Sadly we can't just create a [`scene::Context`] in [`MyApp::new`] and pass it
     /// to the [`egui::PaintCallback`] because [`scene::Context`] isn't `Send+Sync`, which
     /// [`egui::PaintCallback`] is.
-    pub static SCENE: RefCell<Option<SDFViewerAppScene>> = RefCell::new(None);
+    pub static SCENE: RefCell<Option<SDFViewerAppScene>> = const { RefCell::new(None) };
 }
 
 /// Renders the main 3D scene, containing the SDF object

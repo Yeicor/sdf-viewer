@@ -5,9 +5,10 @@
 //! # WebAssembly API specification
 //!
 //! The WebAssembly module:
+//! 
 //! - MUST NOT use any import from the host (it may have unused imports).
 //! - MUST export (at least) the required methods from the [`SDF`](crate::sdf::SDFSurface) trait
-//! (check the documentation of the trait).
+//!   (check the documentation of the trait).
 //!
 //! As an SDF can provide access to the whole hierarchy it contains, each function must have an extra
 //! initial parameter indicating the ID (u32) of the SDF it refers to, with 0 being the root SDF.

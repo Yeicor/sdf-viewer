@@ -111,7 +111,7 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
                     tracing::error!("Failed to load SDF from URL: {:?}", err);
                     sender_single_update.try_send(unsafe {
                         // FIXME: Extremely unsafe code (forcing SDFDemo Send+Sync), but only used for this error path
-                        std::mem::transmute(Box::new(SDFDemo::default()) as Box<dyn SDFSurface>)
+                        std::mem::transmute::<Box<dyn SDFSurface>, Box<dyn SDFSurface + Send + Sync>>(Box::new(SDFDemo::default()) as Box<dyn SDFSurface>)
                     }).map_err(|_| anyhow!("can't send SDF update"))
                 }
                 #[cfg(not(target_arch = "wasm32"))]
@@ -132,7 +132,7 @@ fn handle_sdf_data_response(data: ehttp::Result<ehttp::Response>, watch_url_clos
                             tracing::error!("Failed to load SDF from URL ({:?}) or file ({:?})", err, err2);
                             sender_single_update.try_send(unsafe {
                                 // FIXME: Extremely unsafe code (forcing SDFDemo Send+Sync), but only used for this error path
-                                std::mem::transmute(Box::<SDFDemo>::default() as Box<dyn SDFSurface>)
+                                std::mem::transmute::<Box<dyn SDFSurface>, Box<dyn SDFSurface + Send + Sync>>(Box::<SDFDemo>::default() as Box<dyn SDFSurface>)
                             }).map_err(|_| anyhow!("can't send SDF update"))
                         }
                     }

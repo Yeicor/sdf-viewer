@@ -116,9 +116,7 @@ pub fn native_main(sync: bool, event_loop_builder: EventLoopBuilderHook) -> Pin<
                 event_loop_builder,
                 ..eframe::NativeOptions::default()
             };
-            println!("Starting native app");
             eframe::run_native("SDF Viewer", native_options, app_creator.unwrap()).unwrap();
-            println!("Native app exited");
         }
     };
     if sync {
