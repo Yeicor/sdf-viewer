@@ -15,7 +15,7 @@ wasi_func_stub!(args_sizes_get, _arg0: i32, _arg1: i32 > i32);
 wasi_func_stub!(environ_get, _arg0: i32, _arg1: i32 > i32);
 wasi_func_stub!(environ_sizes_get, _arg0: i32, _arg1: i32 > i32);
 wasi_func_stub!(clock_res_get, _arg0: i32, _arg1: i32 > i32);
-wasi_func_stub!(clock_time_get, _arg0: i32, _arg1: i32, _arg2: i32 > i32);
+wasi_func_stub!(clock_time_get, _arg0: i32, _arg1: i64, _arg2: i32 > i32);
 wasi_func_stub!(fd_advise, _arg0: i32, _arg1: i32, _arg2: i32, _arg3: i32 > i32);
 wasi_func_stub!(fd_allocate, _arg0: i32, _arg1: i32, _arg2: i32 > i32);
 wasi_func_stub!(fd_close, _arg0: i32 > i32);
