@@ -102,7 +102,8 @@ vec4[2] sdfRaycast(vec3 rayPos, vec3 rayDir, int maxSteps) {
         }
 
         // Stop condition: out of bounds
-        if (sdfOutOfBoundsDist(rayPos) > 0.0) {
+        // NOTE: small epsilon to avoid pixel artifacts
+        if (sdfOutOfBoundsDist(rayPos) > 1e-4) {
             hitPosAndSample[0] = vec4(rayPos, -2.0);
             break;
         }
