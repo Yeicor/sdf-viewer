@@ -45,7 +45,7 @@ jobs:
           kill %1
           
           # Check for errors
-          if grep -i -q "error" app.log; then
+          if cat app.log | grep -v "MESA: error: ZINK: vkCreateInstance failed (VK_ERROR_INCOMPATIBLE_DRIVER)" | grep -i -q "error"; then
             echo "> Error found in app.log"
             exit 1
           fi
