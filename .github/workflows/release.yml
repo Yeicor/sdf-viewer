@@ -72,18 +72,18 @@ jobs:
             ext: tar.gz  # After post-processing
             build: .github/scripts/web/build.sh --release
             post: .github/scripts/web/build-demo.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm --release
-          # Android
-          - os: ubuntu-latest
-            target: android  # Multiple architectures are supported
-            pre: |
-              sudo apt update
-              sudo apt install sdkmanager openjdk-8-jre-headless
-              sudo sdkmanager --install "platforms;android-33" "ndk-bundle;r25c" "build-tools;33.0.2"
-              export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk-bundle
-              rustup target add aarch64-linux-android  # armv7-linux-androideabi i686-linux-android x86_64-linux-android
-              cargo install cargo-apk
-            build: cargo apk build --lib --no-default-features --features default-android  # --release requires keystore
-            ext: apk
+          # TODO: Repair Android
+          # - os: ubuntu-latest
+          #   target: android  # Multiple architectures are supported
+          #   pre: |
+          #     sudo apt update
+          #     sudo apt install sdkmanager openjdk-8-jre-headless
+          #     sudo sdkmanager --install "platforms;android-33" "ndk-bundle;r25c" "build-tools;33.0.2"
+          #     export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk-bundle
+          #     rustup target add aarch64-linux-android  # armv7-linux-androideabi i686-linux-android x86_64-linux-android
+          #     cargo install cargo-apk
+          #   build: cargo apk build --lib --no-default-features --features default-android  # --release requires keystore
+          #   ext: apk
           # TODO: iOS
           # - os: macos-latest
           #   target: ???
