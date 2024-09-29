@@ -1,7 +1,3 @@
-use std::future;
-use std::future::Future;
-use std::pin::Pin;
-
 use tracing::info;
 
 use crate::cli::{Cli, Commands};
@@ -15,6 +11,7 @@ type AppCreator = Option<()>;
 #[cfg(all(feature = "app", not(target_arch = "wasm32")))]
 type EventLoopBuilderHook = Option<eframe::EventLoopBuilderHook>;
 #[cfg(not(all(feature = "app", not(target_arch = "wasm32"))))]
+#[allow(dead_code)]
 type EventLoopBuilderHook = Option<()>;
 
 /// All entry-points redirect here after platform-specific initialization and
@@ -32,7 +29,7 @@ pub async fn setup_app() -> AppCreator {
         #[cfg(feature = "app")]
         Commands::App(app_args) => { // Start the GUI app
             Some(Box::new(move |cc| {
-                Ok(Box::new(crate::app::SDFViewerApp::new(cc, app_args)))
+                Box::new(crate::app::SDFViewerApp::new(cc, app_args))
             }))
         }
         #[cfg(feature = "server")]
@@ -65,7 +62,7 @@ pub fn setup_app_sync() -> AppCreator {
         #[cfg(feature = "app")]
         Commands::App(app_args) => { // Start the GUI app
             Some(Box::new(move |cc| {
-                Ok(Box::new(crate::app::SDFViewerApp::new(cc, app_args)))
+                Box::new(crate::app::SDFViewerApp::new(cc, app_args))
             }))
         }
         #[cfg(feature = "server")]
@@ -96,7 +93,7 @@ pub fn setup_app_sync() -> AppCreator {
 // === Native entry-points redirect here ===
 #[cfg(not(any(target_arch = "wasm32")))]
 #[allow(dead_code)] // False positive
-pub fn native_main(sync: bool, event_loop_builder: EventLoopBuilderHook) -> Pin<Box<dyn Future<Output=()>>> {
+pub fn native_main(sync: bool, event_loop_builder: EventLoopBuilderHook) -> std::pin::Pin<Box<dyn std::future::Future<Output=()>>> {
     // Setup logging
     tracing::subscriber::set_global_default(tracing_subscriber::FmtSubscriber::default())
         .expect("Failed to set global default subscriber");
@@ -123,7 +120,7 @@ pub fn native_main(sync: bool, event_loop_builder: EventLoopBuilderHook) -> Pin<
         if let Some(app_creator) = setup_app_sync() {
             app_creator_handler(Some(app_creator));
         }
-        Box::pin(future::ready(()))
+        Box::pin(std::future::ready(()))
     } else {
         use futures_util::FutureExt;
         Box::pin(setup_app().map(move |t| {

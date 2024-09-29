@@ -163,6 +163,10 @@ void main() {
     outColor.rgb = calculate_lighting(cameraPosition, sampleColor, hitPos, normal, sampleProps.x, sampleProps.y, sampleProps.z);
     outColor.a = surfaceColorTint.a;
 
+#ifdef GAMMA_CORRECTION
+    outColor.rgb = pow(outColor.rgb, vec3(GAMMA_CORRECTION));
+#endif
+
     // FIXME: Circle artifacts when computing normals while looking straight at an object
 //    outColor.rgb *= 0.001;
 //    outColor.rgb += abs(normal);

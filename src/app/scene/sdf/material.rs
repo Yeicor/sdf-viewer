@@ -1,6 +1,7 @@
+use crate::cli::env_get;
 use cgmath::{vec3, Vector3};
-use three_d::{Blend, Camera, Cull, FragmentAttributes, Light, LightingModel, lights_shader_source, Material, MaterialType, RenderStates, Srgba, Texture3D};
 use three_d::core::Program;
+use three_d::{lights_shader_source, Blend, Camera, Cull, FragmentAttributes, Light, LightingModel, Material, MaterialType, RenderStates, Srgba, Texture3D};
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
 /// with any transformation, which represents the bounding box of the SDF.
@@ -34,9 +35,16 @@ impl SDFViewerMaterial {
 }
 
 impl Material for SDFViewerMaterial {
-
     fn fragment_shader_source(&self, lights: &[&dyn Light]) -> String {
         let mut output = lights_shader_source(lights, self.lighting_model);
+        if let Some(gamma) = env_get("gamma") {
+            output.push_str(&format!("#define GAMMA_CORRECTION {}\n", gamma));
+        } else { // Provide defaults by platform
+            #[cfg(target_arch = "wasm32")]
+            output.push_str("#define GAMMA_CORRECTION 1.0/2.2\n");
+            #[cfg(not(target_arch = "wasm32"))]
+            output.push_str("#define GAMMA_CORRECTION 1.4\n");
+        }
         output.push_str(include_str!("material.frag"));
         output
     }
