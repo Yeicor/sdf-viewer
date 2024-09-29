@@ -410,7 +410,7 @@ impl SDFViewerApp {
                     egui::Window::new("Exported model")
                         .open(&mut open)
                         .resizable(true)
-                        .scroll2([true, true])
+                        .scroll([true, true])
                         .show(ctx, |ui| {
                             ui.text_edit_multiline(model);
                         });

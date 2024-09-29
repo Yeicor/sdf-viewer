@@ -152,7 +152,3 @@ max_sdk_version = 33
 [[package.metadata.android.uses_permission]]
 name = "android.permission.INTERNET"
 
-#  ========== PATCHES ==========
-[patch.crates-io]
-eframe = { git = "https://github.com/emilk/egui", tag = "0.27.2" }  # Waiting for fix: infinite resize on startup on wasm32
-
