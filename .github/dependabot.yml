@@ -6,6 +6,15 @@ updates:
       interval: "weekly"
       day: "saturday"
       time: "09:00"
+    groups:
+      eframe: # Keep eframe in sync with three-d
+        applies-to: "version-updates"
+        patterns:
+        - "eframe"
+        update-types:
+        - "minor"
+        - "patch"
+
   - package-ecosystem: "github-actions"
     directory: "/.github/workflows/"
     schedule:
