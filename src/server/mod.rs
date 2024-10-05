@@ -8,16 +8,16 @@ use std::time::SystemTime;
 
 use httpdate::fmt_http_date;
 use lru::LruCache;
-use notify_debouncer_mini::{DebounceEventResult, new_debouncer};
 use notify_debouncer_mini::notify::RecursiveMode;
+use notify_debouncer_mini::{new_debouncer, DebounceEventResult};
 use salvo::conn::Acceptor;
-use salvo::http::{HeaderMap, HeaderValue};
 use salvo::http::header::HeaderName;
 use salvo::http::response::ResBody;
+use salvo::http::{HeaderMap, HeaderValue};
 use salvo::prelude::*;
 use salvo::routing::{Filter, PathState};
-use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
 
 use crate::metadata::short_version_info;
@@ -68,8 +68,9 @@ impl CliServer {
         #[derive(Debug)]
         struct AnyFilter;
 
+        #[async_trait]
         impl Filter for AnyFilter {
-            fn filter(&self, _req: &mut Request, path: &mut PathState) -> bool {
+            async fn filter(&self, _req: &mut Request, path: &mut PathState) -> bool {
                 *path = PathState::new(""); // HACK: Forces any filter to match.
                 true
             }

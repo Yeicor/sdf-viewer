@@ -11,9 +11,7 @@ updates:
         applies-to: "version-updates"
         patterns:
         - "eframe"
-        update-types:
-        - "minor"
-        - "patch"
+        update-types: []
 
   - package-ecosystem: "github-actions"
     directory: "/.github/workflows/"
