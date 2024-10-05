@@ -2997,7 +2997,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "klask"
 version = "1.0.0"
-source = "git+https://github.com/Yeicor/klask#1e2547b8f80ff92e03d4bfc2892e3462a1ca40f0"
+source = "git+https://github.com/Yeicor/klask#eac94caccd774a97b3cedb472306d1e8ac642773"
 dependencies = [
  "Inflector",
  "cansi",
