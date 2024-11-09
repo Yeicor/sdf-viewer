@@ -4918,9 +4918,9 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "salvo"
-version = "0.74.0"
+version = "0.74.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b6e981dc1f94ac549e6fb32e2c84f2fa70c01935d1e5a8a91311047c2a8a51a"
+checksum = "552b76da24853093da265b89150188e8049ccf31550a0294e10df9f7221ec965"
 dependencies = [
  "salvo-jwt-auth",
  "salvo-proxy",
@@ -4929,9 +4929,9 @@ dependencies = [
 
 [[package]]
 name = "salvo-jwt-auth"
-version = "0.74.0"
+version = "0.74.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d68d36f865869b2df93cff759116507210a6dc6c0b9dffa66607d0eebf9d889"
+checksum = "3d676e397c58e84e6e911c797a4582987042e9776cb38bb3eb8dd7422fc951fd"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -4949,9 +4949,9 @@ dependencies = [
 
 [[package]]
 name = "salvo-proxy"
-version = "0.74.0"
+version = "0.74.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a90adb408d17016e408cfb21d9f3a4a1926343d566e3cc596688fd2adbe671f1"
+checksum = "f1359d1fde15ace7a41eb3f28a72447f69ec7e6d30cccf8bf05c1deb17925b92"
 dependencies = [
  "fastrand 2.1.0",
  "futures-util",
@@ -4967,9 +4967,9 @@ dependencies = [
 
 [[package]]
 name = "salvo-serde-util"
-version = "0.74.0"
+version = "0.74.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1671d97c0da8679a4bdab0f7bf4186416a1c90a0b428db723615ebb88c3fa166"
+checksum = "3f20345cf0ce993ce5e2b96e9e4783ef4c08cd106dd59c6da6ac6af65a9b59ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4978,9 +4978,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_core"
-version = "0.74.0"
+version = "0.74.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6836bcbe87e81b7f688588865b7f688d783e77a86a0e486f4b88e9e48c7a6e8a"
+checksum = "e37fdc3a8f7d4f4b63649b1b3cd833b61160e1c430912dcb9c0fed2b51d5766f"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -5022,9 +5022,9 @@ dependencies = [
 
 [[package]]
 name = "salvo_macros"
-version = "0.74.0"
+version = "0.74.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e12911dcbe104634cdf86ea1fb4009edba34dc87d8314b986765287337bf587"
+checksum = "0d1e370bd2cd0ad52be3518350c43f2b94fccbb136519a9547269df1c9a5329d"
 dependencies = [
  "proc-macro-crate 3.1.0",
  "proc-macro2",
