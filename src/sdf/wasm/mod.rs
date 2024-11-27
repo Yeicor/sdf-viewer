@@ -41,4 +41,3 @@
 pub(crate) mod load;
 mod native;
 mod util;
-mod wasi;

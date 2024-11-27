@@ -55,7 +55,7 @@ sdfffi = ["sdf"]
 sdfdemoffi = ["sdfdemo", "sdfffi"]
 
 # The wasm interpreters are neede for the app and the meshers, so a new feature is needed for convenience.
-wasminterpreters = ["wasmer"]
+wasminterpreters = ["wasmer", "wasmer-wasix"]
 
 # ========== DEPENDENCIES ==========
 [dependencies]
@@ -79,7 +79,8 @@ httpdate = { version = "1.0", optional = true } # Formatting of dates
 lru = { version = "0.12", optional = true } # For caching resources
 
 # === WEBASSEMBLY COMPILERS/INTERPRETERS ===
-wasmer = { version = "4.4.0", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
+wasmer = { version = "5.0.2", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
+wasmer-wasix = { version = "0.32.0", optional = true } # WASI support for wasmer
 
 # === CONFIGURATION & CLI ===
 clap = { version = "3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
@@ -113,10 +114,6 @@ web-sys = { version = "0.3", optional = true } # Core bindings
 js-sys = { version = "0.3", optional = true } # Core bindings
 tracing-wasm = { version = "0.2", optional = true } # For logging
 console_error_panic_hook = { version = "0.1", optional = true } # For logging
-
-# === TESTING ===
-[dev-dependencies]
-approx = "0.5"
 
 # === BUILD ===
 [build-dependencies]

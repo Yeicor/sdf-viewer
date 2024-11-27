@@ -8,14 +8,15 @@ use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
 
 use cgmath::{Vector3, Zero};
-use wasmer::{Function, Instance, Memory, Module, Store, Value};
-use wasmer::AsStoreMut;
 use wasmer::AsStoreRef;
+use wasmer::{AsStoreMut, FunctionEnv};
+use wasmer::{Function, Imports, Instance, Memory, Module, Store, Value};
+use wasmer_wasix::{generate_import_object_from_env, get_wasi_version, WasiEnv};
 
-use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 use crate::sdf::defaults::{children_default_impl, name_default_impl, parameters_default_impl, set_parameter_default_impl};
 use crate::sdf::wasm::util::reinterpret_i32_as_u32;
 use crate::sdf::wasm::util::reinterpret_u32_as_i32;
+use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 
 //use wasmer_wasi::*;
 
@@ -39,16 +40,14 @@ pub async fn load_sdf_wasm_send_sync(wasm_bytes: &[u8]) -> anyhow::Result<Box<dy
     }
     let module = Module::new(&store, wasm_bytes)?;
 
-    // // The module shouldn't import anything. TODO: except maybe WASI.
-    // let wasi_state = WasiState::new("program_name")
-    //    // .env(b"HOME", "/home/home".to_string())
-    //    // .arg("--help")
-    //    // .preopen(|p| p.directory("src").read(true).write(true).create(true))?
-    //    // .preopen(|p| p.directory(".").alias("dot").read(true))?
-    //    .build()?;
-    // let mut wasi_env = WasiEnv::new(wasi_state);
-    // let import_object = wasi_env.import_object_for_all_wasi_versions(&module)?;
-    let import_object = super::wasi::wasi_imports(&mut store);
+    // The module shouldn't import anything, except maybe wasix (WASI) functions.
+    let import_object = if let Some(wasi_version) = get_wasi_version(&module, false) {
+        let wasi_env = WasiEnv::builder("program_name").build()?; // Customize env?
+        let function_env = FunctionEnv::new(&mut store, wasi_env);
+        generate_import_object_from_env(&mut store, &function_env, wasi_version)
+    } else {
+        Imports::default()
+    };
 
     let instance = Instance::new(&mut store, &module, &import_object)?;
 
