@@ -17,8 +17,8 @@ default-android = ["app", "server", "meshers", "native", "eframe/android-native-
 default-wasm = ["app", "meshers", "web"]
 
 # === ARCH-BASED FEATURES (only to select dependencies' features) ===
-web = ["wasmer/js-default"] #, "wasmer-wasi/js", "poll-promise/web"
-native = ["wasmer/sys-default", "native_no_wasmer"] # "wasmer-wasi/sys"
+web = ["wasmer/js-default", "wasmer-wasix/js-default"]
+native = ["wasmer/sys-default", "wasmer-wasix/sys-default", "native_no_wasmer"]
 native_no_wasmer = ["poll-promise/tokio"] # Android (Termux) server-only builds can't compile wasmer (and don't need it).
 file_dialog = ["klask/rfd"] # Desktop-only file dialog
 
@@ -80,7 +80,7 @@ lru = { version = "0.12", optional = true } # For caching resources
 
 # === WEBASSEMBLY COMPILERS/INTERPRETERS ===
 wasmer = { version = "5.0.2", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
-wasmer-wasix = { version = "0.32.0", optional = true } # WASI support for wasmer
+wasmer-wasix = { version = "0.32.0", default-features = false, optional = true } # WASI support for wasmer
 
 # === CONFIGURATION & CLI ===
 clap = { version = "3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
