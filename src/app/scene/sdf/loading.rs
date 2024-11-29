@@ -7,7 +7,7 @@ pub struct LoadingManager {
     pub(crate) limits: Vector3<usize>,
     /// The current number of indices skipped in each dimension.
     /// It explores powers of two, in descending order, stopping at 1.
-    step_size: usize,
+    pub(crate) step_size: usize,
     /// The next index to return.
     next_index: Vector3<usize>,
     /// The number of iterations performed in the current pass.
@@ -29,6 +29,7 @@ impl LoadingManager {
         slf.reset(passes);
         slf
     }
+
     /// Resets the interlacing manager to the first pass.
     pub fn reset(&mut self, passes: usize) {
         self.step_size = 2usize.pow(passes as u32 - 1);

@@ -1,10 +1,10 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use eframe::{egui, Theme};
-use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
+use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
+use eframe::{egui, Theme};
 use image::EncodableLayout;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::Receiver;
@@ -18,12 +18,12 @@ use crate::app::cli::CliApp;
 use crate::app::frameinput::FrameInput;
 use crate::cli::env_get;
 use crate::sdf::demo::cube::SDFDemoCube;
-use crate::sdf::SDFSurface;
 use crate::sdf::wasm::load::spawn_async;
+use crate::sdf::SDFSurface;
 
 pub mod cli;
-pub mod scene;
 mod frameinput;
+pub mod scene;
 
 /// The main application state and logic.
 /// As the application is mostly single-threaded, use RefCell for performance when interior mutability is required.
@@ -31,7 +31,7 @@ pub struct SDFViewerApp {
     /// If set, indicates the load progress of the SDF in the range [0, 1] and the display text.
     pub progress: Option<(f32, String)>,
     /// The root SDF surface. This is static as it is generated with Box::leak.
-    /// This is needed as we may only be rendering a sub-tree of the SDF.
+    /// This is needed as we may only be rendering a subtree of the SDF.
     pub sdf: Rc<Box<dyn SDFSurface>>,
     // TODO: A loading (downloading/parsing/compiling wasm) indicator for the user.
     /// The SDF for which we are modifying the parameters, if any.
@@ -97,9 +97,16 @@ impl SDFViewerApp {
 
     /// Updates the root SDF surface and sets the whole surface as the render target.
     /// The root SDF must be owned at this point.
-    pub fn set_root_sdf(&mut self, sdf: Box<dyn SDFSurface>) {
+    pub fn set_root_sdf(
+        &mut self,
+        sdf: Box<dyn SDFSurface>,
+        max_voxels_side: Option<usize>, // None means keep the current value
+        loading_passes: Option<usize>,  // None means keep the current value
+    ) {
         self.sdf = Rc::new(sdf); // Reference counted ownership as we need to share it with the scene renderer.
-        Self::scene_mut(|scene| scene.set_sdf(Rc::clone(&self.sdf), 64, 2));
+        Self::scene_mut(|scene| {
+            scene.set_sdf(Rc::clone(&self.sdf), max_voxels_side, loading_passes)
+        });
     }
 
     /// Updates the root SDF using a promise that will be polled on update.
@@ -138,7 +145,12 @@ impl SDFViewerApp {
         self.sdf_loading = if let Some(mut receiver) = self.sdf_loading.take() {
             match receiver.try_recv() {
                 Ok(new_root_sdf) => {
-                    self.set_root_sdf(new_root_sdf);
+                    let cur_settings = self.app_settings.current();
+                    self.set_root_sdf(
+                        new_root_sdf,
+                        Some(cur_settings.max_voxels_side),
+                        Some(cur_settings.loading_passes),
+                    );
                     None // Disconnect after the first update (more updates should generate another receiver to display progress)
                 }
                 Err(TryRecvError::Empty) => {
@@ -192,7 +204,7 @@ impl SDFViewerApp {
                         info!("Rendering only {}", sdf.name());
                         Self::scene_mut(|scene| {
                             // Will progressively regenerate the scene in the next frames
-                            scene.set_sdf(Rc::clone(&sdf), 64, 2);
+                            scene.set_sdf(Rc::clone(&sdf), None, None);
                         });
                     }
                 });

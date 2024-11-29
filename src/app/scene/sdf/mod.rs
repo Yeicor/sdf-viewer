@@ -43,8 +43,7 @@ const AIR_DIST: f32 = 1e-1 + 0.001234;
 
 impl SDFViewer {
     /// Creates a new SDF viewer for the given bounding box (tries to keep aspect ratio).
-    pub fn from_bb(ctx: &three_d::Context, bb: &[Vector3<f32>; 2], max_voxels_side: Option<usize>, loading_passes: usize) -> Self {
-        let max_voxels_side = max_voxels_side.unwrap_or(256);
+    pub fn from_bb(ctx: &three_d::Context, bb: &[Vector3<f32>; 2], max_voxels_side: usize, loading_passes: usize) -> Self {
         let bb_size = bb[1] - bb[0];
         let mut voxels = Vector3::new(0usize, 0usize, 0usize);
         let max_dim = [bb_size.x, bb_size.y, bb_size.z].iter().enumerate().max_by(

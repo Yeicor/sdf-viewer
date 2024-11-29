@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::cmp::max;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,8 +16,8 @@ use crate::app::frameinput::FrameInput;
 use crate::app::scene::sdf::SDFViewer;
 use crate::sdf::SDFSurface;
 
-pub mod sdf;
 pub mod camera;
+pub mod sdf;
 
 thread_local! {
     /// We get a [`glow::Context`] from `eframe`, but we want a [`scene::Context`] for [`SDFViewerAppScene`].
@@ -76,9 +77,7 @@ impl SDFViewerAppScene {
     pub fn read_context_thread_local<R>(
         f: impl FnOnce(&mut Self) -> R,
     ) -> Option<R> {
-        SCENE.with(|scene| scene.borrow_mut().as_mut().map(|x| {
-            f(x)
-        }))
+        SCENE.with(|scene| scene.borrow_mut().as_mut().map(f))
     }
 
     pub fn new(ctx: Context, sdf: Rc<Box<dyn SDFSurface>>) -> Self {
@@ -98,7 +97,7 @@ impl SDFViewerAppScene {
         let mut lights: Vec<Box<dyn Light>> = vec![];
 
         // Create the SDF loader and viewer
-        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), Some(64), 2);
+        let sdf_viewer = SDFViewer::from_bb(&ctx, &sdf.bounding_box(), 32, 2);
         // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
         // objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
 
@@ -133,10 +132,28 @@ impl SDFViewerAppScene {
     }
 
     /// Updates the SDF to render (and clears all required caches).
-    pub fn set_sdf(&mut self, sdf: Rc<Box<dyn SDFSurface>>, max_voxels_side: usize, loading_passes: usize) {
+    pub fn set_sdf(
+        &mut self,
+        sdf: Rc<Box<dyn SDFSurface>>,
+        max_voxels_side: Option<usize>, // None means keep the current value
+        loading_passes: Option<usize>, // None means keep the current value
+    ) {
         let bb = sdf.bounding_box();
         self.sdf = sdf;
-        self.sdf_viewer = SDFViewer::from_bb(&self.ctx, &bb, Some(max_voxels_side), loading_passes);
+        let max_voxels_side_val = max_voxels_side.unwrap_or_else(|| {
+            max(
+                max(self.sdf_viewer.tex0.width, self.sdf_viewer.tex0.height),
+                self.sdf_viewer.tex0.depth,
+            ) as usize
+        });
+        let loading_passes_val = loading_passes
+            .unwrap_or_else(|| self.sdf_viewer.loading_mgr.step_size.ilog2() as usize);
+        self.sdf_viewer = SDFViewer::from_bb(
+            &self.ctx,
+            &bb,
+            max_voxels_side_val,
+            loading_passes_val,
+        );
     }
 
     pub fn render(&mut self, frame_input: FrameInput<'_>, egui_resp: &Response) -> Option<glow::Framebuffer> {

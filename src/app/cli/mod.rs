@@ -9,6 +9,14 @@ pub(crate) mod settings;
 
 #[derive(clap::Parser, Debug, Clone, PartialEq, Eq, Default)]
 pub struct CliApp {
+    /// The maximum number of voxels to compute per side of the SDF.
+    #[clap(long, default_value = "64")]
+    pub max_voxels_side: usize,
+    /// The number of passes to load the SDF.
+    /// Initial passes use a lower resolution to give feedback faster.
+    #[clap(long, default_value = "2")]
+    pub loading_passes: usize,
+    /// The SDF provider to use.
     #[clap(subcommand)]
     pub sdf_provider: CliSDFProvider,
 }
@@ -20,7 +28,7 @@ impl CliApp {
         let (sender_of_updates, receiver_of_updates) = mpsc::channel(16);
         app.set_root_sdf_loading_manager(receiver_of_updates);
         match self.sdf_provider.clone() {
-            CliSDFProvider::Demo(s) => app.set_root_sdf(Box::new(s)),
+            CliSDFProvider::Demo(s) => app.set_root_sdf(Box::new(s), Some(self.max_voxels_side), Some(self.loading_passes)),
             CliSDFProvider::Url(watch) => {
                 load::load_sdf_from_path_or_url(sender_of_updates, watch.url);
             }
