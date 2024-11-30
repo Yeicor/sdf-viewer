@@ -109,7 +109,7 @@ impl SDFViewer {
             depth: size.z as u32,
             min_filter: Interpolation::Nearest, // Nearest for "broken" blocky mode
             mag_filter: Interpolation::Nearest,
-            mip_map_filter: None,
+            mipmap: None,
             wrap_s: Wrapping::MirroredRepeat, // <- MirroredRepeat should be safe, even out of bounds
             wrap_t: Wrapping::MirroredRepeat,
             wrap_r: Wrapping::MirroredRepeat,

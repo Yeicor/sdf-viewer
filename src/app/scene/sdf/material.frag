@@ -161,8 +161,8 @@ void main() {
 
     // Compute the color using the lighting model.
     outColor.rgb = calculate_lighting(cameraPosition, sampleColor, hitPos, normal, sampleProps.x, sampleProps.y, sampleProps.z);
-    //outColor.rgb = tone_mapping(outColor.rgb);
-    //outColor.rgb = color_mapping(outColor.rgb);
+    outColor.rgb = tone_mapping(outColor.rgb);
+    outColor.rgb = color_mapping(outColor.rgb);
     outColor.a = surfaceColorTint.a;
 
 #ifdef GAMMA_CORRECTION

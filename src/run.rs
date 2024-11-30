@@ -4,9 +4,9 @@ use crate::cli::{Cli, Commands};
 use crate::metadata::log_version_info;
 
 #[cfg(feature = "app")]
-type AppCreator = Option<eframe::AppCreator>;
+type AppCreator<'a> = Option<eframe::AppCreator<'a>>;
 #[cfg(not(feature = "app"))]
-type AppCreator = Option<()>;
+type AppCreator<'a> = Option<()>;
 
 #[cfg(all(feature = "app", not(target_arch = "wasm32")))]
 type EventLoopBuilderHook = Option<eframe::EventLoopBuilderHook>;
@@ -16,7 +16,7 @@ type EventLoopBuilderHook = Option<()>;
 
 /// All entry-points redirect here after platform-specific initialization and
 /// before platform-specific window start (which may be cancelled if None is returned).
-pub async fn setup_app() -> AppCreator {
+pub async fn setup_app() -> AppCreator<'static> {
     // Test logging and provide useful information
     log_version_info();
 
@@ -49,7 +49,7 @@ pub async fn setup_app() -> AppCreator {
 /// before platform-specific window start (which may be cancelled if None is returned).
 #[allow(dead_code)] // Not important for this method
 #[cfg(not(any(target_arch = "wasm32")))]
-pub fn setup_app_sync() -> AppCreator {
+pub fn setup_app_sync() -> AppCreator<'static> {
     // Test logging and provide useful information
     log_version_info();
 

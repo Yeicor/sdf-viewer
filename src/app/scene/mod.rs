@@ -118,7 +118,7 @@ impl SDFViewerAppScene {
 
         // Create more lights
         lights.push(Box::new(DirectionalLight::new(
-            &ctx, 0.9, Srgba::WHITE, &vec3(-1.0, -1.0, -1.0))));
+            &ctx, 0.9, Srgba::WHITE, vec3(-1.0, -1.0, -1.0))));
 
         Self {
             ctx,
@@ -192,11 +192,12 @@ impl SDFViewerAppScene {
         target.clear_partially(frame_input.scissor_box, ClearState::depth(1.0));
 
         // Render each of the objects to the "screen"
-        let objects_vec = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
+        let mut objects_vec = self.objects.iter().map(|e| &**e).collect::<Vec<_>>();
+        objects_vec.push(&self.sdf_viewer.volume);
         let objects_slice = objects_vec.as_slice();
         let lights_vec = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
         let lights_slice = lights_vec.as_slice();
-        self.sdf_viewer.volume.render(&self.camera.camera, lights_slice); // FIXME: Merge this render with the next call
+        // self.sdf_viewer.volume.render(&self.camera.camera, lights_slice); // FIXME: Merge this render with the next call
         target.render_partially(frame_input.scissor_box, &self.camera.camera, objects_slice, lights_slice);
 
         // Take back the screen fbo, we may continue to use it.
