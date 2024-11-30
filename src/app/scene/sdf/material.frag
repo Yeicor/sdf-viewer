@@ -139,7 +139,7 @@ void main() {
     }
 
     // Cast the ray against the SDF and return the hit position and sample.
-    vec4[2] hitPosAndSample = sdfRaycast(rayOrigin, rayDir, 256 /* Should be more than enough */);
+    vec4[2] hitPosAndSample = sdfRaycast(rayOrigin, rayDir, 256);
 
     // Check for no hit (out of bounds or out of steps)
     if (hitPosAndSample[0].w < 0.0) {
@@ -161,6 +161,8 @@ void main() {
 
     // Compute the color using the lighting model.
     outColor.rgb = calculate_lighting(cameraPosition, sampleColor, hitPos, normal, sampleProps.x, sampleProps.y, sampleProps.z);
+    //outColor.rgb = tone_mapping(outColor.rgb);
+    //outColor.rgb = color_mapping(outColor.rgb);
     outColor.a = surfaceColorTint.a;
 
 #ifdef GAMMA_CORRECTION

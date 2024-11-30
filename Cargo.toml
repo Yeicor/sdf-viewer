@@ -60,9 +60,9 @@ wasminterpreters = ["wasmer", "wasmer-wasix"]
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { version = "0.18", default-features = false, features = [], optional = true }
-eframe = { version = "*", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
-winit = { version = "*", optional = true } # Same as eframe
+three-d = { version = "0.17", default-features = false, features = ["egui-gui"], optional = true }
+eframe = { version = "0.28", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
+winit = { version = "0.29", optional = true } # Same as eframe
 image = { version = "0.25", optional = true }  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
@@ -120,6 +120,8 @@ console_error_panic_hook = { version = "0.1", optional = true } # For logging
 shadow-rs = "0.36" # For build metadata
 
 # ========== RELEASE CONFIGURATION ==========
+[profile.dev]
+debug-assertions=false
 [profile.release]
 lto = true
 codegen-units = 1

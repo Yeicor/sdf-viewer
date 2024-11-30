@@ -37,6 +37,8 @@ impl SDFViewerMaterial {
 impl Material for SDFViewerMaterial {
     fn fragment_shader_source(&self, lights: &[&dyn Light]) -> String {
         let mut output = lights_shader_source(lights, self.lighting_model);
+        // source.push_str(ToneMapping::fragment_shader_source());
+        // source.push_str(ColorMapping::fragment_shader_source());
         if let Some(gamma) = env_get("gamma") {
             output.push_str(&format!("#define GAMMA_CORRECTION {}\n", gamma));
         } else { // Provide defaults by platform
@@ -69,6 +71,8 @@ impl Material for SDFViewerMaterial {
         camera: &Camera,
         lights: &[&dyn Light],
     ) {
+        // viewer.tone_mapping().use_uniforms(program);
+        // viewer.color_mapping().use_uniforms(program);
         for (i, light) in lights.iter().enumerate() {
             light.use_uniforms(program, i as u32);
         }

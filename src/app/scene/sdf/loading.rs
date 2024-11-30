@@ -5,9 +5,11 @@ use cgmath::Vector3;
 pub struct LoadingManager {
     /// The 3D limits
     pub(crate) limits: Vector3<usize>,
+    /// The number of passes configured.
+    pub(crate) passes: usize,
     /// The current number of indices skipped in each dimension.
     /// It explores powers of two, in descending order, stopping at 1.
-    pub(crate) step_size: usize,
+    step_size: usize,
     /// The next index to return.
     next_index: Vector3<usize>,
     /// The number of iterations performed in the current pass.
@@ -21,6 +23,7 @@ impl LoadingManager {
     pub fn new(limits: Vector3<usize>, passes: usize) -> Self {
         let mut slf = Self {
             limits,
+            passes,
             step_size: 0,
             next_index: Vector3::new(0, 0, 0),
             iterations: 0,
@@ -32,7 +35,8 @@ impl LoadingManager {
 
     /// Resets the interlacing manager to the first pass.
     pub fn reset(&mut self, passes: usize) {
-        self.step_size = 2usize.pow(passes as u32 - 1);
+        self.passes = passes;
+        self.step_size = 2usize.pow((passes as u32).max(1) - 1);
         self.next_index = Vector3::new(0, 0, 0);
         self.iterations = 0;
         self.total_iterations = 0;
