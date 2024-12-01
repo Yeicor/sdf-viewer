@@ -1,10 +1,10 @@
 # Release workflow builds the release executables for all platforms and publishes them to GitHub
+# Runs on all pushes/pull requests, but only publishes the executables on v*.*.* tags
 name: Release builds
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+  pull_request:
 
 env:
   CARGO_TERM_COLOR: always
@@ -17,15 +17,19 @@ jobs:
     name: Update the version in Cargo.toml
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+        name: Checkout
         uses: actions/checkout@v4
         with:
           ref: 'master' # HACK: Should be the tag, but we are making a push to master
-      - name: Update cargo
+      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+        name: Update cargo
         run: |
           rustup update
-      - uses: Swatinem/rust-cache@v2.7.5
-      - name: Auto-update Cargo.toml and move the release tag
+      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+        uses: Swatinem/rust-cache@v2.7.5
+      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+        name: Auto-update Cargo.toml and move the release tag
         id: auto-update
         run: |
           export VERSION="${GITHUB_REF##*/}"
@@ -91,10 +95,14 @@ jobs:
           #   build: ???
           #   post: ???
     steps:
-      - name: Checkout
+      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+        name: Checkout
         uses: actions/checkout@v4
         with:
           ref: 'master' # HACK: See first checkout
+      - if: ${{ github.ref != 'refs/tags/v*.*.*' }}
+        name: Checkout
+        uses: actions/checkout@v4
       - name: Update cargo
         run: |
           rustup update
@@ -145,19 +153,26 @@ jobs:
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then sudo chown -R $(id -u):$(id -g) target; fi
           # Find and copy the release binary
           find target -type f -name "$build_name" -printf '%p' -exec mv {} "${exe_name}" \;
-          echo -e "\n::set-output name=EXE_NAME::${exe_name}"
+          echo "EXE_NAME=${exe_name}" >> $GITHUB_OUTPUT
           du -h "${exe_name}"
-      - name: Publish the release build
+      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+        name: Publish the release build
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.prepare-release.outputs.EXE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
+      - if: ${{ github.ref != 'refs/tags/v*.*.*' }}
+        name: Publish the release as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepare-release.outputs.EXE_NAME }}
+          path: ${{ steps.prepare-release.outputs.EXE_NAME }}
 
       - name: Prepare static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         run: mkdir public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory public
-      - name: Deploy static site (only for web builds)
-        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+      - if: ${{ github.ref == 'refs/tags/v*.*.*' && matrix.target == 'wasm32-unknown-unknown' }}
+        name: Deploy static site (only for web builds)
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
