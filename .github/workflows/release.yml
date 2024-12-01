@@ -171,7 +171,7 @@ jobs:
       - name: Prepare static site (only for web builds)
         if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
         run: mkdir public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory public
-      - if: ${{ github.ref == 'refs/tags/v*.*.*' && matrix.target == 'wasm32-unknown-unknown' }}
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') && matrix.target == 'wasm32-unknown-unknown' }}
         name: Deploy static site (only for web builds)
         uses: JamesIves/github-pages-deploy-action@v4
         with:
