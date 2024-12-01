@@ -146,8 +146,7 @@ impl SDFViewerAppScene {
                 self.sdf_viewer.tex0.depth,
             ) as usize
         });
-        let loading_passes_val = loading_passes
-            .unwrap_or_else(|| self.sdf_viewer.loading_mgr.passes);
+        let loading_passes_val = loading_passes.unwrap_or(self.sdf_viewer.loading_mgr.passes);
         self.sdf_viewer = SDFViewer::from_bb(
             &self.ctx,
             &bb,
