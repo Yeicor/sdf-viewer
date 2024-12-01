@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-set -eu
+set -eux
 script_path="$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )"
 cd "$script_path/../../.."
-
 
 CRATE_NAME="sdf_viewer"
 FINAL_WASM_PATH="target/pkg/${CRATE_NAME}_bg.wasm"
@@ -11,8 +10,9 @@ cp "$script_path/index.html" "$(dirname "$FINAL_WASM_PATH")/index.html"
 
 # Pre-requisites:
 rustup target add wasm32-unknown-unknown
-# For generating JS bindings:
-cargo install --quiet wasm-bindgen-cli
+# For generating JS bindings: (grab the same wasm-bindgen version as in Cargo.lock)
+wasm_bindgen_version="$(cargo metadata --format-version=1 | jq --raw-output '.packages[] | select(.name == "wasm-bindgen") | .version')"
+cargo install -f wasm-bindgen-cli --version "$wasm_bindgen_version"
 
 
 FEATURES="default-wasm"
@@ -82,7 +82,7 @@ TARGET="target"
 TARGET_NAME="${CRATE_NAME}.wasm"
 WASM_PATH="${TARGET}/wasm32-unknown-unknown/$BUILD/$TARGET_NAME"
 WASM_BINDGEN="$( command -v wasm-bindgen || echo "$HOME/.cargo/bin/wasm-bindgen" )"
-echo "Generating JS bindings for wasm with wasm-bindgen ($WASM_BINDGEN)…"
+echo "Generating JS bindings for wasm with wasm-bindgen ($WASM_BINDGEN $($WASM_BINDGEN --version))…"
 "$WASM_BINDGEN" "${WASM_PATH}" --out-dir "$(dirname "$FINAL_WASM_PATH")" --out-name "$(basename "$FINAL_WASM_PATH")" --no-modules --no-typescript
 
 # if this fails with "error: cannot import from modules (`env`) with `--no-modules`", you can use:
