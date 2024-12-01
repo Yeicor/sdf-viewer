@@ -17,18 +17,18 @@ jobs:
     name: Update the version in Cargo.toml
     runs-on: ubuntu-latest
     steps:
-      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Checkout
         uses: actions/checkout@v4
         with:
           ref: 'master' # HACK: Should be the tag, but we are making a push to master
-      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Update cargo
         run: |
           rustup update
-      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: Swatinem/rust-cache@v2.7.5
-      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Auto-update Cargo.toml and move the release tag
         id: auto-update
         run: |
@@ -95,12 +95,12 @@ jobs:
           #   build: ???
           #   post: ???
     steps:
-      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Checkout
         uses: actions/checkout@v4
         with:
           ref: 'master' # HACK: See first checkout
-      - if: ${{ github.ref != 'refs/tags/v*.*.*' }}
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         name: Checkout
         uses: actions/checkout@v4
       - name: Update cargo
@@ -155,13 +155,13 @@ jobs:
           find target -type f -name "$build_name" -printf '%p' -exec mv {} "${exe_name}" \;
           echo "EXE_NAME=${exe_name}" >> $GITHUB_OUTPUT
           du -h "${exe_name}"
-      - if: ${{ github.ref == 'refs/tags/v*.*.*' }}
+      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Publish the release build
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.prepare-release.outputs.EXE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ github.ref != 'refs/tags/v*.*.*' }}
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         name: Publish the release as an artifact
         uses: actions/upload-artifact@v4
         with:
