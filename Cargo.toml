@@ -29,7 +29,7 @@ app = ["standalone", "sdf", "sdfdemo", "wasminterpreters", # <-- other features
 
 # The simple server to watch and serve files to the app.
 server = ["standalone", # <-- other features
-    "salvo", "notify-debouncer-mini", "anyhow", "httpdate", "lru", "tokio/process"]
+    "salvo", "notify-debouncer-full", "anyhow", "httpdate", "lru", "tokio/process"]
 
 # Convert the SDF to a 3D model. Adds a command and a toolbar option (if app) for generating triangle meshes
 meshers = ["standalone", "sdf", "wasminterpreters", # <-- other features
@@ -74,7 +74,7 @@ ehttp = { version = "0.5", optional = true } # Very simple HTTP client that supp
 
 # === SERVER ===
 salvo = { version = "0.74", optional = true } # Simple HTTP server
-notify-debouncer-mini = { version = "*", default-features = false, optional = true } # Watch for file changes
+notify-debouncer-full = { version = "*", default-features = false, optional = true } # Watch for file changes
 httpdate = { version = "1.0", optional = true } # Formatting of dates
 lru = { version = "0.12", optional = true } # For caching resources
 
