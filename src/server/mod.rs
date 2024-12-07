@@ -294,12 +294,8 @@ impl CliServer {
 
                 let mut cur_event = 1u64;
                 for x in rx {
-                    if x.iter().all(|event|
-                        match event.kind {
-                            EventKind::Access(AccessKind::Open(_)) => true,
-                            _ => false,
-                        }
-                    ) {
+                    if x.iter().all(|event| 
+                        matches!(event.kind, EventKind::Access(AccessKind::Open(_)))) {
                         continue;
                     }
                     let notified = modified_sender_clone.send(cur_event)? - 1 /* initial receiver always available */;
