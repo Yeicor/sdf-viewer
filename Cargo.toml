@@ -60,9 +60,9 @@ wasminterpreters = ["wasmer", "wasmer-wasix"]
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { version = "0.17", default-features = false, features = ["egui-gui"], optional = true }
-eframe = { version = "0.28", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
-winit = { version = "0.29", optional = true } # Same as eframe
+three-d = { version = "=0.17.0", default-features = false, features = ["egui-gui"], optional = true }
+eframe = { version = "=0.28.1", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
+winit = { version = "=0.29.15", optional = true } # Same as eframe
 image = { version = "0.25", optional = true }  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
@@ -83,7 +83,7 @@ wasmer = { version = "5.0.2", default-features = false, optional = true } # Very
 wasmer-wasix = { version = "0.32.0", default-features = false, optional = true } # WASI support for wasmer
 
 # === CONFIGURATION & CLI ===
-clap = { version = "3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
+clap = { version = "=3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
 klask = { git = "https://github.com/Yeicor/klask", default-features = false, optional = true }  # CLI to GUI converter
 shadow-rs = { version = "0.36", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 
@@ -102,14 +102,14 @@ once_cell = { version = "1.20", optional = true } # Static globals with lazy ini
 
 # === NATIVE (desktop & mobile) ===
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.41", features = ["macros", "rt-multi-thread", "sync"], optional = true } # Asynchronous runtime
+tokio = { version = "1.42", features = ["macros", "rt-multi-thread", "sync"], optional = true } # Asynchronous runtime
 tracing-subscriber = { version = "0.3", optional = true } # For logging
 
 # === WEB ===
 [target.'cfg(target_arch = "wasm32")'.dependencies] # Web dependencies
 wasm-bindgen = { version = "0.2", optional = true } # Core bindings
 wasm-bindgen-futures = { version = "0.4", optional = true } # Core bindings
-tokio = { version = "1.40", features = ["sync"], optional = true } # Minimal async utilities like mutexes
+tokio = { version = "1.42", features = ["sync"], optional = true } # Minimal async utilities like mutexes
 web-sys = { version = "0.3", optional = true } # Core bindings
 js-sys = { version = "0.3", optional = true } # Core bindings
 tracing-wasm = { version = "0.2", optional = true } # For logging
