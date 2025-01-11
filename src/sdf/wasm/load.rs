@@ -44,7 +44,12 @@ pub fn spawn_async(fut: impl Future<Output=()> + Send + 'static, new_runtime: bo
         tokio::spawn(fut);
     } else {
         // To follow the convention of not blocking, we create a new thread for the runtime and return immediately.
-        std::thread::spawn(move || tokio::runtime::Runtime::new().unwrap().block_on(fut));
+        std::thread::spawn(move || {
+            #[cfg(not(target_arch = "wasm32"))]
+            tokio::runtime::Builder::new_multi_thread().build().unwrap().block_on(fut);
+            #[cfg(target_arch = "wasm32")]
+            tokio::runtime::Builder::new_current_thread().build().unwrap().block_on(fut);
+        });
     }
 }
 

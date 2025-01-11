@@ -18,8 +18,6 @@ use crate::sdf::wasm::util::reinterpret_i32_as_u32;
 use crate::sdf::wasm::util::reinterpret_u32_as_i32;
 use crate::sdf::{SDFParam, SDFParamKind, SDFParamValue, SDFSample, SDFSurface};
 
-//use wasmer_wasi::*;
-
 #[cfg(all(not(feature = "web"), target_arch = "wasm32"))]
 compile_error!("On wasm32 targets, you need to enable the web feature (and disable any native* features).");
 
