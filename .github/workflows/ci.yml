@@ -32,6 +32,7 @@ jobs:
 
       - name: Integration test with sdf-viewer-go
         run: |
+          set -ex
           # Start the app for the latest wasm generated
           # If the app did not log any errors and is running after N seconds, then the test is successful
           cargo build  # Ensure app is built before running to avoid hitting the time limit
