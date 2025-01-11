@@ -36,12 +36,12 @@ jobs:
           # Start the app for the latest wasm generated
           # If the app did not log any errors and is running after N seconds, then the test is successful
           cargo build  # Ensure app is built before running to avoid hitting the time limit
-          xvfb-run "target/debug/${GITHUB_REPOSITORY##*/}" app url \
-          "https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm" 2>&1 | tee app.log &
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          "target/debug/${GITHUB_REPOSITORY##*/}" app url "https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm" 2>&1 | tee app.log &
                     
           # Kill the app that was running in the background after a while
           sleep 30s
-          kill %1
+          kill %2 || true
 
           # Check for errors
           errors=$(grep -i "error" app.log | # Skip known "errors" 
