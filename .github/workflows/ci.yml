@@ -35,17 +35,13 @@ jobs:
           # Start the app for the latest wasm generated
           # If the app did not log any errors and is running after N seconds, then the test is successful
           cargo build  # Ensure app is built before running to avoid hitting the time limit
-          xvfb-run timeout 30s target/debug/${GITHUB_REPOSITORY##*/} app url \
-          https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm 2>&1 | tee app.log &
-          
-          # Print the app log while the app is running
-          timeout 30s tail -f app.log || echo "Stopping and checking app.log for errors..."
-          # Kill the app that was running in the background
-          kill %1
+          xvfb-run timeout 30s "target/debug/${GITHUB_REPOSITORY##*/}" app url \
+          "https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm" 2>&1 | tee app.log
           
           # Check for errors
-          if cat app.log | grep -v "MESA: error: ZINK: vkCreateInstance failed (VK_ERROR_INCOMPATIBLE_DRIVER)" | grep -i -q "error"; then
-            echo "> Error found in app.log"
+          errors=$(grep -i "error" app.log | grep -v "MESA: error: ZINK: vkCreateInstance failed (VK_ERROR_INCOMPATIBLE_DRIVER)")
+          if [ ! -z "$errors" ]; then
+            echo "> Error(s) found in app.log: $errors"
             exit 1
           fi
           
