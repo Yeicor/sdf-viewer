@@ -25,7 +25,7 @@ impl Mesh {
             if v.normal.distance2(Vector3::zero()) < 0.0001 {
                 v.normal = sdf.normal(vec3(v.position[0], v.position[1], v.position[2]), None);
             }
-            v.color = sample.color.into();
+            v.color = sample.color;
             v.metallic = sample.metallic;
             v.roughness = sample.roughness;
             v.occlusion = sample.occlusion;

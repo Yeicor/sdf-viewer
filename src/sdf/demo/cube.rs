@@ -218,7 +218,7 @@ fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) ->
             let uv = Vector2::new(p.x, p.y);
             compute_tex2d(uv)
         };
-    SDFSample { distance, color: color.into(), metallic, roughness, occlusion }
+    SDFSample { distance, color, metallic, roughness, occlusion }
 }
 
 
