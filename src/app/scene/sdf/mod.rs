@@ -196,7 +196,7 @@ impl SDFViewer {
                     tex0_data_ref[flat_index][0] = (1e-1 + sample.distance).clamp(0.0, 1.0);
                     if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
                         // Avoid invisible objects if left as default with dark environment
-                        sample.color = Vector3::new(0.5, 0.5, 0.5).into();
+                        sample.color = Vector3::new(0.5, 0.5, 0.5);
                     }
                     let color_raw = Srgba::from(sample.color).to_linear_srgb();
                     tex0_data_ref[flat_index][1] = color_raw.x;

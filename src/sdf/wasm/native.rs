@@ -213,7 +213,7 @@ impl SDFSurface for WasmerSDF {
                 f32::from_le_bytes(mem_bytes[size_of::<f32>()..2 * size_of::<f32>()].try_into().unwrap()),
                 f32::from_le_bytes(mem_bytes[2 * size_of::<f32>()..3 * size_of::<f32>()].try_into().unwrap()),
                 f32::from_le_bytes(mem_bytes[3 * size_of::<f32>()..4 * size_of::<f32>()].try_into().unwrap()),
-            ).into(),
+            ),
             metallic: f32::from_le_bytes(mem_bytes[4 * size_of::<f32>()..5 * size_of::<f32>()].try_into().unwrap()),
             roughness: f32::from_le_bytes(mem_bytes[5 * size_of::<f32>()..6 * size_of::<f32>()].try_into().unwrap()),
             occlusion: f32::from_le_bytes(mem_bytes[6 * size_of::<f32>()..7 * size_of::<f32>()].try_into().unwrap()),
