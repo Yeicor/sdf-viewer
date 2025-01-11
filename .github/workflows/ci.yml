@@ -46,9 +46,7 @@ jobs:
           kill %2 || true
 
           # Check for errors
-          errors=$(grep -i "error" app.log | # Skip known "errors" 
-          grep -v "MESA: error: ZINK: vkCreateInstance failed (VK_ERROR_INCOMPATIBLE_DRIVER)" |
-          grep -v "error setting XSETTINGS")
+          errors=$(grep -i "error" app.log | grep -v "MESA: error: ZINK: vkCreateInstance failed (VK_ERROR_INCOMPATIBLE_DRIVER)" | grep -v "error setting XSETTINGS")
           if [ ! -z "$errors" ]; then
             echo "> Error(s) found in app.log: $errors"
             exit 1
