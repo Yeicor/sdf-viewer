@@ -11,8 +11,8 @@ use cgmath::{Vector3, Zero};
 use wasmer::AsStoreRef;
 use wasmer::{AsStoreMut, FunctionEnv};
 use wasmer::{Function, Imports, Instance, Memory, Module, Store, Value};
-use wasmer_wasix::{generate_import_object_from_env, get_wasi_version, WasiEnv};
-
+use wasmer_wasix::{generate_import_object_from_env, get_wasi_version, PluggableRuntime, WasiEnv};
+use wasmer_wasix::runtime::task_manager::tokio::TokioTaskManager;
 use crate::sdf::defaults::{children_default_impl, name_default_impl, parameters_default_impl, set_parameter_default_impl};
 use crate::sdf::wasm::util::reinterpret_i32_as_u32;
 use crate::sdf::wasm::util::reinterpret_u32_as_i32;
@@ -42,7 +42,8 @@ pub async fn load_sdf_wasm_send_sync(wasm_bytes: &[u8]) -> anyhow::Result<Box<dy
 
     // The module shouldn't import anything, except maybe wasix (WASI) functions.
     let import_object = if let Some(wasi_version) = get_wasi_version(&module, false) {
-        let wasi_env = WasiEnv::builder("program_name").build()?; // Customize env?
+        let runtime = Arc::new(PluggableRuntime::new(Arc::new(TokioTaskManager::default())));
+        let wasi_env = WasiEnv::builder("program_name").runtime(runtime).build()?; // Customize env?
         let function_env = FunctionEnv::new(&mut store, wasi_env);
         generate_import_object_from_env(&mut store, &function_env, wasi_version)
     } else {

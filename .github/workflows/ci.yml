@@ -28,14 +28,14 @@ jobs:
 
       - name: Test
         run: |
-          cargo test --features "app server sdfdemo meshers" --lib # Test different feature combinations?
+          cargo test --lib # Test different feature combinations?
 
       - name: Integration test with sdf-viewer-go
         run: |
           # Start the app for the latest wasm generated
           # If the app did not log any errors and is running after N seconds, then the test is successful
-          cargo build --features "app server sdfdemo meshers"  # Ensure app is built before running to avoid hitting the time limit
-          xvfb-run cargo run --features "app server sdfdemo meshers" -- app url https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm >app.log &
+          cargo build  # Ensure app is built before running to avoid hitting the time limit
+          xvfb-run cargo run -- app url https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm >app.log &
           
           # Print the app log while the app is running
           timeout 30s tail -f app.log || echo "Stopping and checking app.log for errors..."

@@ -33,22 +33,11 @@ pub fn load_sdf_from_path_or_url(sender_of_updates: Sender<Receiver<Box<dyn SDFS
 }
 
 /// Native: creates a new thread with a new async runtime that blocks on the given task.
-/// Web: spawns the asynchronous task.
-///
-/// The new_runtime parameter is required in native to specify if the current thread has a runtime or not.
-/// Both cases will continue the execution even if the task is not completed.
-#[cfg(target_arch = "wasm32")]
-pub fn spawn_async(fut: impl Future<Output=()> + 'static, _new_runtime: bool) {
-    wasm_bindgen_futures::spawn_local(fut);
-}
-
-/// Native: creates a new thread with a new async runtime that blocks on the given task.
 /// Web: spawns the asynchronous task. Note that it SHOULD NOT BLOCK as it actually runs concurrently
 /// in the main thread.
 ///
 /// The new_runtime parameter is required in native to specify if the current thread has a runtime or not.
 /// Both cases will continue the execution even if the task is not completed.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn spawn_async(fut: impl Future<Output=()> + Send + 'static, new_runtime: bool) {
     if !new_runtime {
         // After creating a new thread on native, it needs a new tokio runtime to block on a future!
