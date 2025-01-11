@@ -42,7 +42,7 @@ jobs:
                     
           # Kill the app that was running in the background after a while
           sleep 30s
-          kill %2 || true
+          kill %1
 
           # Check for errors
           errors=$(grep -i "error" app.log | grep -v "MESA: error: ZINK: vkCreateInstance failed (VK_ERROR_INCOMPATIBLE_DRIVER)" | grep -v "error setting XSETTINGS")
