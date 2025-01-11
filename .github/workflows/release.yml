@@ -1,179 +1,179 @@
-# Release workflow builds the release executables for all platforms and publishes them to GitHub
-# Runs on all pushes/pull requests, but only publishes the executables on v*.*.* tags
-name: Release builds
-
-on:
-  push:
-  pull_request:
-
-env:
-  CARGO_TERM_COLOR: always
-
-permissions:
-  contents: write # Required to upload artifacts to releases (and pushing the version update)
-
-jobs:
-  update-cargo-version:
-    name: Update the version in Cargo.toml
-    runs-on: ubuntu-latest
-    steps:
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: 'master' # HACK: Should be the tag, but we are making a push to master
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        name: Update cargo
-        run: |
-          rustup update
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        uses: Swatinem/rust-cache@v2.7.7
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        name: Auto-update Cargo.toml and move the release tag
-        id: auto-update
-        run: |
-          export VERSION="${GITHUB_REF##*/}"
-          sed -E -i "s/^version = \"[^\"]*\"/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
-          cargo tree  # Check that we did not break the Cargo.toml (also updates Cargo.lock)
-          git config --global user.email "yeicor@users.noreply.github.com"
-          git config --global user.name "Yeicor"
-          if git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
-            git push
-            # Move the tag to the new commit
-            git tag -f -a "$VERSION" -m "$VERSION"
-            git push -f --tags # Force push the tag to GitHub
-            # The tag move will NOT trigger a new workflow
-          else
-            echo "No change to the Cargo.toml version (did you repeat a release tag??)"
-            exit 1
-          fi
-  deploy-linux:
-    name: Release
-    runs-on: '${{ matrix.os }}'
-    needs:
-      - update-cargo-version
-    strategy:
-      fail-fast: false
-      matrix:
-        include: # TODO: Release different feature combinations (app-only, server-only and both)
-          # Linux x86_64
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            ext: ""
-            pre: sudo apt update && sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev libatk1.0-dev libgtk-3-dev
-          # TODO: Mac OS x86_64
-          # - os: macos-latest
-          #   target: x86_64-apple-darwin
-          #   pre: brew install libx11 libxi
-          #   post: TODO: (pack a .dmg?)
-          # Windows x86_64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            ext: exe
-          # Web (WebAssembly)
-          - os: ubuntu-latest
-            target: wasm32-unknown-unknown
-            ext: tar.gz  # After post-processing
-            build: .github/scripts/web/build.sh --release
-            post: .github/scripts/web/build-demo.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm --release
-          - os: ubuntu-latest
-            target: android  # Multiple architectures are supported
-            pre: |
-              sudo apt update
-              sudo apt install google-android-cmdline-tools-13.0-installer openjdk-8-jre-headless
-              # sudo sdkmanager --list
-              sudo sdkmanager --install "platforms;android-35" "ndk;27.2.12479018" "build-tools;35.0.0"
-              export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk/27.*
-              rustup target add aarch64-linux-android  # armv7-linux-androideabi i686-linux-android x86_64-linux-android
-              cargo install --git https://github.com/parasyte/cargo-apk.git --rev 282639508eeed7d73f2e1eaeea042da2716436d5 cargo-apk
-            build: cargo apk build --lib --no-default-features --features default-android  # --release requires keystore
-            ext: apk
-          # TODO: iOS
-          # - os: macos-latest
-          #   target: ???
-          #   pre: ???
-          #   build: ???
-          #   post: ???
-    steps:
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: 'master' # HACK: See first checkout
-      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        name: Checkout
-        uses: actions/checkout@v4
-      - name: Update cargo
-        run: |
-          rustup update
-      - uses: Swatinem/rust-cache@v2.7.7
-        with:
-          key: ${{ matrix.os }}-${{ matrix.target }}
-      - uses: nttld/setup-ndk@v1
-        if: ${{ matrix.target == 'android' }}
-        with:
-          ndk-version: r21e
-
-      - name: Preparing for build
-        if: ${{ matrix.pre != '' }}
-        run: ${{ matrix.pre }}
-
-      - name: Release build
-        if: ${{ matrix.build == '' }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
-      - name: Release build
-        if: ${{ matrix.build != '' }}
-        run: ${{ matrix.build }}
-        env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          PKG_CONFIG_SYSROOT_DIR: ${{ steps.setup-ndk.outputs.ndk-path }}/sysroot
-
-      - name: Postprocessing after build
-        if: ${{ matrix.post != '' }}
-        run: ${{ matrix.post }}
-      - name: Prepare release
-        id: prepare-release
-        shell: bash
-        run: |
-          set -ex
-          build_name="${{ matrix.build_name }}"
-          exe_name="${GITHUB_REPOSITORY#*/}-${GITHUB_REF##*/}-${{ matrix.target }}-${GITHUB_SHA:0:7}"
-          if [[ -z "$build_name" ]]; then  # Default build name: <repo-name>.<extension>
-            if [[ -z "${{ matrix.ext }}" ]]; then
-              build_name="${GITHUB_REPOSITORY#*/}"
-            else
-              build_name="${GITHUB_REPOSITORY#*/}.${{ matrix.ext }}"
-              exe_name="$exe_name.${{ matrix.ext }}"
-            fi
-          fi
-          # Make sure we own all files (for Docker)
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then sudo chown -R $(id -u):$(id -g) target; fi
-          # Find and copy the release binary
-          find target -type f -name "$build_name" -printf '%p' -exec mv {} "${exe_name}" \;
-          echo "EXE_NAME=${exe_name}" >> $GITHUB_OUTPUT
-          du -h "${exe_name}"
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
-        name: Publish the release build
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ steps.prepare-release.outputs.EXE_NAME }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        name: Publish the release as an artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.prepare-release.outputs.EXE_NAME }}
-          path: ${{ steps.prepare-release.outputs.EXE_NAME }}
-
-      - name: Prepare static site (only for web builds)
-        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
-        run: mkdir public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory public
-      - if: ${{ startsWith(github.ref, 'refs/tags/v') && matrix.target == 'wasm32-unknown-unknown' }}
-        name: Deploy static site (only for web builds)
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: gh-pages
-          folder: public
+## Release workflow builds the release executables for all platforms and publishes them to GitHub
+## Runs on all pushes/pull requests, but only publishes the executables on v*.*.* tags
+#name: Release builds
+#
+#on:
+#  push:
+#  pull_request:
+#
+#env:
+#  CARGO_TERM_COLOR: always
+#
+#permissions:
+#  contents: write # Required to upload artifacts to releases (and pushing the version update)
+#
+#jobs:
+#  update-cargo-version:
+#    name: Update the version in Cargo.toml
+#    runs-on: ubuntu-latest
+#    steps:
+#      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+#        name: Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          ref: 'master' # HACK: Should be the tag, but we are making a push to master
+#      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+#        name: Update cargo
+#        run: |
+#          rustup update
+#      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+#        uses: Swatinem/rust-cache@v2.7.7
+#      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+#        name: Auto-update Cargo.toml and move the release tag
+#        id: auto-update
+#        run: |
+#          export VERSION="${GITHUB_REF##*/}"
+#          sed -E -i "s/^version = \"[^\"]*\"/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
+#          cargo tree  # Check that we did not break the Cargo.toml (also updates Cargo.lock)
+#          git config --global user.email "yeicor@users.noreply.github.com"
+#          git config --global user.name "Yeicor"
+#          if git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
+#            git push
+#            # Move the tag to the new commit
+#            git tag -f -a "$VERSION" -m "$VERSION"
+#            git push -f --tags # Force push the tag to GitHub
+#            # The tag move will NOT trigger a new workflow
+#          else
+#            echo "No change to the Cargo.toml version (did you repeat a release tag??)"
+#            exit 1
+#          fi
+#  deploy-linux:
+#    name: Release
+#    runs-on: '${{ matrix.os }}'
+#    needs:
+#      - update-cargo-version
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include: # TODO: Release different feature combinations (app-only, server-only and both)
+#          # Linux x86_64
+#          - os: ubuntu-latest
+#            target: x86_64-unknown-linux-gnu
+#            ext: ""
+#            pre: sudo apt update && sudo apt install pkg-config libx11-dev libxi-dev libgl1-mesa-dev libasound2-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libspeechd-dev libxkbcommon-dev libssl-dev libatk1.0-dev libgtk-3-dev
+#          # TODO: Mac OS x86_64
+#          # - os: macos-latest
+#          #   target: x86_64-apple-darwin
+#          #   pre: brew install libx11 libxi
+#          #   post: TODO: (pack a .dmg?)
+#          # Windows x86_64
+#          - os: windows-latest
+#            target: x86_64-pc-windows-msvc
+#            ext: exe
+#          # Web (WebAssembly)
+#          - os: ubuntu-latest
+#            target: wasm32-unknown-unknown
+#            ext: tar.gz  # After post-processing
+#            build: .github/scripts/web/build.sh --release
+#            post: .github/scripts/web/build-demo.sh ./target/pkg/${GITHUB_REPOSITORY#*/}.wasm --release
+#          - os: ubuntu-latest
+#            target: android  # Multiple architectures are supported
+#            pre: |
+#              sudo apt update
+#              sudo apt install google-android-cmdline-tools-13.0-installer openjdk-8-jre-headless
+#              # sudo sdkmanager --list
+#              sudo sdkmanager --install "platforms;android-35" "ndk;27.2.12479018" "build-tools;35.0.0"
+#              export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk/27.*
+#              rustup target add aarch64-linux-android  # armv7-linux-androideabi i686-linux-android x86_64-linux-android
+#              cargo install --git https://github.com/parasyte/cargo-apk.git --rev 282639508eeed7d73f2e1eaeea042da2716436d5 cargo-apk
+#            build: cargo apk build --lib --no-default-features --features default-android  # --release requires keystore
+#            ext: apk
+#          # TODO: iOS
+#          # - os: macos-latest
+#          #   target: ???
+#          #   pre: ???
+#          #   build: ???
+#          #   post: ???
+#    steps:
+#      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+#        name: Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          ref: 'master' # HACK: See first checkout
+#      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+#        name: Checkout
+#        uses: actions/checkout@v4
+#      - name: Update cargo
+#        run: |
+#          rustup update
+#      - uses: Swatinem/rust-cache@v2.7.7
+#        with:
+#          key: ${{ matrix.os }}-${{ matrix.target }}
+#      - uses: nttld/setup-ndk@v1
+#        if: ${{ matrix.target == 'android' }}
+#        with:
+#          ndk-version: r21e
+#
+#      - name: Preparing for build
+#        if: ${{ matrix.pre != '' }}
+#        run: ${{ matrix.pre }}
+#
+#      - name: Release build
+#        if: ${{ matrix.build == '' }}
+#        uses: actions-rs/cargo@v1
+#        with:
+#          command: build
+#          args: --release --target ${{ matrix.target }}
+#      - name: Release build
+#        if: ${{ matrix.build != '' }}
+#        run: ${{ matrix.build }}
+#        env:
+#          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+#          PKG_CONFIG_SYSROOT_DIR: ${{ steps.setup-ndk.outputs.ndk-path }}/sysroot
+#
+#      - name: Postprocessing after build
+#        if: ${{ matrix.post != '' }}
+#        run: ${{ matrix.post }}
+#      - name: Prepare release
+#        id: prepare-release
+#        shell: bash
+#        run: |
+#          set -ex
+#          build_name="${{ matrix.build_name }}"
+#          exe_name="${GITHUB_REPOSITORY#*/}-${GITHUB_REF##*/}-${{ matrix.target }}-${GITHUB_SHA:0:7}"
+#          if [[ -z "$build_name" ]]; then  # Default build name: <repo-name>.<extension>
+#            if [[ -z "${{ matrix.ext }}" ]]; then
+#              build_name="${GITHUB_REPOSITORY#*/}"
+#            else
+#              build_name="${GITHUB_REPOSITORY#*/}.${{ matrix.ext }}"
+#              exe_name="$exe_name.${{ matrix.ext }}"
+#            fi
+#          fi
+#          # Make sure we own all files (for Docker)
+#          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then sudo chown -R $(id -u):$(id -g) target; fi
+#          # Find and copy the release binary
+#          find target -type f -name "$build_name" -printf '%p' -exec mv {} "${exe_name}" \;
+#          echo "EXE_NAME=${exe_name}" >> $GITHUB_OUTPUT
+#          du -h "${exe_name}"
+#      - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+#        name: Publish the release build
+#        uses: softprops/action-gh-release@v2
+#        with:
+#          files: ${{ steps.prepare-release.outputs.EXE_NAME }}
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+#        name: Publish the release as an artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ steps.prepare-release.outputs.EXE_NAME }}
+#          path: ${{ steps.prepare-release.outputs.EXE_NAME }}
+#
+#      - name: Prepare static site (only for web builds)
+#        if: ${{ matrix.target == 'wasm32-unknown-unknown' }}
+#        run: mkdir public && tar -xvzf "${{ steps.prepare-release.outputs.EXE_NAME }}" --directory public
+#      - if: ${{ startsWith(github.ref, 'refs/tags/v') && matrix.target == 'wasm32-unknown-unknown' }}
+#        name: Deploy static site (only for web builds)
+#        uses: JamesIves/github-pages-deploy-action@v4
+#        with:
+#          branch: gh-pages
+#          folder: public
