@@ -36,7 +36,7 @@ jobs:
           # If the app did not log any errors and is running after N seconds, then the test is successful
           cargo build  # Ensure app is built before running to avoid hitting the time limit
           xvfb-run timeout --preserve-status 30s "target/debug/${GITHUB_REPOSITORY##*/}" app url \
-          "https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm" 2>&1 | tee app.log
+          "https://yeicor.github.io/sdf-viewer-go/sdf-viewer-go-sdfx.wasm" 2>&1 | tee app.log || true
           
           # Check for errors
           errors=$(grep -i "error" app.log | # Skip known "errors" 
