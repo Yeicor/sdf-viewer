@@ -5,7 +5,7 @@ use std::rc::Rc;
 use cgmath::ElementWise;
 use cgmath::num_traits::Pow;
 use eframe::glow::HasContext;
-use three_d::{context, CpuMesh, CpuTexture3D, Gm, Mesh, Texture3D, Vector3};
+use three_d::{context, CpuMesh, CpuTexture3D, Gm, Mesh, Srgba, Texture3D, Vector3};
 use three_d::{Interpolation, Positions, TextureData, Wrapping};
 
 use material::SDFViewerMaterial;
@@ -194,11 +194,11 @@ impl SDFViewer {
                     // Apply a function to store the distance (-inf, inf) in the texture [0, 1].
                     // KEEP IN SYNC WITH GPU CODE!
                     tex0_data_ref[flat_index][0] = (1e-1 + sample.distance).clamp(0.0, 1.0);
-                    if sample.color.r == 0 && sample.color.g == 0 && sample.color.b == 0 {
+                    if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
                         // Avoid invisible objects if left as default with dark environment
                         sample.color = Vector3::new(0.5, 0.5, 0.5).into();
                     }
-                    let color_raw = sample.color.to_linear_srgb();
+                    let color_raw = Srgba::from(sample.color).to_linear_srgb();
                     tex0_data_ref[flat_index][1] = color_raw.x;
                     tex0_data_ref[flat_index][2] = color_raw.y;
                     tex0_data_ref[flat_index][3] = color_raw.z;
