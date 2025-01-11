@@ -43,33 +43,33 @@ impl CameraController {
                 if should_rotate {
                     self.is_rotating = Some(true);
                     // Rotate the camera in an orbit around the target
-                    let target = *self.camera.target();
+                    let target = self.camera.target();
                     let zoom_dist = self.camera.position().distance(target);
                     let delta = dragged_delta * self.sensitivity * 0.05 * zoom_dist;
-                    self.camera.rotate_around(&target, delta.x, delta.y);
+                    self.camera.rotate_around(target, delta.x, delta.y);
                 } else {
                     self.is_rotating = Some(false);
                     // Move the camera target
-                    let target = *self.camera.target();
+                    let target = self.camera.target();
                     let zoom_dist = self.camera.position().distance(target);
                     let delta = dragged_delta * self.sensitivity * 0.01 * zoom_dist;
                     let right_direction = self.camera.right_direction();
                     let up_direction = right_direction.cross(self.camera.view_direction());
                     let delta_camera_space = right_direction * -delta.x + up_direction * delta.y;
-                    self.camera.translate(&delta_camera_space);
+                    self.camera.translate(delta_camera_space);
                 }
             } else {
                 self.is_rotating = None;
             }
             if scroll_y != 0. {
                 // Zoom the camera
-                let target = *self.camera.target();
+                let target = self.camera.target();
                 let pos = self.camera.position();
                 let distance = pos.distance(target);
                 let delta = scroll_y * self.sensitivity * 0.005 * distance;
                 let new_distance = (distance - delta).clamp(0.01, 1000.0);
                 let new_position = target - self.camera.view_direction() * new_distance;
-                let up = *self.camera.up();
+                let up = self.camera.up();
                 self.camera.set_view(new_position, target, up);
             }
         }

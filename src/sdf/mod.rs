@@ -2,6 +2,7 @@ use std::ops::RangeInclusive;
 
 use auto_impl::auto_impl;
 use cgmath::Vector3;
+use three_d::Srgba;
 
 #[cfg(feature = "sdfdemo")]
 pub mod demo;
@@ -108,7 +109,7 @@ pub struct SDFSample {
 
     // ============ OPTIONAL: MATERIAL PROPERTIES ============
     /// The RGB color of the sample.
-    pub color: Vector3<f32>,
+    pub color: Srgba,
     /// The metallicness of the sample.
     pub metallic: f32,
     /// The roughness of the sample.
@@ -120,8 +121,8 @@ pub struct SDFSample {
 impl SDFSample {
     /// Creates a new SDF sample using only distance and color. Use the struct initialization if you
     /// want to use other properties.
-    pub fn new(distance: f32, color: Vector3<f32>) -> Self {
-        Self { distance, color, metallic: 0.0, roughness: 0.0, occlusion: 0.0 }
+    pub fn new(distance: f32, color: impl Into<Srgba>) -> Self {
+        Self { distance, color: color.into(), metallic: 0.0, roughness: 0.0, occlusion: 0.0 }
     }
 }
 

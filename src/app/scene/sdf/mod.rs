@@ -109,7 +109,7 @@ impl SDFViewer {
             depth: size.z as u32,
             min_filter: Interpolation::Nearest, // Nearest for "broken" blocky mode
             mag_filter: Interpolation::Nearest,
-            mip_map_filter: None,
+            mipmap: None,
             wrap_s: Wrapping::MirroredRepeat, // <- MirroredRepeat should be safe, even out of bounds
             wrap_t: Wrapping::MirroredRepeat,
             wrap_r: Wrapping::MirroredRepeat,
@@ -194,19 +194,14 @@ impl SDFViewer {
                     // Apply a function to store the distance (-inf, inf) in the texture [0, 1].
                     // KEEP IN SYNC WITH GPU CODE!
                     tex0_data_ref[flat_index][0] = (1e-1 + sample.distance).clamp(0.0, 1.0);
-                    if sample.color.x == 0. && sample.color.y == 0. && sample.color.z == 0. {
+                    if sample.color.r == 0 && sample.color.g == 0 && sample.color.b == 0 {
                         // Avoid invisible objects if left as default with dark environment
-                        sample.color = Vector3::new(0.5, 0.5, 0.5);
+                        sample.color = Vector3::new(0.5, 0.5, 0.5).into();
                     }
-                    tex0_data_ref[flat_index][1] = sample.color.x;
-                    tex0_data_ref[flat_index][2] = sample.color.y;
-                    tex0_data_ref[flat_index][3] = sample.color.z;
-                    #[cfg(target_arch = "wasm32")]
-                    { // Gamma correction for the same colors on web and desktop
-                        tex0_data_ref[flat_index][1] = tex0_data_ref[flat_index][1].powf(2.2);
-                        tex0_data_ref[flat_index][2] = tex0_data_ref[flat_index][2].powf(2.2);
-                        tex0_data_ref[flat_index][3] = tex0_data_ref[flat_index][3].powf(2.2);
-                    }
+                    let color_raw = sample.color.to_linear_srgb();
+                    tex0_data_ref[flat_index][1] = color_raw.x;
+                    tex0_data_ref[flat_index][2] = color_raw.y;
+                    tex0_data_ref[flat_index][3] = color_raw.z;
                     tex1_data_ref[flat_index][0] = sample.metallic;
                     tex1_data_ref[flat_index][1] = sample.roughness;
                     // NOTE: Default occlusion is 1, to use the ambient light by default

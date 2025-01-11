@@ -63,7 +63,7 @@ impl SDFSurface for SDFDemo {
                 // - On the connection between the two original surfaces, force an specific material
                 // let force = 1.0;// - inter_surface_dist.abs() / self.max_distance_custom_material;
                 // println!("Force: {}", force);
-                sample.color = Vector3::new(0.5, 0.6, 0.7);// * force + sample.color * (1.0 - force);
+                sample.color = Vector3::new(0.5, 0.6, 0.7).into();// * force + sample.color * (1.0 - force);
                 sample.metallic = 0.5;// + sample.metallic * (1.0 - force);
                 sample.roughness = 0.0;// + sample.roughness * (1.0 - force);
                 sample.occlusion = 0.0;// + sample.occlusion * (1.0 - force);

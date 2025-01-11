@@ -24,11 +24,11 @@ pub use web::*;
 #[cfg(target_os = "android")]
 #[cfg(any(feature = "app", feature = "server"))]
 #[no_mangle]
-fn android_main(app: android_activity::AndroidApp) {
+fn android_main(app: winit::platform::android::activity::AndroidApp) {
     android_logger::init_once(android_logger::Config::default());
     log::info!("Starting android_main");
     println!("Starting android_main");
-
+    
     use winit::platform::android::EventLoopBuilderExtAndroid;
     let _ign = run::native_main(true, Some(Box::new(|b| {
         b.with_android_app(app);

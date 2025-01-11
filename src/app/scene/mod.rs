@@ -62,28 +62,30 @@ impl SDFViewerAppScene {
     ) -> R {
         SCENE.with(|scene| {
             let mut scene = scene.borrow_mut();
-            let scene =
-                scene.get_or_insert_with(|| {
-                    // Retrieve Three-D context from the egui context (thanks to the shared glow dependency).
-                    let three_d_ctx = Context::from_gl_context(gl).unwrap();
-                    // Create the Three-D scene (only the first time).
-                    SDFViewerAppScene::new(three_d_ctx, sdf)
-                });
+            let scene = scene.get_or_insert_with(|| {
+                // Retrieve Three-D context from the egui context (thanks to the shared glow dependency).
+                let three_d_ctx = Context::from_gl_context(gl).unwrap();
+                // Create the Three-D scene (only the first time).
+                SDFViewerAppScene::new(three_d_ctx, sdf)
+            });
             f(scene)
         })
     }
 
     /// Runs the given function with a mutable reference to the scene, ONLY if it was previously initialized.
-    pub fn read_context_thread_local<R>(
-        f: impl FnOnce(&mut Self) -> R,
-    ) -> Option<R> {
+    pub fn read_context_thread_local<R>(f: impl FnOnce(&mut Self) -> R) -> Option<R> {
         SCENE.with(|scene| scene.borrow_mut().as_mut().map(f))
     }
 
     pub fn new(ctx: Context, sdf: Rc<Box<dyn SDFSurface>>) -> Self {
         // Create the camera
         let camera = Camera::new_perspective(
-            Viewport { x: 0, y: 0, width: 0, height: 0 }, // Updated at runtime
+            Viewport {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+            }, // Updated at runtime
             vec3(2.5, 3.0, 5.0),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
@@ -101,7 +103,13 @@ impl SDFViewerAppScene {
         // sdf_viewer.volume.borrow_mut().material.color = Color::new_opaque(25, 225, 25);
         // objects.push(Box::new(Rc::clone(&sdf_viewer.volume)));
 
-        lights.push(Box::new(AmbientLight::new(&ctx, 0.1, Srgba::WHITE)));
+        let ambient = AmbientLight::new(&ctx, 1.0, Srgba::WHITE);
+        // FIXME: Buggy normals break directional lights?
+        // let directional0 = DirectionalLight::new(&ctx, 0.7, Srgba::WHITE, vec3(-1.0, -1.0, -1.0));
+        // let directional1 = DirectionalLight::new(&ctx, 2.0, Srgba::WHITE, vec3(1.0, 1.0, 1.0));
+        lights.push(Box::new(ambient));
+        // lights.push(Box::new(directional0));
+        // lights.push(Box::new(directional1));
 
         // TODO: Custom user-defined objects (gltf) with transforms
         // TODO: Default grid object for scale
@@ -115,10 +123,6 @@ impl SDFViewerAppScene {
         // tmp_material.render_states.blend = Blend::TRANSPARENCY;
         // let tmp_object = Gm::new(tmp_mesh, tmp_material);
         // objects.push(Box::new(tmp_object));
-
-        // Create more lights
-        lights.push(Box::new(DirectionalLight::new(
-            &ctx, 0.9, Srgba::WHITE, &vec3(-1.0, -1.0, -1.0))));
 
         Self {
             ctx,
@@ -136,7 +140,7 @@ impl SDFViewerAppScene {
         &mut self,
         sdf: Rc<Box<dyn SDFSurface>>,
         max_voxels_side: Option<usize>, // None means keep the current value
-        loading_passes: Option<usize>, // None means keep the current value
+        loading_passes: Option<usize>,  // None means keep the current value
     ) {
         let bb = sdf.bounding_box();
         self.sdf = sdf;
@@ -147,15 +151,15 @@ impl SDFViewerAppScene {
             ) as usize
         });
         let loading_passes_val = loading_passes.unwrap_or(self.sdf_viewer.loading_mgr.passes);
-        self.sdf_viewer = SDFViewer::from_bb(
-            &self.ctx,
-            &bb,
-            max_voxels_side_val,
-            loading_passes_val,
-        );
+        self.sdf_viewer =
+            SDFViewer::from_bb(&self.ctx, &bb, max_voxels_side_val, loading_passes_val);
     }
 
-    pub fn render(&mut self, frame_input: FrameInput<'_>, egui_resp: &Response) -> Option<glow::Framebuffer> {
+    pub fn render(
+        &mut self,
+        frame_input: FrameInput<'_>,
+        egui_resp: &Response,
+    ) -> Option<glow::Framebuffer> {
         // Update camera viewport and scissor box
         self.camera.update(&frame_input, egui_resp);
 
@@ -164,16 +168,27 @@ impl SDFViewerAppScene {
         let cpu_updates = self.sdf_viewer.update(&self.sdf, Duration::from_millis(30));
         if cpu_updates > 0 {
             // Update the GPU texture sparingly (to mitigate stuttering on high-detail rendering loads)
-            if self.sdf_viewer_last_commit.map(|i| i.elapsed().as_millis() > 500).unwrap_or(true) {
+            if self
+                .sdf_viewer_last_commit
+                .map(|i| i.elapsed().as_millis() > 500)
+                .unwrap_or(true)
+            {
                 let load_start_gpu = Instant::now();
                 self.sdf_viewer.commit();
                 let now = Instant::now();
                 self.sdf_viewer_last_commit = Some(now);
-                info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + {:?} (GPU)",
-                    cpu_updates, load_start_gpu - load_start_cpu, now - load_start_gpu);
+                info!(
+                    "Loaded SDF chunk ({} updates) in {:?} (CPU) + {:?} (GPU)",
+                    cpu_updates,
+                    load_start_gpu - load_start_cpu,
+                    now - load_start_gpu
+                );
             } else {
-                info!("Loaded SDF chunk ({} updates) in {:?} (CPU) + skipped (GPU)",
-                    cpu_updates, Instant::now() - load_start_cpu);
+                info!(
+                    "Loaded SDF chunk ({} updates) in {:?} (CPU) + skipped (GPU)",
+                    cpu_updates,
+                    Instant::now() - load_start_cpu
+                );
             }
             egui_resp.ctx.request_repaint(); // Make sure we keep loading the SDF by repainting
         } else if self.sdf_viewer_last_commit.is_some() {
@@ -195,8 +210,15 @@ impl SDFViewerAppScene {
         let objects_slice = objects_vec.as_slice();
         let lights_vec = self.lights.iter().map(|e| &**e).collect::<Vec<_>>();
         let lights_slice = lights_vec.as_slice();
-        self.sdf_viewer.volume.render(&self.camera.camera, lights_slice); // FIXME: Merge this render with the next call
-        target.render_partially(frame_input.scissor_box, &self.camera.camera, objects_slice, lights_slice);
+        self.sdf_viewer
+            .volume
+            .render(&self.camera.camera, lights_slice); // FIXME: Merge this render with the next call
+        target.render_partially(
+            frame_input.scissor_box,
+            &self.camera.camera,
+            objects_slice,
+            lights_slice,
+        );
 
         // Take back the screen fbo, we may continue to use it.
         target.into_framebuffer()
@@ -209,9 +231,16 @@ impl SDFViewerAppScene {
             let done_iterations = self.sdf_viewer.loading_mgr.total_iterations();
             let total_iterations = done_iterations + remaining;
             let progress = done_iterations as f32 / ((total_iterations) as f32);
-            Some((progress, format!("Loading SDF {:.2}% ({} levels of detail left, evaluations: {} / {})",
-                                    progress * 100.0, self.sdf_viewer.loading_mgr.passes_left(),
-                                    done_iterations, total_iterations)))
+            Some((
+                progress,
+                format!(
+                    "Loading SDF {:.2}% ({} levels of detail left, evaluations: {} / {})",
+                    progress * 100.0,
+                    self.sdf_viewer.loading_mgr.passes_left(),
+                    done_iterations,
+                    total_iterations
+                ),
+            ))
         } else {
             None
         }

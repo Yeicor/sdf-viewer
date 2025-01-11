@@ -29,16 +29,10 @@ impl WebHandle {
     #[wasm_bindgen]
     pub async fn start(
         &self,
-        canvas_id: &str,
+        canvas: web_sys::HtmlCanvasElement,
     ) -> Result<(), wasm_bindgen::JsValue> {
         if let Some(app_creator) = crate::run::setup_app().await {
-            self.runner
-                .start(
-                    canvas_id,
-                    eframe::WebOptions::default(),
-                    app_creator,
-                )
-                .await
+            self.runner.start(canvas, eframe::WebOptions::default(), app_creator).await
         } else {
             Err("Failed to start app".into())
         }
