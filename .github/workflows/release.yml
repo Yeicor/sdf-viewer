@@ -81,8 +81,8 @@ jobs:
             pre: |
               sudo apt update
               sudo apt install google-android-cmdline-tools-13.0-installer openjdk-8-jre-headless
-              sudo sdkmanager --list
-              sudo sdkmanager --install "platforms;android-35" "ndk;r27c" "build-tools;35.0.0"
+              # sudo sdkmanager --list
+              sudo sdkmanager --install "platforms;android-35" "ndk;27.2.12479018" "build-tools;35.0.0"
               export ANDROID_HOME=/opt/android-sdk ANDROID_NDK_ROOT=/opt/android-sdk/ndk/27.*
               rustup target add aarch64-linux-android  # armv7-linux-androideabi i686-linux-android x86_64-linux-android
               cargo install --git https://github.com/parasyte/cargo-apk.git --rev 282639508eeed7d73f2e1eaeea042da2716436d5 cargo-apk
