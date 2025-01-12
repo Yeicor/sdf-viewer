@@ -19,7 +19,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      repository-projects: write
     outputs:
       BRANCH_NAME: ${{ steps.auto-update.outputs.BRANCH_NAME || github.ref }}
     steps:
@@ -36,7 +35,7 @@ jobs:
         name: Auto-update Cargo.toml and move the release tag
         id: auto-update
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           set -ex
           
