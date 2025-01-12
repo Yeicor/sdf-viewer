@@ -62,6 +62,7 @@ jobs:
           git push -d origin "${VERSION}"
           git tag "${VERSION}"
           git push origin "${BRANCH_NAME}" "${VERSION}"
+          gh release edit "${VERSION}" --draft=false --verify-tag  # Make sure the release corresponds to the new tag
           
           # Open a pull request that will automatically merge after the CI passes
           gh pr create --base master --head "update-cargo-version-${VERSION:1}" --title "Update Cargo.toml to version ${VERSION:1}" --body "This PR updates the version in Cargo.toml to ${VERSION:1} and moves the release tag to the commit."
