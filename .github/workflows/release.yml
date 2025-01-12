@@ -16,12 +16,12 @@ jobs:
   update-cargo-version:
     name: Update the version in Cargo.toml
     runs-on: ubuntu-latest
+    outputs:
+      BRANCH_NAME: ${{ steps.auto-update.outputs.BRANCH_NAME || github.ref }}
     steps:
       - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: 'master' # HACK: Should be the tag, but we are making a push to master
       - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Update cargo
         run: |
@@ -32,21 +32,33 @@ jobs:
         name: Auto-update Cargo.toml and move the release tag
         id: auto-update
         run: |
+          # This needs to be done in a new branch as master is protected
           export VERSION="${GITHUB_REF##*/}"
+          git branch -D "update-cargo-version-${VERSION:1}"
+          echo "BRANCH_NAME=update-cargo-version-${VERSION:1}" >> $GITHUB_OUTPUT
+          
+          # Actually update the Cargo.toml
           sed -E -i "s/^version = \"[^\"]*\"/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
           cargo tree  # Check that we did not break the Cargo.toml (also updates Cargo.lock)
+          
+          # Commit the changes
           git config --global user.email "yeicor@users.noreply.github.com"
           git config --global user.name "Yeicor"
-          if git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
-            git push
-            # Move the tag to the new commit
-            git tag -f -a "$VERSION" -m "$VERSION"
-            git push -f --tags # Force push the tag to GitHub
-            # The tag move will NOT trigger a new workflow
-          else
+          if !git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
             echo "No change to the Cargo.toml version (did you repeat a release tag??)"
             exit 1
           fi
+          
+          # Move the tag to the commit
+          git tag -d "${VERSION}"
+          git tag "${VERSION}"
+          
+          # Push the new branch and tag
+          git push --tags origin "${VERSION}"
+          
+          # Open a pull request that will automatically merge after the CI passes
+          gh pr create --base master --head "update-cargo-version-${VERSION:1}" --title "Update Cargo.toml to version ${VERSION:1}" --body "This PR updates the version in Cargo.toml to ${VERSION:1} and moves the release tag to the commit."
+          gh pr merge --auto --squash --delete-branch
   deploy-linux:
     name: Release
     runs-on: '${{ matrix.os }}'
@@ -99,7 +111,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: 'master' # HACK: See first checkout
+          ref: ${{ needs.update-cargo-version.outputs.BRANCH_NAME }}
       - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         name: Checkout
         uses: actions/checkout@v4
