@@ -60,9 +60,10 @@ jobs:
           git tag -d "${VERSION}"
           git tag "${VERSION}"
           
-          # Push the new branch and force push the tag to overwrite the old one
+          # Push the new branch and overwrite the old tag
           git push origin "${VERSION}"
-          git push --force origin "${BRANCH_NAME}"
+          git push -d origin "${BRANCH_NAME}"
+          git push origin "${BRANCH_NAME}"
           
           # Open a pull request that will automatically merge after the CI passes
           gh pr create --base master --head "update-cargo-version-${VERSION:1}" --title "Update Cargo.toml to version ${VERSION:1}" --body "This PR updates the version in Cargo.toml to ${VERSION:1} and moves the release tag to the commit."
