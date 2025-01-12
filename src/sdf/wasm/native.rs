@@ -459,10 +459,7 @@ impl SDFSurface for WasmerSDF {
             tracing::error!("Failed to get changed of wasm SDF with ID {}: {}", self.sdf_id, err);
             Box::new([])
         });
-        let mem_pointer = match return_value_to_mem_pointer(&result) {
-            Some(mem_pointer) => mem_pointer,
-            None => return None, // Errors already logged
-        };
+        let mem_pointer = return_value_to_mem_pointer(&result)?;
         let mem_bytes = self.read_memory(mem_pointer, (1 + 6) * size_of::<f32>(), &_store.as_store_ref());
         let mut cur_offset = 0;
         let enum_result_kind = u32::from_le_bytes(mem_bytes[cur_offset..cur_offset + size_of::<u32>()].try_into().unwrap());
