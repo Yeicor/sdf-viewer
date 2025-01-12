@@ -40,8 +40,9 @@ jobs:
         run: |
           # This needs to be done in a new branch as master is protected
           export VERSION="${GITHUB_REF##*/}"
-          git checkout -b "update-cargo-version-${VERSION:1}"
-          echo "BRANCH_NAME=update-cargo-version-${VERSION:1}" >> $GITHUB_OUTPUT
+          export BRANCH_NAME="update-cargo-version-${VERSION:1}"
+          git checkout -b "${BRANCH_NAME}"
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
           
           # Actually update the Cargo.toml
           sed -E -i "s/^version = \"[^\"]*\"/version = \"${VERSION:1}\"/g" Cargo.toml  # e.g. v0.0.1 -> version = "0.0.1"
@@ -59,8 +60,9 @@ jobs:
           git tag -d "${VERSION}"
           git tag "${VERSION}"
           
-          # Push the new branch and tag
-          git push --tags origin "${VERSION}"
+          # Push the new branch and force push the tag to overwrite the old one
+          git push origin "${VERSION}"
+          git push --force origin "${BRANCH_NAME}"
           
           # Open a pull request that will automatically merge after the CI passes
           gh pr create --base master --head "update-cargo-version-${VERSION:1}" --title "Update Cargo.toml to version ${VERSION:1}" --body "This PR updates the version in Cargo.toml to ${VERSION:1} and moves the release tag to the commit."
