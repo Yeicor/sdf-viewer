@@ -38,6 +38,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -ex
+          
           # This needs to be done in a new branch as master is protected
           export VERSION="${GITHUB_REF##*/}"
           export BRANCH_NAME="update-cargo-version-${VERSION:1}"
