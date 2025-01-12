@@ -120,8 +120,8 @@ pub struct SDFSample {
 impl SDFSample {
     /// Creates a new SDF sample using only distance and color. Use the struct initialization if you
     /// want to use other properties.
-    pub fn new(distance: f32, color: Vector3<f32>) -> Self {
-        Self { distance, color, metallic: 0.0, roughness: 0.0, occlusion: 0.0 }
+    pub fn new(distance: f32, color: impl Into<Vector3<f32>>) -> Self {
+        Self { distance, color: color.into(), metallic: 0.0, roughness: 0.0, occlusion: 0.0 }
     }
 }
 

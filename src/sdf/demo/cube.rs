@@ -179,10 +179,10 @@ impl SDFSurface for SDFDemoCube {
 
 /// Creates a new SDF sample using an example procedural brick texture.
 fn sample_brick_texture(p: Vector3<f32>, normal: Vector3<f32>, distance: f32) -> SDFSample {
-    const BRICK_COLOR: Vector3<f32> = Vector3::new(188. / 255., 74. / 255., 60. / 255.);
+    const BRICK_COLOR: Vector3<f32> = Vector3::new(150. / 255., 24. / 255., 10. / 255.);
     const BRICK_WIDTH: f32 = 0.5;
     const BRICK_HEIGHT: f32 = 0.25;
-    const CEMENT_COLOR: Vector3<f32> = Vector3::new(126. / 255., 130. / 255., 116. / 255.);
+    const CEMENT_COLOR: Vector3<f32> = Vector3::new(56. / 255., 70. / 255., 60. / 255.);
     const CEMENT_THICKNESS: f32 = 0.2;
 
     // The procedural 2D brick texture is a simple grid of bricks and cement.

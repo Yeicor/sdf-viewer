@@ -1,7 +1,7 @@
 use crate::cli::env_get;
 use cgmath::{vec3, Vector3};
 use three_d::core::Program;
-use three_d::{lights_shader_source, Blend, Camera, Cull, FragmentAttributes, Light, LightingModel, Material, MaterialType, RenderStates, Srgba, Texture3D};
+use three_d::{lights_shader_source, Blend, ColorMapping, Cull, EffectMaterialId, Light, Material, MaterialType, RenderStates, Srgba, Texture3D, ToneMapping};
 
 /// The material properties used for the shader that renders the SDF. It can be applied to any mesh
 /// with any transformation, which represents the bounding box of the SDF.
@@ -17,8 +17,6 @@ pub struct SDFViewerMaterial {
     pub lod_dist_between_samples: f32,
     /// Base surface color (tint). Assumed to be in linear color space.
     pub color: Srgba,
-    /// The lighting model used to render the voxel data.
-    pub lighting_model: LightingModel,
 }
 
 impl SDFViewerMaterial {
@@ -29,50 +27,34 @@ impl SDFViewerMaterial {
             voxels_bounds,
             lod_dist_between_samples: 1f32,
             color: Srgba::WHITE,
-            lighting_model: LightingModel::Phong,
         }
     }
 }
 
 impl Material for SDFViewerMaterial {
     fn fragment_shader_source(&self, lights: &[&dyn Light]) -> String {
-        let mut output = lights_shader_source(lights, self.lighting_model);
-        // source.push_str(ToneMapping::fragment_shader_source());
-        // source.push_str(ColorMapping::fragment_shader_source());
+        let mut output = lights_shader_source(lights);
+        output.push_str(ToneMapping::fragment_shader_source());
+        output.push_str(ColorMapping::fragment_shader_source());
         if let Some(gamma) = env_get("gamma") {
             output.push_str(&format!("#define GAMMA_CORRECTION {}\n", gamma));
-        } else { // Provide defaults by platform
-            #[cfg(target_arch = "wasm32")]
-            output.push_str("#define GAMMA_CORRECTION 1.0/2.2\n");
-            #[cfg(not(target_arch = "wasm32"))]
-            output.push_str("#define GAMMA_CORRECTION 1.4\n");
         }
         output.push_str(include_str!("material.frag"));
         output
     }
 
-    fn id(&self) -> u16 {
-        0
-    }
-
-    fn fragment_attributes(&self) -> FragmentAttributes {
-        FragmentAttributes {
-            position: true,
-            normal: false,
-            tangents: false,
-            uv: false,
-            color: false,
-        }
+    fn id(&self) -> EffectMaterialId {
+        EffectMaterialId(0)
     }
 
     fn use_uniforms(
         &self,
         program: &Program,
-        camera: &Camera,
+        camera: &dyn three_d::Viewer,
         lights: &[&dyn Light],
     ) {
-        // viewer.tone_mapping().use_uniforms(program);
-        // viewer.color_mapping().use_uniforms(program);
+        camera.color_mapping().use_uniforms(program);
+        camera.tone_mapping().use_uniforms(program);
         for (i, light) in lights.iter().enumerate() {
             light.use_uniforms(program, i as u32);
         }
@@ -104,7 +86,7 @@ impl Material for SDFViewerMaterial {
 }
 
 // Copied from https://github.com/asny/three-d/blob/9914fc1eb76dee2cb2a58dc781a59085bc413b10/src/renderer/light.rs#L143
-fn bvp_matrix(camera: &Camera) -> three_d::Mat4 {
+fn bvp_matrix(camera: &dyn three_d::Viewer) -> three_d::Mat4 {
     let bias_matrix = three_d::Mat4::new(
         0.5, 0.0, 0.0, 0.0,
         0.0, 0.5, 0.0, 0.0,

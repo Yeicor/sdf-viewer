@@ -11,7 +11,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"] # Required for web and Android.
 
 [features]
-# By default build the app and the server (if not on wasm).
 default = ["app", "server", "meshers", "native", "file_dialog"]
 default-android = ["app", "server", "meshers", "native", "eframe/android-native-activity"]
 default-wasm = ["app", "meshers", "web"]
@@ -60,9 +59,9 @@ wasminterpreters = ["wasmer", "wasmer-wasix"]
 # ========== DEPENDENCIES ==========
 [dependencies]
 # === RENDERING ===
-three-d = { version = "=0.17.0", default-features = false, features = ["egui-gui"], optional = true }
-eframe = { version = "=0.28.1", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
-winit = { version = "=0.29.15", optional = true } # Same as eframe
+three-d = { version = "=0.18", default-features = false, features = ["egui-gui"], optional = true }
+eframe = { version = "=0.29", features = ["persistence", "glow"], optional = true }  # Same as three-d (egui)
+winit = { version = "=0.30", optional = true } # Same as eframe
 image = { version = "0.25", optional = true }  # Required for image loading
 
 # === LOGGING & PROFILING (see also native/web dependencies) ===
@@ -73,19 +72,19 @@ profiling = { version = "1.0", features = ["profile-with-tracing"], optional = t
 ehttp = { version = "0.5", optional = true } # Very simple HTTP client that supports web
 
 # === SERVER ===
-salvo = { version = "0.74", optional = true } # Simple HTTP server
-notify-debouncer-full = { version = "*", default-features = false, optional = true } # Watch for file changes
+salvo = { version = "0.75", optional = true } # Simple HTTP server
+notify-debouncer-full = { version = "0.5", default-features = false, optional = true } # Watch for file changes
 httpdate = { version = "1.0", optional = true } # Formatting of dates
 lru = { version = "0.12", optional = true } # For caching resources
 
 # === WEBASSEMBLY COMPILERS/INTERPRETERS ===
-wasmer = { version = "5.0.2", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
-wasmer-wasix = { version = "0.32.0", default-features = false, optional = true } # WASI support for wasmer
+wasmer = { version = "5.0.5-rc1", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
+wasmer-wasix = { version = "0.35", default-features = false, optional = true } # WASI support for wasmer
 
 # === CONFIGURATION & CLI ===
 clap = { version = "=3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
 klask = { git = "https://github.com/Yeicor/klask", default-features = false, optional = true }  # CLI to GUI converter
-shadow-rs = { version = "0.36", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
+shadow-rs = { version = "0.37", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 
 # === MESHERS ===
 ply-rs = { version = "0.1", optional = true } # Mesh output format
@@ -102,14 +101,14 @@ once_cell = { version = "1.20", optional = true } # Static globals with lazy ini
 
 # === NATIVE (desktop & mobile) ===
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tokio = { version = "1.42", features = ["macros", "rt-multi-thread", "sync"], optional = true } # Asynchronous runtime
+tokio = { version = "1.42", features = ["rt-multi-thread", "macros", "sync"], optional = true } # Asynchronous runtime
 tracing-subscriber = { version = "0.3", optional = true } # For logging
 
 # === WEB ===
 [target.'cfg(target_arch = "wasm32")'.dependencies] # Web dependencies
 wasm-bindgen = { version = "0.2", optional = true } # Core bindings
 wasm-bindgen-futures = { version = "0.4", optional = true } # Core bindings
-tokio = { version = "1.42", features = ["sync"], optional = true } # Minimal async utilities like mutexes
+tokio = { version = "1.42", features = ["rt", "macros", "sync"], optional = true } # Asynchronous runtime
 web-sys = { version = "0.3", optional = true } # Core bindings
 js-sys = { version = "0.3", optional = true } # Core bindings
 tracing-wasm = { version = "0.2", optional = true } # For logging
@@ -117,7 +116,7 @@ console_error_panic_hook = { version = "0.1", optional = true } # For logging
 
 # === BUILD ===
 [build-dependencies]
-shadow-rs = "0.36" # For build metadata
+shadow-rs = "0.37" # For build metadata
 
 # ========== RELEASE CONFIGURATION ==========
 [profile.release]
@@ -132,7 +131,6 @@ wasm-opt = false # https://github.com/rustwasm/wasm-pack/issues/781 (enable this
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.4"
 android_logger = "0.14"
-android-activity = "0.6"
 
 [package.metadata.android]
 package = "com.github.yeicor.sdfviewer"
@@ -143,8 +141,8 @@ label = "SDF Viewer"
 
 [package.metadata.android.sdk]
 min_sdk_version = 23
-target_sdk_version = 33
-max_sdk_version = 33
+target_sdk_version = 35
+max_sdk_version = 35
 
 [[package.metadata.android.uses_permission]]
 name = "android.permission.INTERNET"

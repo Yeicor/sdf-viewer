@@ -4,7 +4,7 @@ use crate::cli::{Cli, Commands};
 use crate::metadata::log_version_info;
 
 #[cfg(feature = "app")]
-type AppCreator = Option<eframe::AppCreator>;
+type AppCreator = Option<eframe::AppCreator<'static>>;
 #[cfg(not(feature = "app"))]
 type AppCreator = Option<()>;
 

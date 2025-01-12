@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use eframe::egui::collapsing_header::CollapsingState;
 use eframe::egui::panel::{Side, TopBottomSide};
-use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, Ui, Vec2};
-use eframe::{egui, Theme};
+use eframe::egui::{Context, Frame, ProgressBar, ScrollArea, ThemePreference, Ui, Vec2};
+use eframe::{egui};
 use image::EncodableLayout;
 use tokio::sync::mpsc::error::TryRecvError;
 use tokio::sync::mpsc::Receiver;
@@ -60,12 +60,11 @@ pub struct SDFViewerApp {
 impl SDFViewerApp {
     #[profiling::function]
     pub fn new(cc: &eframe::CreationContext<'_>, cli_args: CliApp) -> Self {
-        // Default to dark mode if no theme is provided by the OS (or environment variables)
-        if (cc.integration_info.system_theme == Some(Theme::Light) ||
-            env_get("light").is_some()) && env_get("dark").is_none() { // TODO: Save & restore theme settings
-            cc.egui_ctx.set_visuals(egui::Visuals::light());
-        } else {
-            cc.egui_ctx.set_visuals(egui::Visuals::dark());
+        // Override theme with environment variables
+        if env_get("dark").is_some() {
+            cc.egui_ctx.set_theme(ThemePreference::Dark);
+        } else if env_get("light").is_some() {
+            cc.egui_ctx.set_theme(ThemePreference::Light);
         }
 
         info!("Initialization complete! Starting main loop...");
@@ -262,7 +261,7 @@ impl SDFViewerApp {
                         ui.add_enabled_ui(false, |ui| ui.menu_button("💾 Mesher (not enabled)", |_| {}));
                         // Add an spacer to right-align some options
                         ui.allocate_space(Vec2::new(ui.available_width() - 26.0, 1.0));
-                        egui::widgets::global_dark_light_mode_switch(ui);
+                        egui::widgets::global_theme_preference_switch(ui);
                     });
                 });
             });
