@@ -50,7 +50,7 @@ jobs:
           # Commit the changes
           git config --global user.email "yeicor@users.noreply.github.com"
           git config --global user.name "Yeicor"
-          if !git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
+          if ! git commit -am "Update Cargo.toml to version ${VERSION:1} (automatic)"; then
             echo "No change to the Cargo.toml version (did you repeat a release tag??)"
             exit 1
           fi
