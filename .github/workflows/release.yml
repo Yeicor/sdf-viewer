@@ -58,14 +58,11 @@ jobs:
             exit 1
           fi
           
-          # Move the tag to the commit
+          # Move the tag to the commit and push the new branch
           git tag -d "${VERSION}"
+          git push -d origin "${VERSION}"
           git tag "${VERSION}"
-          
-          # Push the new branch and overwrite the old tag
-          git push origin "${VERSION}"
-          git push -d origin "${BRANCH_NAME}"
-          git push origin "${BRANCH_NAME}"
+          git push origin "${BRANCH_NAME}" "${VERSION}"
           
           # Open a pull request that will automatically merge after the CI passes
           gh pr create --base master --head "update-cargo-version-${VERSION:1}" --title "Update Cargo.toml to version ${VERSION:1}" --body "This PR updates the version in Cargo.toml to ${VERSION:1} and moves the release tag to the commit."
