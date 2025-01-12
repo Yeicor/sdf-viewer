@@ -14,6 +14,6 @@
     "schedule": [
       "before 3am on Saturday"
     ]
-  }
-  "ignoreDeps": ["eframe", "winit"]  # Same versions as required by three-d
+  },
+  "ignoreDeps": ["eframe", "winit"]  // Same versions as required by three-d
 }
