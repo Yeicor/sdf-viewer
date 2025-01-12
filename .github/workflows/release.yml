@@ -60,7 +60,7 @@ jobs:
           
           # Move the tag to the commit and push the new branch
           git tag -d "${VERSION}"
-          git push -d origin "${BRANCH_NAME}"
+          git push -d origin "${VERSION}"
           git tag "${VERSION}"
           git push origin "${BRANCH_NAME}"
           git push origin "${VERSION}"
