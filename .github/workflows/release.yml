@@ -17,7 +17,7 @@ jobs:
     name: Update the version in Cargo.toml
     runs-on: ubuntu-latest
     outputs:
-      BRANCH_NAME: ${{ steps.auto-update.outputs.BRANCH_NAME }}
+      BRANCH_NAME: ${{ steps.auto-update.outputs.BRANCH_NAME || github.ref }}
     steps:
       - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Checkout
@@ -28,9 +28,6 @@ jobs:
           rustup update
       - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: Swatinem/rust-cache@v2.7.7
-      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        id: auto-update
-        run: echo "BRANCH_NAME=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
       - if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         name: Auto-update Cargo.toml and move the release tag
         id: auto-update
