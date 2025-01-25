@@ -15,5 +15,8 @@
       "before 3am on Saturday"
     ]
   },
-  "ignoreDeps": ["eframe", "winit"]  // Same versions as required by three-d
+  "ignoreDeps": [
+    "eframe", "winit",  // Same versions as required by three-d
+    "clap"  // Too much work to update
+  ]
 }
