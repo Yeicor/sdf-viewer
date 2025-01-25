@@ -82,7 +82,7 @@ wasmer = { version = "5.0.5-rc1", default-features = false, optional = true } # 
 wasmer-wasix = { version = "0.35", default-features = false, optional = true } # WASI support for wasmer
 
 # === CONFIGURATION & CLI ===
-clap = { version = "=3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
+clap = { version = "=4.5.27", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
 klask = { git = "https://github.com/Yeicor/klask", default-features = false, optional = true }  # CLI to GUI converter
 shadow-rs = { version = "0.37", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 
