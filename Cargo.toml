@@ -75,7 +75,7 @@ ehttp = { version = "0.5", optional = true } # Very simple HTTP client that supp
 salvo = { version = "0.76", optional = true } # Simple HTTP server
 notify-debouncer-full = { version = "0.5", default-features = false, optional = true } # Watch for file changes
 httpdate = { version = "1.0", optional = true } # Formatting of dates
-lru = { version = "0.12", optional = true } # For caching resources
+lru = { version = "0.13", optional = true } # For caching resources
 
 # === WEBASSEMBLY COMPILERS/INTERPRETERS ===
 wasmer = { version = "5.0.5-rc1", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
