@@ -320,10 +320,10 @@ pub extern "C" fn changed_free(ret: Box<Option<[Vector3<f32>; 2]>>) {
 }
 
 #[no_mangle]
-pub extern "C" fn normal(sdf_id: u32, p: Vector3<f32>, eps: Box<Option<f32>>) -> Box<Vector3<f32>> {
+pub extern "C" fn normal(sdf_id: u32, p: Vector3<f32>, eps: f32) -> Box<Vector3<f32>> {
     Box::new(sdf_registry(|r| r.get(&sdf_id)
         .map(|sdf| {
-            sdf.normal(p, *eps)
+            sdf.normal(p, if eps > 0.0 { Some(eps) } else { None })
         })
         .unwrap_or_else(|| {
             eprintln!("Failed to find SDF with ID {}", sdf_id);
