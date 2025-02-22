@@ -503,18 +503,7 @@ impl SDFSurface for WasmerSDF {
             Value::F32(p.x),
             Value::F32(p.y),
             Value::F32(p.z),
-            Value::I32({
-                let write_string_address = 0x12300;
-                self.write_memory(write_string_address, match eps {
-                    None => &[0, 0, 0, 0],
-                    Some(_) => &[1, 0, 0, 0], // Little-endian 1 for error
-                }, &tmp_store_mut);
-                self.write_memory(write_string_address + size_of::<u32>() as u32, &match eps {
-                    None => [0; size_of::<f32>()],
-                    Some(eps) => eps.to_le_bytes(),
-                }, &tmp_store_mut);
-                reinterpret_u32_as_i32(write_string_address)
-            }),
+            Value::F32(eps.unwrap_or(-1.0)),
         ]).unwrap_or_else(|err| {
             tracing::error!("Failed to get normal of wasm SDF with ID {}: {}", self.sdf_id, err);
             Box::new([])
