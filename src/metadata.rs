@@ -12,7 +12,7 @@ pub(crate) fn log_version_info() {
 #[allow(dead_code)] // Allow auto-generated code containing unused build metadata
 pub(crate) fn short_version_info() -> String {
     format!("{} {} ({}@{}{})", build::PROJECT_NAME, build::PKG_VERSION, build::BRANCH, build::SHORT_COMMIT,
-            if shadow_rs::git_clean() { "" } else { "+dirty" })
+            if build::GIT_CLEAN { "" } else { "+dirty" })
 }
 
 #[allow(dead_code)] // Allow auto-generated code containing unused build metadata
