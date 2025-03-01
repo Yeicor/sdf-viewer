@@ -84,7 +84,7 @@ wasmer-wasix = { version = "0.37", default-features = false, optional = true } #
 # === CONFIGURATION & CLI ===
 clap = { version = "=3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
 klask = { git = "https://github.com/Yeicor/klask", default-features = false, optional = true }  # CLI to GUI converter
-shadow-rs = { version = "0.38", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
+shadow-rs = { version = "1.0", default-features = false, optional = true } # Web does not support the git2 optional dependency, which is unnecessary
 
 # === MESHERS ===
 ply-rs = { version = "0.1", optional = true } # Mesh output format
@@ -116,7 +116,7 @@ console_error_panic_hook = { version = "0.1", optional = true } # For logging
 
 # === BUILD ===
 [build-dependencies]
-shadow-rs = "0.38" # For build metadata
+shadow-rs = "1.0" # For build metadata
 
 # ========== RELEASE CONFIGURATION ==========
 [profile.release]
