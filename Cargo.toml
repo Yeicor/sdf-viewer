@@ -79,7 +79,7 @@ lru = { version = "0.13", optional = true } # For caching resources
 
 # === WEBASSEMBLY COMPILERS/INTERPRETERS ===
 wasmer = { version = "6.0.0-alpha.1", default-features = false, optional = true } # Very fast WebAssembly runtime for x86_64, wasm32 and ARM64
-wasmer-wasix = { version = "0.37", default-features = false, optional = true } # WASI support for wasmer
+wasmer-wasix = { version = "0.38", default-features = false, optional = true } # WASI support for wasmer
 
 # === CONFIGURATION & CLI ===
 clap = { version = "=3", features = ["derive"], optional = true } # CLI parser. Heavy dependency on this version because of klask.
