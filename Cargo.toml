@@ -108,7 +108,7 @@ tracing-subscriber = { version = "0.3", optional = true } # For logging
 
 # === WEB ===
 [target.'cfg(target_arch = "wasm32")'.dependencies] # Web dependencies
-wasm-bindgen = { version = "=0.2.114", optional = true } # Core bindings (same as wasmer)
+wasm-bindgen = { version = "=0.2.129", optional = true } # Core bindings (same as wasmer)
 wasm-bindgen-futures = { version = "0.4", optional = true } # Core bindings
 tokio = { version = "1.42", features = ["rt", "macros", "sync"], optional = true } # Asynchronous runtime
 web-sys = { version = "0.3", optional = true } # Core bindings
